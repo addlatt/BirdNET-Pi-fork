@@ -62,33 +62,26 @@ EOF
 
 create_necessary_dirs() {
   echo "Creating necessary directories"
+  # Data directories for recordings
   [ -d ${EXTRACTED} ] || sudo -u ${USER} mkdir -p ${EXTRACTED}
   [ -d ${EXTRACTED}/By_Date ] || sudo -u ${USER} mkdir -p ${EXTRACTED}/By_Date
   [ -d ${EXTRACTED}/Charts ] || sudo -u ${USER} mkdir -p ${EXTRACTED}/Charts
   [ -d ${PROCESSED} ] || sudo -u ${USER} mkdir -p ${PROCESSED}
   [ -d $RECS_DIR/StreamData ] || sudo -u ${USER} mkdir -p $RECS_DIR/StreamData
-  [ -L ${EXTRACTED}/spectrogram.png ] || sudo -u ${USER} ln -sf ${RECS_DIR}/StreamData/spectrogram.png ${EXTRACTED}/spectrogram.png
 
+  # Symlinks for script operation (species lists, model labels)
   sudo -u ${USER} ln -fs $my_dir/exclude_species_list.txt $my_dir/scripts
   sudo -u ${USER} ln -fs $my_dir/confirmed_species_list.txt $my_dir/scripts
   sudo -u ${USER} ln -fs $my_dir/include_species_list.txt $my_dir/scripts
   sudo -u ${USER} ln -fs $my_dir/whitelist_species_list.txt $my_dir/scripts
-  sudo -u ${USER} ln -fs $my_dir/homepage/* ${EXTRACTED}
   sudo -u ${USER} ln -fs $my_dir/model/labels.txt ${my_dir}/scripts
-  sudo -u ${USER} ln -fs $my_dir/scripts ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/play.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/spectrogram.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/overview.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/stats.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/todays_detections.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/history.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/scripts/weekly_report.php ${EXTRACTED}
-  sudo -u ${USER} ln -fs $my_dir/homepage/images/favicon.ico ${EXTRACTED}
-  sudo -u ${USER} ln -fs ${HOME}/phpsysinfo ${EXTRACTED}
+  sudo -u ${USER} ln -sf $my_dir/model/labels_nm/labels_en.txt $my_dir/model/labels_flickr.txt
+
+  # phpsysinfo configuration
   sudo -u ${USER} ln -fs $my_dir/templates/phpsysinfo.ini ${HOME}/phpsysinfo/
   sudo -u ${USER} ln -fs $my_dir/templates/green_bootstrap.css ${HOME}/phpsysinfo/templates/
   sudo -u ${USER} ln -fs $my_dir/templates/index_bootstrap.html ${HOME}/phpsysinfo/templates/html
-  sudo -u ${USER} ln -sf $my_dir/model/labels_nm/labels_en.txt $my_dir/model/labels_flickr.txt
+
   chmod -R g+rw $my_dir
   chmod -R g+rw ${RECS_DIR}
 }
@@ -159,59 +152,142 @@ install_Caddyfile() {
   if [ -f /etc/caddy/Caddyfile ];then
     cp /etc/caddy/Caddyfile{,.original}
   fi
+
+  # Web application root
+  WEB_ROOT="${HOME}/BirdNET-Pi/src/web"
+
   if ! [ -z ${CADDY_PWD} ];then
   HASHWORD=$(caddy hash-password --plaintext ${CADDY_PWD})
   cat << EOF > /etc/caddy/Caddyfile
 http:// ${BIRDNETPI_URL} {
-  root * ${EXTRACTED}
-  file_server browse
+  # Static assets
+  handle /assets/* {
+    root * ${WEB_ROOT}/public
+    file_server
+  }
+
+  # Vendored tools (protected)
+  handle /adminer/* {
+    basicauth {
+      birdnet ${HASHWORD}
+    }
+    root * ${WEB_ROOT}/vendor/adminer
+    php_fastcgi unix//run/php/php-fpm.sock
+  }
+  handle /filemanager/* {
+    basicauth {
+      birdnet ${HASHWORD}
+    }
+    root * ${WEB_ROOT}/vendor/filemanager
+    php_fastcgi unix//run/php/php-fpm.sock
+  }
+
+  # phpsysinfo (protected)
+  handle /phpsysinfo/* {
+    basicauth {
+      birdnet ${HASHWORD}
+    }
+    root * ${HOME}/phpsysinfo
+    php_fastcgi unix//run/php/php-fpm.sock
+  }
+
+  # Bird recordings (browse)
   handle /By_Date/* {
+    root * ${EXTRACTED}
     file_server browse
   }
   handle /Charts/* {
+    root * ${EXTRACTED}
     file_server browse
   }
-  basicauth /views.php?view=File* {
-    birdnet ${HASHWORD}
+
+  # Live spectrogram image
+  handle /spectrogram.png {
+    root * ${RECS_DIR}/StreamData
+    file_server
   }
-  basicauth /Processed* {
-    birdnet ${HASHWORD}
-  }
-  basicauth /scripts* {
-    birdnet ${HASHWORD}
-  }
+
+  # Protected stream
   basicauth /stream {
     birdnet ${HASHWORD}
   }
-  basicauth /phpsysinfo* {
-    birdnet ${HASHWORD}
-  }
+  reverse_proxy /stream localhost:8000
+
+  # Protected terminal
   basicauth /terminal* {
     birdnet ${HASHWORD}
   }
-  reverse_proxy /stream localhost:8000
-  php_fastcgi unix//run/php/php-fpm.sock
+  reverse_proxy /terminal* localhost:8888
+
+  # Other reverse proxies
   reverse_proxy /log* localhost:8080
   reverse_proxy /stats* localhost:8501
-  reverse_proxy /terminal* localhost:8888
+
+  # PHP front controller (default handler)
+  handle {
+    root * ${WEB_ROOT}/public
+    php_fastcgi unix//run/php/php-fpm.sock {
+      try_files {path} /index.php
+    }
+    file_server
+  }
 }
 EOF
   else
-    cat << EOF > /etc/caddy/Caddyfile
+  cat << EOF > /etc/caddy/Caddyfile
 http:// ${BIRDNETPI_URL} {
-  root * ${EXTRACTED}
-  file_server browse
+  # Static assets
+  handle /assets/* {
+    root * ${WEB_ROOT}/public
+    file_server
+  }
+
+  # Vendored tools (no auth)
+  handle /adminer/* {
+    root * ${WEB_ROOT}/vendor/adminer
+    php_fastcgi unix//run/php/php-fpm.sock
+  }
+  handle /filemanager/* {
+    root * ${WEB_ROOT}/vendor/filemanager
+    php_fastcgi unix//run/php/php-fpm.sock
+  }
+
+  # phpsysinfo (no auth)
+  handle /phpsysinfo/* {
+    root * ${HOME}/phpsysinfo
+    php_fastcgi unix//run/php/php-fpm.sock
+  }
+
+  # Bird recordings (browse)
   handle /By_Date/* {
+    root * ${EXTRACTED}
     file_server browse
   }
   handle /Charts/* {
+    root * ${EXTRACTED}
     file_server browse
   }
+
+  # Live spectrogram image
+  handle /spectrogram.png {
+    root * ${RECS_DIR}/StreamData
+    file_server
+  }
+
+  # Reverse proxies
   reverse_proxy /stream localhost:8000
-  php_fastcgi unix//run/php/php-fpm.sock
   reverse_proxy /log* localhost:8080
   reverse_proxy /stats* localhost:8501
   reverse_proxy /terminal* localhost:8888
+
+  # PHP front controller (default handler)
+  handle {
+    root * ${WEB_ROOT}/public
+    php_fastcgi unix//run/php/php-fpm.sock {
+      try_files {path} /index.php
+    }
+    file_server
+  }
 }
 EOF
   fi
