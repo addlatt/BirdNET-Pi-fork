@@ -35,6 +35,11 @@ update_etc_hosts() {
 }
 
 install_scripts() {
+  # Download gotty binaries if not present
+  if [[ ! -f ${my_dir}/scripts/gotty-aarch64 ]] || [[ ! -f ${my_dir}/scripts/gotty-x86_64 ]]; then
+    echo "Downloading gotty binaries..."
+    ${my_dir}/scripts/download_gotty.sh --all
+  fi
   ln -sf ${my_dir}/scripts/* /usr/local/bin/
 }
 

@@ -1,49 +1,76 @@
-# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
-# Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+# =============================================================================
+# BirdNET-Pi .gitignore
+# =============================================================================
 
-# User-specific stuff
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/usage.statistics.xml
-.idea/**/dictionaries
-.idea/**/shelf
+# -----------------------------------------------------------------------------
+# Downloaded Binaries (not committed - downloaded on install)
+# -----------------------------------------------------------------------------
+scripts/gotty-aarch64
+scripts/gotty-x86_64
 
-# AWS User-specific
-.idea/**/aws.xml
-
-# Generated files
-.idea/**/contentModel.xml
-.idea
-
-# Sensitive or high-churn files
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
-.idea/**/uiDesigner.xml
-.idea/**/dbnavigator.xml
-
-*.pyc
-*.flac
-.vscode
-model/labels.txt
-datasets/
-birdnet.conf
-IdentifiedSoFar.txt
-IdentifiedSoFar.txt.bak
-Birders_Guide_Installer_Configuration.txt
-birdnet/
-templates/*.service
-scripts/*.txt
+# -----------------------------------------------------------------------------
+# Runtime Data
+# -----------------------------------------------------------------------------
+# Databases
 scripts/*.db
+scripts/flickr.db
+scripts/wikipedia.db
+
+# Species lists and state files
+scripts/*.txt
 analyzing_now.txt
 apprise.txt
 body.txt
 BirdDB.txt
 exclude_species_list.txt
-firstrun.ini
-HUMAN.txt
 include_species_list.txt
 whitelist_species_list.txt
+HUMAN.txt
+IdentifiedSoFar.txt
+IdentifiedSoFar.txt.bak
+firstrun.ini
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+birdnet/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# -----------------------------------------------------------------------------
+# Generated Files
+# -----------------------------------------------------------------------------
+templates/*.service
+model/labels.txt
+datasets/
+
+# -----------------------------------------------------------------------------
+# Configuration (user-specific)
+# -----------------------------------------------------------------------------
+birdnet.conf
+Birders_Guide_Installer_Configuration.txt
+
+# -----------------------------------------------------------------------------
+# IDE / Editor
+# -----------------------------------------------------------------------------
+# JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# NetBeans
 /nbproject/private/
+
+# -----------------------------------------------------------------------------
+# Media (large test files, recordings)
+# -----------------------------------------------------------------------------
+*.flac
+# Note: .wav in tests/testdata/ IS committed for testing
