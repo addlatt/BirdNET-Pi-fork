@@ -1148,18 +1148,24 @@ The front controller pattern (`public/index.php`) will handle routing and includ
 
 ## Migration Strategy
 
-### Phase 1: Repository Cleanup (No Runtime Changes)
-- [ ] Remove binaries from git (gotty, wheel)
-- [ ] Add download scripts for binaries
-- [ ] Move runtime data locations to .gitignore
-- [ ] Create proper .gitignore
+### Phase 1: Repository Cleanup (No Runtime Changes) ✅ COMPLETE
 
-### Phase 2: Python Restructure
-- [ ] Create `src/birdnet/` package structure
-- [ ] Move `scripts/utils/` → `src/birdnet/`
-- [ ] Update imports
-- [ ] Create `pyproject.toml`
-- [ ] Update systemd service paths
+Removed 24MB of gotty binaries from git and created `scripts/download_gotty.sh` to fetch them on-demand from GitHub releases during installation. Updated `scripts/install_services.sh` to call the download script if binaries are missing. Reorganized `.gitignore` with clear sections for downloaded binaries, runtime data, Python artifacts, and IDE files.
+
+- [x] Remove binaries from git (gotty, wheel)
+- [x] Add download scripts for binaries
+- [x] Move runtime data locations to .gitignore
+- [x] Create proper .gitignore
+
+### Phase 2: Python Restructure ✅ COMPLETE
+
+Moved `scripts/utils/` to `src/birdnet/` and created a modern `pyproject.toml` with PEP 621 metadata, making the codebase an installable Python package. Updated all Python imports from `from utils.xxx` to `from birdnet.xxx` across scripts and tests, including mock patch paths. Modified `scripts/install_birdnet.sh` to install the package in editable mode (`pip install -e .`) after dependencies.
+
+- [x] Create `src/birdnet/` package structure
+- [x] Move `scripts/utils/` → `src/birdnet/`
+- [x] Update imports
+- [x] Create `pyproject.toml`
+- [ ] Update systemd service paths (deferred - services use /usr/local/bin symlinks)
 
 ### Phase 3: Web Restructure (Most Complex - Requires Caddy Changes)
 - [ ] Create `src/web/public/` structure (front controller pattern)
