@@ -13,7 +13,7 @@ from sqlite3 import Connection
 import plotly.express as px
 from sklearn.preprocessing import normalize
 from suntime import Sun
-from utils.helpers import get_settings
+from birdnet.helpers import get_settings
 
 profile = False
 debug = False

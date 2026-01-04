@@ -4,9 +4,9 @@ import unittest
 from datetime import datetime
 from unittest.mock import patch
 
-from scripts.utils import db
-from scripts.utils import notifications
-from scripts.utils.notifications import sendAppriseNotifications
+from birdnet import db
+from birdnet import notifications
+from birdnet.notifications import sendAppriseNotifications
 
 from tests.helpers import Settings
 
@@ -82,8 +82,8 @@ class TestAppriseNotifications(unittest.TestCase):
             "overlap": "0.0"
         }
 
-    @patch('scripts.utils.helpers._load_settings')
-    @patch('scripts.utils.notifications.notify')
+    @patch('birdnet.helpers._load_settings')
+    @patch('birdnet.notifications.notify')
     def test_notifications(self, mock_notify, mock_load_settings):
         self.create_test_db()
         self.create_apprise_config()
@@ -132,8 +132,8 @@ class TestAppriseNotifications(unittest.TestCase):
 
         self.assertEqual(mock_notify.call_count, 3)
 
-    @patch('scripts.utils.helpers._load_settings')
-    @patch('scripts.utils.notifications.notify')
+    @patch('birdnet.helpers._load_settings')
+    @patch('birdnet.notifications.notify')
     def test_notifications_excluded(self, mock_notify, mock_load_settings):
         self.create_test_db()
         self.create_apprise_config()
@@ -161,8 +161,8 @@ class TestAppriseNotifications(unittest.TestCase):
 
         self.assertEqual(mock_notify.call_count, 0)
 
-    @patch('scripts.utils.helpers._load_settings')
-    @patch('scripts.utils.notifications.notify')
+    @patch('birdnet.helpers._load_settings')
+    @patch('birdnet.notifications.notify')
     def test_notifications_included(self, mock_notify, mock_load_settings):
         self.create_test_db()
         self.create_apprise_config()

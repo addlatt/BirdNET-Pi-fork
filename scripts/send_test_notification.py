@@ -3,9 +3,9 @@ import datetime
 import logging
 import sys
 
-from utils import notifications
-from utils.helpers import get_settings
-from utils.db import get_latest
+from birdnet import notifications
+from birdnet.helpers import get_settings
+from birdnet.db import get_latest
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

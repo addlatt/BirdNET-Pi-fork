@@ -13,7 +13,7 @@ import seaborn as sns
 from matplotlib import rcParams
 from matplotlib.colors import LogNorm
 
-from utils.helpers import DB_PATH, FONT_DIR, get_settings, get_font
+from birdnet.helpers import DB_PATH, FONT_DIR, get_settings, get_font
 
 
 def get_data(now=None):

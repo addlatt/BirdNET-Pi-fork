@@ -2,8 +2,8 @@ import argparse
 import datetime
 import os
 
-from utils.helpers import get_settings, MODEL_PATH
-from utils.models import MDataModel1, MDataModel2
+from birdnet.helpers import get_settings, MODEL_PATH
+from birdnet.models import MDataModel1, MDataModel2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

@@ -2,10 +2,9 @@ import os
 import unittest
 from unittest.mock import patch
 
-from scripts.utils.analysis import run_analysis
-from scripts.utils.classes import ParseFileName
+from birdnet.analysis import run_analysis, filter_humans
+from birdnet.classes import ParseFileName
 from tests.helpers import TESTDATA, Settings
-from scripts.utils.analysis import filter_humans
 
 
 class TestRunAnalysis(unittest.TestCase):
@@ -21,8 +20,8 @@ class TestRunAnalysis(unittest.TestCase):
         if os.path.exists(self.test_file):
             os.unlink(self.test_file)
 
-    @patch('scripts.utils.helpers._load_settings')
-    @patch('scripts.utils.analysis.loadCustomSpeciesList')
+    @patch('birdnet.helpers._load_settings')
+    @patch('birdnet.analysis.loadCustomSpeciesList')
     def test_run_analysis(self, mock_loadCustomSpeciesList, mock_load_settings):
         # Mock the settings and species list
         mock_load_settings.return_value = Settings.with_defaults()
@@ -50,7 +49,7 @@ class TestRunAnalysis(unittest.TestCase):
 
 class TestFilterHumans(unittest.TestCase):
 
-    @patch('scripts.utils.helpers._load_settings')
+    @patch('birdnet.helpers._load_settings')
     def test_filter_humans_no_human(self, mock_load_settings):
         mock_load_settings.return_value = Settings.with_defaults()
 
@@ -72,7 +71,7 @@ class TestFilterHumans(unittest.TestCase):
         # Assertions
         self.assertEqual(result, expected)
 
-    @patch('scripts.utils.helpers._load_settings')
+    @patch('birdnet.helpers._load_settings')
     def test_filter_empty(self, mock_load_settings):
         mock_load_settings.return_value = Settings.with_defaults()
 
@@ -88,7 +87,7 @@ class TestFilterHumans(unittest.TestCase):
         # Assertions
         self.assertEqual(result, expected)
 
-    @patch('scripts.utils.helpers._load_settings')
+    @patch('birdnet.helpers._load_settings')
     def test_filter_humans_with_human(self, mock_load_settings):
         mock_load_settings.return_value = Settings.with_defaults()
 
@@ -114,7 +113,7 @@ class TestFilterHumans(unittest.TestCase):
         # Assertions
         self.assertEqual(result, expected)
 
-    @patch('scripts.utils.helpers._load_settings')
+    @patch('birdnet.helpers._load_settings')
     def test_filter_humans_with_human_neighbour(self, mock_load_settings):
         mock_load_settings.return_value = Settings.with_defaults()
 
@@ -140,7 +139,7 @@ class TestFilterHumans(unittest.TestCase):
         # Assertions
         self.assertEqual(result, expected)
 
-    @patch('scripts.utils.helpers._load_settings')
+    @patch('birdnet.helpers._load_settings')
     def test_filter_humans_with_deep_human(self, mock_load_settings):
         mock_load_settings.return_value = Settings.with_defaults()
 
@@ -166,7 +165,7 @@ class TestFilterHumans(unittest.TestCase):
         # Assertions
         self.assertEqual(result, expected)
 
-    @patch('scripts.utils.helpers._load_settings')
+    @patch('birdnet.helpers._load_settings')
     def test_filter_humans_with_human_deep(self, mock_load_settings):
         settings = Settings.with_defaults()
         settings['PRIVACY_THRESHOLD'] = 1

@@ -44,6 +44,11 @@ install_birdnet() {
     [ $LOOP_COUNT == 0 ] && exit 1
     sleep 5
   done
+
+  # Install the birdnet package in editable mode
+  echo "Installing birdnet package..."
+  pip3 install -e .
+
   rm -rf $HOME/bird_tmp
 }
 

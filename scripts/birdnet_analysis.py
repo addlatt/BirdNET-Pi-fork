@@ -11,10 +11,10 @@ from subprocess import CalledProcessError
 import inotify.adapters
 from inotify.constants import IN_CLOSE_WRITE
 
-from utils.analysis import load_global_model, run_analysis
-from utils.helpers import get_settings, get_wav_files, ANALYZING_NOW
-from utils.classes import ParseFileName
-from utils.reporting import extract_detection, summary, write_to_file, write_to_db, apprise, bird_weather, heartbeat, \
+from birdnet.analysis import load_global_model, run_analysis
+from birdnet.helpers import get_settings, get_wav_files, ANALYZING_NOW
+from birdnet.classes import ParseFileName
+from birdnet.reporting import extract_detection, summary, write_to_file, write_to_db, apprise, bird_weather, heartbeat, \
     update_json_file
 
 shutdown = False
