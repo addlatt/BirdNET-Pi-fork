@@ -2,7 +2,7 @@
 # Backup and restore BirdNET data
 
 source /etc/birdnet/birdnet.conf
-my_dir=/home/$BIRDNET_USER/BirdNET-Pi/scripts
+my_dir=/home/$BIRDNET_USER/BirdNET-Pi/scripts/tools
 
 if [ "$EUID" == 0 ]
   then echo "Please run as a non-root user."
@@ -146,7 +146,7 @@ restore() {
   source /etc/birdnet/birdnet.conf
   sed -i "s/BIRDNET_USER=.*/BIRDNET_USER=$CURRENT_BIRDNET_USER/" "/home/$CURRENT_BIRDNET_USER/BirdNET-Pi/birdnet.conf"
   sed -i "s|/home/$BIRDNET_USER/|/home/$CURRENT_BIRDNET_USER/|g" "/home/$CURRENT_BIRDNET_USER/BirdNET-Pi/birdnet.conf"
-  /home/$CURRENT_BIRDNET_USER/BirdNET-Pi/scripts/install_language_label.sh
+  /home/$CURRENT_BIRDNET_USER/BirdNET-Pi/scripts/install/install_language_label.sh
   rm -fr ${UNPACK}
   [ -n "${CADDY_PWD}" ] && sudo /usr/local/bin/update_caddyfile.sh > /dev/null 2>&1
   log "Restore done"
@@ -160,7 +160,7 @@ function cleanup()
 }
 
 required=("/home/$BIRDNET_USER/BirdNET-Pi/birdnet.conf"
-"/home/$BIRDNET_USER/BirdNET-Pi/scripts/birds.db"
+"/home/$BIRDNET_USER/BirdNET-Pi/data/db/birds.db"
 "/home/$BIRDNET_USER/BirdNET-Pi/BirdDB.txt"
 "/home/$BIRDNET_USER/BirdSongs/Extracted/Charts"
 "/home/$BIRDNET_USER/BirdSongs/Extracted/By_Date")
@@ -168,8 +168,8 @@ required=("/home/$BIRDNET_USER/BirdNET-Pi/birdnet.conf"
 # these may or may not exist
 optional=("/home/$BIRDNET_USER/BirdNET-Pi/apprise.txt"
 "/home/$BIRDNET_USER/BirdNET-Pi/body.txt"
-"/home/$BIRDNET_USER/BirdNET-Pi/scripts/blacklisted_images.txt"
-"/home/$BIRDNET_USER/BirdNET-Pi/scripts/disk_check_exclude.txt"
+"/home/$BIRDNET_USER/BirdNET-Pi/data/blacklisted_images.txt"
+"/home/$BIRDNET_USER/BirdNET-Pi/data/disk_check_exclude.txt"
 "/home/$BIRDNET_USER/BirdNET-Pi/exclude_species_list.txt"
 "/home/$BIRDNET_USER/BirdNET-Pi/confirmed_species_list.txt"
 "/home/$BIRDNET_USER/BirdNET-Pi/include_species_list.txt")

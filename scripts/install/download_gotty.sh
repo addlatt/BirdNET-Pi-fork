@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 download_gotty() {
     local arch="$1"
     local url="$2"
-    local output="${SCRIPT_DIR}/gotty-${arch}"
+    local output="${SCRIPT_DIR}/../runtime/gotty-${arch}"
 
     if [[ -f "$output" ]]; then
         echo "gotty-${arch} already exists, skipping download"

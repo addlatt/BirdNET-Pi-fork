@@ -2,12 +2,13 @@
 # Uninstall script to remove everything
 #set -x # Uncomment to debug
 trap 'rm -f ${TMPFILE}' EXIT
-my_dir=$HOME/BirdNET-Pi/scripts
+my_dir=$HOME/BirdNET-Pi
 source /etc/birdnet/birdnet.conf &> /dev/null
-SCRIPTS=($(ls -1 ${my_dir}) ${HOME}/.gotty)
+# Collect all scripts from organized directories
+SCRIPTS=($(ls -1 ${my_dir}/scripts/runtime ${my_dir}/scripts/tools ${my_dir}/scripts/config 2>/dev/null) ${HOME}/.gotty)
 set -x
 TMP_MOUNT=$(systemd-escape -p --suffix=mount "$RECS_DIR/StreamData")
-services=($(awk '/service/ && /systemctl/ && !/php/ {print $3}' ${my_dir}/install_services.sh | sort) custom_recording.service avahi-alias@.service $TMP_MOUNT)
+services=($(awk '/service/ && /systemctl/ && !/php/ {print $3}' ${my_dir}/scripts/install/install_services.sh | sort) custom_recording.service avahi-alias@.service $TMP_MOUNT)
 
 remove_services() {
   for i in "${services[@]}"; do

@@ -5,19 +5,16 @@
 # -----------------------------------------------------------------------------
 # Downloaded Binaries (not committed - downloaded on install)
 # -----------------------------------------------------------------------------
-scripts/gotty-aarch64
-scripts/gotty-x86_64
+scripts/runtime/gotty-aarch64
+scripts/runtime/gotty-x86_64
 
 # -----------------------------------------------------------------------------
 # Runtime Data
 # -----------------------------------------------------------------------------
-# Databases
-scripts/*.db
-scripts/flickr.db
-scripts/wikipedia.db
+# Databases (now in data/db/)
+data/db/*.db
 
-# Species lists and state files
-scripts/*.txt
+# Species lists and state files (now in data/)
 analyzing_now.txt
 apprise.txt
 body.txt

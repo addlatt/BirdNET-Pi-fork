@@ -14,7 +14,7 @@ fi
 
 # Get unique species
 bird_names=$(
-    sqlite3 -readonly "$HOME"/BirdNET-Pi/scripts/birds.db <<EOF
+    sqlite3 -readonly "$HOME"/BirdNET-Pi/data/db/birds.db <<EOF
 .mode column
 .headers off
 SELECT DISTINCT Com_Name FROM detections;
@@ -64,7 +64,7 @@ while read -r species; do
         -not -name "*$(date -d "-2$dateformat" '+%Y-%m-%d')*" \
         -not -name "*$(date -d "-1$dateformat" '+%Y-%m-%d')*" \
         -not -name "*$(date '+%Y-%m-%d')*" |
-        grep -vFf "$HOME/BirdNET-Pi/scripts/disk_check_exclude.txt" |
+        grep -vFf "$HOME/BirdNET-Pi/data/disk_check_exclude.txt" |
         sed "s|$species|$species_san|g" |
         sort -t'-' -k4,4nr -k1,1nr -k2,2nr -k3,3nr |
         tail -n +"$((max_files_species + 1))" |

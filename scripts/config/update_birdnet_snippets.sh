@@ -12,13 +12,13 @@ else
   USER=$(awk -F: '/1000/ {print $1}' /etc/passwd)
   HOME=$(awk -F: '/1000/ {print $6}' /etc/passwd)
 fi
-my_dir=$HOME/BirdNET-Pi/scripts
-source "$my_dir/install_helpers.sh"
+my_dir=$HOME/BirdNET-Pi
+source "$my_dir/scripts/install/install_helpers.sh"
 
 # Sets proper permissions and ownership
 find $HOME/Bird* -type f ! -perm -g+wr -exec chmod g+wr {} + 2>/dev/null
 find $HOME/Bird* -not -user $USER -execdir sudo -E chown $USER:$USER {} \+
-chmod 666 ~/BirdNET-Pi/scripts/*.txt
+chmod 666 ~/BirdNET-Pi/data/*.txt 2>/dev/null || true
 chmod 666 ~/BirdNET-Pi/*.txt
 find $HOME/BirdNET-Pi -path "$HOME/BirdNET-Pi/birdnet" -prune -o -type f ! -perm /o=w -exec chmod a+w {} \;
 chmod g+r $HOME
@@ -265,7 +265,7 @@ if [ -L $HOME/BirdNET-Pi/model/labels.txt ]; then
   sudo_with_user install_language_label.sh
 fi
 
-sqlite3 $HOME/BirdNET-Pi/scripts/birds.db << EOF
+sqlite3 $HOME/BirdNET-Pi/data/db/birds.db << EOF
 CREATE INDEX IF NOT EXISTS "detections_Sci_Name" ON "detections" ("Sci_Name");
 EOF
 

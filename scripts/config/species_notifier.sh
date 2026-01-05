@@ -9,7 +9,7 @@ lastcheck="$(mktemp)"
 
 cp ${IDFILE} ${lastcheck}
 
-$HOME/BirdNET-Pi/scripts/update_species.sh
+$HOME/BirdNET-Pi/scripts/config/update_species.sh
 
 if ! diff ${IDFILE} ${lastcheck} &> /dev/null;then
   SPECIES=$(diff ${IDFILE} ${lastcheck} \

@@ -329,10 +329,10 @@ class Flickr extends ImageProvider {
 
     public function __construct() {
         // Use absolute path
-        $this->db_path = PROJECT_ROOT . '/scripts/flickr.db';
+        $this->db_path = PROJECT_ROOT . '/data/db/flickr.db';
         $this->set_db();
 
-        $blacklisted = PROJECT_ROOT . "/scripts/blacklisted_images.txt";
+        $blacklisted = PROJECT_ROOT . "/data/blacklisted_images.txt";
         if (file_exists($blacklisted)) {
             $blacklisted_file = file($blacklisted);
             if ($blacklisted_file) {
@@ -447,7 +447,7 @@ class Wikipedia extends ImageProvider {
 
     public function __construct() {
         // Use absolute path
-        $this->db_path = PROJECT_ROOT . '/scripts/wikipedia.db';
+        $this->db_path = PROJECT_ROOT . '/data/db/wikipedia.db';
         parent::__construct();
     }
 
@@ -513,8 +513,8 @@ function get_info_url($sciname) {
     $engname = get_com_en_name($sciname);
     $config = get_config();
     if (($config['INFO_SITE'] ?? '') === 'EBIRD') {
-        // Load ebird data from project scripts directory
-        require PROJECT_ROOT . '/scripts/ebird.php';
+        // Load ebird data from project data directory
+        require PROJECT_ROOT . '/data/ebird.php';
         $ebird = $ebirds[$sciname] ?? '';
         $language = $config['DATABASE_LANG'] ?? 'en';
         $url = "https://ebird.org/species/$ebird?siteLanguage=$language";

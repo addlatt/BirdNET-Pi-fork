@@ -930,20 +930,20 @@ species_notifier.sh ──► update_species.sh
 
 ---
 
-### Critical Path Definitions (helpers.py)
+### Critical Path Definitions (helpers.py) - UPDATED FOR NEW STRUCTURE
 
 ```python
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # Resolves to: ~/BirdNET-Pi
 
-DB_PATH = os.path.join(BASE_PATH, 'scripts/birds.db')
-# Resolves to: ~/BirdNET-Pi/scripts/birds.db
+DB_PATH = os.path.join(BASE_PATH, 'data/db/birds.db')
+# Resolves to: ~/BirdNET-Pi/data/db/birds.db
 
 MODEL_PATH = os.path.join(BASE_PATH, 'model')
 # Resolves to: ~/BirdNET-Pi/model
 
-FONT_DIR = os.path.join(BASE_PATH, 'homepage/static')
-# Resolves to: ~/BirdNET-Pi/homepage/static
+FONT_DIR = os.path.join(BASE_PATH, 'src/web/public/assets/fonts')
+# Resolves to: ~/BirdNET-Pi/src/web/public/assets/fonts
 
 ANALYZING_NOW = os.path.expanduser('~/BirdSongs/StreamData/analyzing_now.txt')
 # Resolves to: ~/BirdSongs/StreamData/analyzing_now.txt
@@ -1187,10 +1187,40 @@ Replaced symlink-based web architecture with modern front-controller pattern at 
 - [x] Delete deprecated files (`homepage/`, `scripts/*.php`)
 - [ ] Test all pages and audio playback (deferred - requires running instance)
 
-### Phase 4: Shell Script Organization
-- [ ] Separate install vs runtime vs utility scripts
-- [ ] Move to appropriate directories
-- [ ] Update all path references
+### Phase 4: Shell Script Organization ✅ COMPLETE
+
+Reorganized 47 shell scripts from a flat `scripts/` directory into four logical subdirectories (`install/`, `runtime/`, `tools/`, `config/`) and created a dedicated `data/` directory for runtime data including SQLite databases and species lists. Updated all path references across Python, PHP, and shell code to use the new locations, ensuring consistency between the analysis engine, web UI, and installation scripts. An independent audit verified the migration was complete and caught several cross-language path issues that were subsequently fixed.
+
+**New Structure:**
+```
+scripts/
+├── install/     # Installation scripts (install_*.sh, createdb.sh, uninstall.sh)
+├── runtime/     # Systemd service scripts (birdnet_analysis.py, birdnet_recording.sh, etc.)
+├── tools/       # CLI utilities (backup, cleanup, diagnostics, visualization)
+└── config/      # Config management (update_*.sh, caddyfile, species notifier)
+
+data/
+├── db/          # SQLite databases (birds.db, flickr.db, wikipedia.db)
+├── species_lists/  # Species list symlinks
+└── ebird.php    # eBird lookup data (247KB)
+```
+
+- [x] Create 4-directory structure (install, runtime, tools, config)
+- [x] Create data/ directory at repo root
+- [x] Move install scripts to scripts/install/
+- [x] Move runtime scripts to scripts/runtime/
+- [x] Move utility scripts to scripts/tools/
+- [x] Move config scripts to scripts/config/
+- [x] Move ebird.php to data/
+- [x] Update install_services.sh to symlink from each subdirectory
+- [x] Update all inter-script path references
+- [x] Update database paths from scripts/birds.db to data/db/birds.db
+- [x] Clean up deprecated symlink creation in clear_all_data.sh
+- [x] Fix Python path issues (DB_PATH, FONT_DIR in src/birdnet/helpers.py)
+- [x] Fix PHP path issues (DB_PATH in bootstrap.php, database paths and ebird.php in common.php)
+- [x] Fix overview.php blacklisted_images.txt path
+- [x] Update .gitignore for new binary and data locations
+- [x] Fix download_gotty.sh output path to scripts/runtime/
 
 ### Phase 5: Configuration
 - [ ] Centralize path definitions
@@ -1211,13 +1241,14 @@ Replaced symlink-based web architecture with modern front-controller pattern at 
 
 ## Next Steps
 
-1. Create the new directory structure
-2. Start with Python reorganization (cleanest, most isolated)
-3. Update imports and test
-4. Move to PHP/web reorganization
-5. Update systemd services
-6. Test full system
-7. Document changes
+1. ~~Create the new directory structure~~ ✅
+2. ~~Start with Python reorganization (cleanest, most isolated)~~ ✅
+3. ~~Update imports and test~~ ✅
+4. ~~Move to PHP/web reorganization~~ ✅
+5. ~~Organize shell scripts~~ ✅
+6. Phase 5: Centralize configuration (path definitions, environment variables)
+7. Test full system on running instance
+8. Document changes
 
 ---
 

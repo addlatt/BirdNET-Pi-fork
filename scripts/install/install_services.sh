@@ -36,11 +36,14 @@ update_etc_hosts() {
 
 install_scripts() {
   # Download gotty binaries if not present
-  if [[ ! -f ${my_dir}/scripts/gotty-aarch64 ]] || [[ ! -f ${my_dir}/scripts/gotty-x86_64 ]]; then
+  if [[ ! -f ${my_dir}/scripts/runtime/gotty-aarch64 ]] || [[ ! -f ${my_dir}/scripts/runtime/gotty-x86_64 ]]; then
     echo "Downloading gotty binaries..."
-    ${my_dir}/scripts/download_gotty.sh --all
+    ${my_dir}/scripts/install/download_gotty.sh --all
   fi
-  ln -sf ${my_dir}/scripts/* /usr/local/bin/
+  # Symlink scripts from organized directories to /usr/local/bin/
+  ln -sf ${my_dir}/scripts/runtime/* /usr/local/bin/
+  ln -sf ${my_dir}/scripts/tools/* /usr/local/bin/
+  ln -sf ${my_dir}/scripts/config/* /usr/local/bin/
 }
 
 install_birdnet_analysis() {
@@ -70,11 +73,11 @@ create_necessary_dirs() {
   [ -d $RECS_DIR/StreamData ] || sudo -u ${USER} mkdir -p $RECS_DIR/StreamData
 
   # Symlinks for script operation (species lists, model labels)
-  sudo -u ${USER} ln -fs $my_dir/exclude_species_list.txt $my_dir/scripts
-  sudo -u ${USER} ln -fs $my_dir/confirmed_species_list.txt $my_dir/scripts
-  sudo -u ${USER} ln -fs $my_dir/include_species_list.txt $my_dir/scripts
-  sudo -u ${USER} ln -fs $my_dir/whitelist_species_list.txt $my_dir/scripts
-  sudo -u ${USER} ln -fs $my_dir/model/labels.txt ${my_dir}/scripts
+  sudo -u ${USER} ln -fs $my_dir/exclude_species_list.txt $my_dir/data/species_lists/
+  sudo -u ${USER} ln -fs $my_dir/confirmed_species_list.txt $my_dir/data/species_lists/
+  sudo -u ${USER} ln -fs $my_dir/include_species_list.txt $my_dir/data/species_lists/
+  sudo -u ${USER} ln -fs $my_dir/whitelist_species_list.txt $my_dir/data/species_lists/
+  sudo -u ${USER} ln -fs $my_dir/model/labels.txt ${my_dir}/data/
   sudo -u ${USER} ln -sf $my_dir/model/labels_nm/labels_en.txt $my_dir/model/labels_flickr.txt
 
   # phpsysinfo configuration
@@ -328,7 +331,7 @@ Restart=on-failure
 RestartSec=5
 Type=simple
 User=${USER}
-ExecStart=$HOME/BirdNET-Pi/birdnet/bin/streamlit run $HOME/BirdNET-Pi/scripts/plotly_streamlit.py --browser.gatherUsageStats false --server.address localhost --server.baseUrlPath "/stats"
+ExecStart=$HOME/BirdNET-Pi/birdnet/bin/streamlit run $HOME/BirdNET-Pi/scripts/tools/plotly_streamlit.py --browser.gatherUsageStats false --server.address localhost --server.baseUrlPath "/stats"
 
 [Install]
 WantedBy=multi-user.target
@@ -512,7 +515,7 @@ install_services() {
   generate_BirdDB
   configure_caddy_php
   config_icecast
-  USER=$USER HOME=$HOME ${my_dir}/scripts/createdb.sh
+  USER=$USER HOME=$HOME ${my_dir}/scripts/install/createdb.sh
 }
 
 if [ -f ${config_file} ];then

@@ -11,7 +11,7 @@ if [ "${used//%}" -ge "$purge_threshold" ]; then
     purge) echo "Removing oldest data"
         cd ${EXTRACTED}/By_Date/
         curl localhost/views.php?view=Species%20Stats &>/dev/null
-        if ! grep -qxFe \#\#start $HOME/BirdNET-Pi/scripts/disk_check_exclude.txt; then
+        if ! grep -qxFe \#\#start $HOME/BirdNET-Pi/data/disk_check_exclude.txt; then
             exit
         fi
         filestodelete=$(($(find ${EXTRACTED}/By_Date/* -type f | wc -l) / $(find ${EXTRACTED}/By_Date/* -maxdepth 0 -type d | wc -l)))
@@ -20,7 +20,7 @@ if [ "${used//%}" -ge "$purge_threshold" ]; then
             if [ $iter -ge $filestodelete ]; then
                 break
             fi
-            if ! grep -qxFe "$i" $HOME/BirdNET-Pi/scripts/disk_check_exclude.txt; then
+            if ! grep -qxFe "$i" $HOME/BirdNET-Pi/data/disk_check_exclude.txt; then
                 rm "$i"
             fi
             ((iter++))

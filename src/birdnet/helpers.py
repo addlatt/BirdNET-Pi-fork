@@ -10,9 +10,9 @@ from itertools import chain
 _settings = None
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-DB_PATH = os.path.join(BASE_PATH, 'scripts/birds.db')
+DB_PATH = os.path.join(BASE_PATH, 'data/db/birds.db')
 MODEL_PATH = os.path.join(BASE_PATH, 'model')
-FONT_DIR = os.path.join(BASE_PATH, 'homepage/static')
+FONT_DIR = os.path.join(BASE_PATH, 'src/web/public/assets/fonts')
 ANALYZING_NOW = os.path.expanduser('~/BirdSongs/StreamData/analyzing_now.txt')
 
 

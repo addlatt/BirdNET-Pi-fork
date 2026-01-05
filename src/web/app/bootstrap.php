@@ -53,7 +53,7 @@ define('EXTRACTED_PATH', RECS_DIR . '/Extracted');
 define('STREAMDATA_PATH', RECS_DIR . '/StreamData');
 
 // Database path - NOW ABSOLUTE, not relative!
-define('DB_PATH', PROJECT_ROOT . '/scripts/birds.db');
+define('DB_PATH', PROJECT_ROOT . '/data/db/birds.db');
 
 // Model and font paths
 define('MODEL_PATH', PROJECT_ROOT . '/model');

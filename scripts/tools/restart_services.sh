@@ -2,8 +2,6 @@
 # Restarts ALL services and removes ALL unprocessed audio
 source /etc/birdnet/birdnet.conf
 set -x
-my_dir=$HOME/BirdNET-Pi/scripts
-
 
 sudo systemctl stop birdnet_recording.service
 

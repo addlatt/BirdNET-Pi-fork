@@ -25,7 +25,7 @@ if [ -z "$NEWNAME" ]; then read -r -p 'NEWNAME (sciname_commoname): ' NEWNAME; f
 
 # Fixed values
 LABELS_FILE="$HOME/BirdNET-Pi/model/labels.txt"
-DB_FILE="$HOME/BirdNET-Pi/scripts/birds.db"
+DB_FILE="$HOME/BirdNET-Pi/data/db/birds.db"
 DETECTIONS_TABLE="detections"
 
 ###################

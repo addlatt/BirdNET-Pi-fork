@@ -30,7 +30,7 @@ if(isset($_GET['custom_image'])){
 if(isset($_GET['blacklistimage'])) {
   ensure_authenticated('You must be authenticated.');
   $imageid = $_GET['blacklistimage'];
-  $file_handle = fopen($home."/BirdNET-Pi/scripts/blacklisted_images.txt", 'a+');
+  $file_handle = fopen($home."/BirdNET-Pi/data/blacklisted_images.txt", 'a+');
   fwrite($file_handle, $imageid . "\n");
   fclose($file_handle);
   unset($_SESSION['images']);

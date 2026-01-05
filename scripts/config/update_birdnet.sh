@@ -12,7 +12,7 @@ else
   USER=$(awk -F: '/1000/ {print $1}' /etc/passwd)
   HOME=$(awk -F: '/1000/ {print $6}' /etc/passwd)
 fi
-my_dir=$HOME/BirdNET-Pi/scripts
+my_dir=$HOME/BirdNET-Pi
 
 # Defaults
 remote="origin"
@@ -80,11 +80,14 @@ sudo_with_user git -C $HOME/BirdNET-Pi switch -C $branch --track $remote/$branch
 # Prints out changes
 sudo_with_user git --no-pager -C $HOME/BirdNET-Pi diff --stat $commit_hash HEAD
 
-$my_dir/pre_update.sh
+$my_dir/scripts/config/pre_update.sh
 
 sudo systemctl daemon-reload
-sudo ln -sf $my_dir/* /usr/local/bin/
+# Symlink scripts from organized directories to /usr/local/bin/
+sudo ln -sf $my_dir/scripts/runtime/* /usr/local/bin/
+sudo ln -sf $my_dir/scripts/tools/* /usr/local/bin/
+sudo ln -sf $my_dir/scripts/config/* /usr/local/bin/
 
 # The script below handles changes to the host system
 # Any additions to the updater should be placed in that file.
-sudo $my_dir/update_birdnet_snippets.sh
+sudo $my_dir/scripts/config/update_birdnet_snippets.sh

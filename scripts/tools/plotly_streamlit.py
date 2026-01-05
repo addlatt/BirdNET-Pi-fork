@@ -31,7 +31,7 @@ if profile:
 pio.templates.default = "plotly_white"
 
 userDir = os.path.expanduser('~')
-URI_SQLITE_DB = userDir + '/BirdNET-Pi/scripts/birds.db'
+URI_SQLITE_DB = userDir + '/BirdNET-Pi/data/db/birds.db'
 
 st.set_page_config(layout='wide')
 
