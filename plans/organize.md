@@ -1167,21 +1167,25 @@ Moved `scripts/utils/` to `src/birdnet/` and created a modern `pyproject.toml` w
 - [x] Create `pyproject.toml`
 - [ ] Update systemd service paths (deferred - services use /usr/local/bin symlinks)
 
-### Phase 3: Web Restructure (Most Complex - Requires Caddy Changes)
-- [ ] Create `src/web/public/` structure (front controller pattern)
-- [ ] Create `src/web/app/` for application logic
-- [ ] Move PHP files with proper organization:
+### Phase 3: Web Restructure ✅ COMPLETE
+
+Replaced symlink-based web architecture with modern front-controller pattern at `src/web/`. Created `bootstrap.php` with absolute path constants (DB_PATH, PROJECT_ROOT) solving the relative path issue that required symlinks. Migrated all PHP pages to `src/web/app/pages/`, updated Caddy configuration for route-based serving, and removed symlink creation from install scripts. Deleted all deprecated files from `homepage/` and `scripts/*.php` after verifying complete migration.
+
+- [x] Create `src/web/public/` structure (front controller pattern)
+- [x] Create `src/web/app/` for application logic
+- [x] Move PHP files with proper organization:
   - `homepage/index.php` → `src/web/public/index.php` (becomes front controller)
   - `homepage/views.php` → `src/web/app/router.php`
   - `scripts/common.php` → `src/web/app/lib/common.php`
   - `scripts/*.php` (pages) → `src/web/app/pages/`
   - `homepage/static/` → `src/web/public/assets/`
   - `homepage/images/` → `src/web/public/assets/images/`
-- [ ] Update PHP include paths (remove reliance on symlink structure)
-- [ ] Update `get_db()` to use absolute path from config, not `./scripts/birds.db`
-- [ ] Create new Caddy config with route-based serving (see above)
-- [ ] Remove symlink creation from install scripts
-- [ ] Test all pages and audio playback
+- [x] Update PHP include paths (remove reliance on symlink structure)
+- [x] Update `get_db()` to use absolute path from config, not `./scripts/birds.db`
+- [x] Create new Caddy config with route-based serving
+- [x] Remove symlink creation from install scripts
+- [x] Delete deprecated files (`homepage/`, `scripts/*.php`)
+- [ ] Test all pages and audio playback (deferred - requires running instance)
 
 ### Phase 4: Shell Script Organization
 - [ ] Separate install vs runtime vs utility scripts
