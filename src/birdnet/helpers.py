@@ -1,64 +1,56 @@
+"""
+BirdNET-Pi Helper Functions
+
+Provides utility functions for file handling, language support, and model labels.
+Configuration is loaded from the centralized config module.
+"""
 import glob
 import json
 import os
 import re
 import subprocess
 from collections import OrderedDict
-from configparser import ConfigParser
-from itertools import chain
 
-_settings = None
+# Import configuration from centralized module
+from .config import (
+    get_config,
+    get_settings,
+    get_base_path,
+    get_db_path,
+    get_model_path,
+    get_font_dir,
+    get_analyzing_now,
+    BASE_PATH,
+    DB_PATH,
+    MODEL_PATH,
+    FONT_DIR,
+)
 
-BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-DB_PATH = os.path.join(BASE_PATH, 'data/db/birds.db')
-MODEL_PATH = os.path.join(BASE_PATH, 'model')
-FONT_DIR = os.path.join(BASE_PATH, 'src/web/public/assets/fonts')
-ANALYZING_NOW = os.path.expanduser('~/BirdSongs/StreamData/analyzing_now.txt')
+# Backwards-compatible ANALYZING_NOW - now dynamically computed from RECS_DIR
+# Use get_analyzing_now() for dynamic path that respects config
+ANALYZING_NOW = str(get_analyzing_now())
 
 
 def get_font():
-    conf = get_settings()
-    if conf['DATABASE_LANG'] == 'ar':
-        ret = {'font.family': 'Noto Sans Arabic', 'path': os.path.join(FONT_DIR, 'NotoSansArabic-Regular.ttf')}
-    elif conf['DATABASE_LANG'] in ['ja', 'zh_CN', 'zh_TW']:
-        ret = {'font.family': 'Noto Sans JP', 'path': os.path.join(FONT_DIR, 'NotoSansJP-Regular.ttf')}
-    elif conf['DATABASE_LANG'] == 'ko':
-        ret = {'font.family': 'Noto Sans KR', 'path': os.path.join(FONT_DIR, 'NotoSansKR-Regular.ttf')}
-    elif conf['DATABASE_LANG'] == 'th':
-        ret = {'font.family': 'Noto Sans Thai', 'path': os.path.join(FONT_DIR, 'NotoSansThai-Regular.ttf')}
+    """Get font configuration based on database language."""
+    conf = get_config()
+    font_dir = get_font_dir()
+
+    if conf.get('DATABASE_LANG') == 'ar':
+        ret = {'font.family': 'Noto Sans Arabic', 'path': str(font_dir / 'NotoSansArabic-Regular.ttf')}
+    elif conf.get('DATABASE_LANG') in ['ja', 'zh_CN', 'zh_TW']:
+        ret = {'font.family': 'Noto Sans JP', 'path': str(font_dir / 'NotoSansJP-Regular.ttf')}
+    elif conf.get('DATABASE_LANG') == 'ko':
+        ret = {'font.family': 'Noto Sans KR', 'path': str(font_dir / 'NotoSansKR-Regular.ttf')}
+    elif conf.get('DATABASE_LANG') == 'th':
+        ret = {'font.family': 'Noto Sans Thai', 'path': str(font_dir / 'NotoSansThai-Regular.ttf')}
     else:
-        ret = {'font.family': 'Roboto Flex', 'path': os.path.join(FONT_DIR, 'RobotoFlex-Regular.ttf')}
+        ret = {'font.family': 'Roboto Flex', 'path': str(font_dir / 'RobotoFlex-Regular.ttf')}
     return ret
 
 
-class PHPConfigParser(ConfigParser):
-    def get(self, section, option, *, raw=False, vars=None, fallback=None):
-        value = super().get(section, option, raw=raw, vars=vars, fallback=fallback)
-        if raw:
-            return value
-        else:
-            return value.strip('"')
-
-
-def _load_settings(settings_path='/etc/birdnet/birdnet.conf', force_reload=False):
-    global _settings
-    if _settings is None or force_reload:
-        with open(settings_path) as f:
-            parser = PHPConfigParser(interpolation=None)
-            # preserve case
-            parser.optionxform = lambda option: option
-            lines = chain(("[top]",), f)
-            parser.read_file(lines)
-            _settings = parser['top']
-    return _settings
-
-
-def get_settings(settings_path='/etc/birdnet/birdnet.conf', force_reload=False):
-    settings = _load_settings(settings_path, force_reload)
-    return settings
-
-
 def get_open_files_in_dir(dir_name):
+    """Get list of open files in a directory using lsof."""
     result = subprocess.run(['lsof', '-w', '-Fn', '+D', f'{dir_name}'], check=False, capture_output=True)
     ret = result.stdout.decode('utf-8')
     err = result.stderr.decode('utf-8')
@@ -69,36 +61,46 @@ def get_open_files_in_dir(dir_name):
 
 
 def get_wav_files():
-    conf = get_settings()
-    files = (glob.glob(os.path.join(conf['RECS_DIR'], '*/*/*.wav')) +
-             glob.glob(os.path.join(conf['RECS_DIR'], 'StreamData/*.wav')))
+    """Get list of WAV files available for processing."""
+    conf = get_config()
+    recs_dir = conf.get('RECS_DIR', os.path.expanduser('~/BirdSongs'))
+    files = (glob.glob(os.path.join(recs_dir, '*/*/*.wav')) +
+             glob.glob(os.path.join(recs_dir, 'StreamData/*.wav')))
     files.sort()
-    files = [os.path.join(conf['RECS_DIR'], file) for file in files]
-    rec_dir = os.path.join(conf['RECS_DIR'], 'StreamData')
+    files = [os.path.join(recs_dir, file) for file in files]
+    rec_dir = os.path.join(recs_dir, 'StreamData')
     open_recs = get_open_files_in_dir(rec_dir)
     files = [file for file in files if file not in open_recs]
     return files
 
 
 def get_language(language=None):
+    """Load language labels from JSON file."""
     if language is None:
-        language = get_settings()['DATABASE_LANG']
-    file_name = os.path.join(MODEL_PATH, f'l18n/labels_{language}.json')
+        conf = get_config()
+        language = conf.get('DATABASE_LANG', 'en')
+    model_path = get_model_path()
+    file_name = model_path / 'l18n' / f'labels_{language}.json'
     with open(file_name) as f:
         ret = json.loads(f.read())
     return ret
 
 
 def save_language(labels, language):
-    file_name = os.path.join(MODEL_PATH, f'l18n/labels_{language}.json')
+    """Save language labels to JSON file."""
+    model_path = get_model_path()
+    file_name = model_path / 'l18n' / f'labels_{language}.json'
     with open(file_name, 'w') as f:
         f.write(json.dumps(OrderedDict(sorted(labels.items())), indent=2, ensure_ascii=False))
 
 
 def get_model_labels(model=None):
+    """Get list of species labels from model file."""
     if model is None:
-        model = get_settings()['MODEL']
-    file_name = os.path.join(MODEL_PATH, f'{model}_Labels.txt')
+        conf = get_config()
+        model = conf.get('MODEL', 'BirdNET_GLOBAL_6K_V2.4_Model_FP16')
+    model_path = get_model_path()
+    file_name = model_path / f'{model}_Labels.txt'
     with open(file_name) as f:
         labels = [line.strip() for line in f.readlines()]
     if labels and labels[0].count('_') == 1:
@@ -107,10 +109,12 @@ def get_model_labels(model=None):
 
 
 def set_label_file():
+    """Generate combined labels file with translations."""
     lang = get_language()
     labels = [f'{label}_{lang[label]}\n' for label in get_model_labels()]
-    file_name = os.path.join(MODEL_PATH, 'labels.txt')
-    if os.path.islink(file_name):
-        os.remove(file_name)
+    model_path = get_model_path()
+    file_name = model_path / 'labels.txt'
+    if os.path.islink(str(file_name)):
+        os.remove(str(file_name))
     with open(file_name, 'w') as f:
         f.writelines(labels)

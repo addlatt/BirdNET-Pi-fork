@@ -9,6 +9,68 @@ $user = get_user();
 
 ensure_authenticated();
 
+/**
+ * Validate a config value against the schema
+ *
+ * @param string $key Configuration key
+ * @param mixed $value Value to validate
+ * @return array ['valid' => bool, 'error' => string|null]
+ */
+function validate_config_value($key, $value) {
+    $schema = bootstrap_load_schema();
+    $props = $schema['properties'] ?? [];
+
+    if (!isset($props[$key])) {
+        return ['valid' => true, 'error' => null]; // Unknown key, allow
+    }
+
+    $prop = $props[$key];
+    $type = $prop['type'] ?? 'string';
+
+    // Type and range checking for numbers
+    if ($type === 'number' || $type === 'integer') {
+        if (!is_numeric($value) && $value !== '') {
+            return ['valid' => false, 'error' => "$key must be a number"];
+        }
+
+        if ($value !== '' && is_numeric($value)) {
+            $num = floatval($value);
+
+            if (isset($prop['minimum']) && $num < $prop['minimum']) {
+                return ['valid' => false, 'error' => "$key must be at least {$prop['minimum']}"];
+            }
+            if (isset($prop['maximum']) && $num > $prop['maximum']) {
+                return ['valid' => false, 'error' => "$key must be at most {$prop['maximum']}"];
+            }
+        }
+    }
+
+    // Enum checking
+    if (isset($prop['enum']) && $value !== '') {
+        $valid_values = array_map('strval', $prop['enum']);
+        if (!in_array(strval($value), $valid_values, true)) {
+            $allowed = implode(', ', $prop['enum']);
+            return ['valid' => false, 'error' => "$key must be one of: $allowed"];
+        }
+    }
+
+    return ['valid' => true, 'error' => null];
+}
+
+/**
+ * Validate multiple config values, return all errors
+ */
+function validate_config_values($values) {
+    $errors = [];
+    foreach ($values as $key => $value) {
+        $result = validate_config_value($key, $value);
+        if (!$result['valid']) {
+            $errors[] = $result['error'];
+        }
+    }
+    return $errors;
+}
+
 if (isset($_GET['run_species_count'])) {
    echo "<script>";
    $output = shell_exec("sudo -u $user ".$home."/BirdNET-Pi/scripts/disk_species_count.sh 2>&1");
@@ -17,7 +79,31 @@ if (isset($_GET['run_species_count'])) {
    echo "</script>";
  }
 
+$validation_errors = [];
+
 if(isset($_GET['submit'])) {
+  // Validate numeric fields before saving
+  $values_to_validate = [];
+  if (isset($_GET['overlap'])) $values_to_validate['OVERLAP'] = $_GET['overlap'];
+  if (isset($_GET['confidence'])) $values_to_validate['CONFIDENCE'] = $_GET['confidence'];
+  if (isset($_GET['sensitivity'])) $values_to_validate['SENSITIVITY'] = $_GET['sensitivity'];
+  if (isset($_GET['privacy_threshold'])) $values_to_validate['PRIVACY_THRESHOLD'] = $_GET['privacy_threshold'];
+  if (isset($_GET['recording_length'])) $values_to_validate['RECORDING_LENGTH'] = $_GET['recording_length'];
+  if (isset($_GET['extraction_length'])) $values_to_validate['EXTRACTION_LENGTH'] = $_GET['extraction_length'];
+  if (isset($_GET['purge_threshold'])) $values_to_validate['PURGE_THRESHOLD'] = $_GET['purge_threshold'];
+  if (isset($_GET['max_files_species'])) $values_to_validate['MAX_FILES_SPECIES'] = $_GET['max_files_species'];
+  if (isset($_GET['channels'])) $values_to_validate['CHANNELS'] = $_GET['channels'];
+  if (isset($_GET['freqshift_hi'])) $values_to_validate['FREQSHIFT_HI'] = $_GET['freqshift_hi'];
+  if (isset($_GET['freqshift_lo'])) $values_to_validate['FREQSHIFT_LO'] = $_GET['freqshift_lo'];
+  if (isset($_GET['freqshift_pitch'])) $values_to_validate['FREQSHIFT_PITCH'] = $_GET['freqshift_pitch'];
+  if (isset($_GET['rare_species_threshold'])) $values_to_validate['RARE_SPECIES_THRESHOLD'] = $_GET['rare_species_threshold'];
+
+  $validation_errors = validate_config_values($values_to_validate);
+
+  if (!empty($validation_errors)) {
+    // Don't save - show errors instead
+    echo "<script>alert('Validation errors:\\n" . addslashes(implode("\\n", $validation_errors)) . "');</script>";
+  } else {
   $contents = file_get_contents('/etc/birdnet/birdnet.conf');
   $restart_livestream = false;
   $update_caddyfile = false;
@@ -127,7 +213,7 @@ if(isset($_GET['submit'])) {
 
   if(isset($_GET["freqshift_reconnect_delay"]) && is_numeric($_GET['freqshift_reconnect_delay'])) {
     $freqshift_reconnect_delay = $_GET["freqshift_reconnect_delay"];
-    if(strcmp($freqshift_hi,$config['FREQSHIFT_RECONNECT_DELAY']) !== 0) {
+    if(strcmp($freqshift_reconnect_delay,$config['FREQSHIFT_RECONNECT_DELAY']) !== 0) {
       $contents = preg_replace("/FREQSHIFT_RECONNECT_DELAY=.*/", "FREQSHIFT_RECONNECT_DELAY=$freqshift_reconnect_delay", $contents);
     }
   }
@@ -278,6 +364,7 @@ if (isset($_GET["max_files_species"])) {
   if ($restart_livestream) {
     exec("sudo systemctl restart livestream.service");
   }
+  } // End of validation else block
 }
 
 $count = 6000;

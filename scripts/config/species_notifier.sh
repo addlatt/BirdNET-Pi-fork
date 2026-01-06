@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # Sends a notification if a new species is detected
+
+# Load centralized configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/config.sh"
+
+# Also source raw config for backwards compatibility (IDFILE, etc.)
+source_raw_config
+
 trap 'rm -f $lastcheck' EXIT
-source /etc/birdnet/birdnet.conf
 
 lastcheck="$(mktemp)"
 
-[ -f ${IDFILE} ] || touch ${IDFILE}
+[ -f "${IDFILE}" ] || touch "${IDFILE}"
 
-cp ${IDFILE} ${lastcheck}
+cp "${IDFILE}" "${lastcheck}"
 
-$HOME/BirdNET-Pi/scripts/config/update_species.sh
+"${SCRIPT_DIR}/update_species.sh"
 
-if ! diff ${IDFILE} ${lastcheck} &> /dev/null;then
-  SPECIES=$(diff ${IDFILE} ${lastcheck} \
+if ! diff "${IDFILE}" "${lastcheck}" &> /dev/null; then
+  SPECIES=$(diff "${IDFILE}" "${lastcheck}" \
     | tail -n+2 |\
     awk '{for(i=2;i<=NF;++i)printf $i""FS ; print ""}' )
 
@@ -20,8 +27,8 @@ if ! diff ${IDFILE} ${lastcheck} &> /dev/null;then
   echo "Sending the following notification:
 ${NOTIFICATION}"
 
-  if [ -s $HOME/BirdNET-Pi/apprise.txt ];then
-    $HOME/BirdNET-Pi/birdnet/bin/apprise -vv -t 'New Species Detected' -b "${NOTIFICATION}" --config=$HOME/BirdNET-Pi/apprise.txt
+  APPRISE_CONFIG="${BIRDNET_BASE_PATH}/apprise.txt"
+  if [ -s "${APPRISE_CONFIG}" ]; then
+    "${BIRDNET_BASE_PATH}/birdnet/bin/apprise" -vv -t 'New Species Detected' -b "${NOTIFICATION}" --config="${APPRISE_CONFIG}"
   fi
 fi
-

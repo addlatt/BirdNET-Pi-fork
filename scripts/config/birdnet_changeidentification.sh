@@ -6,11 +6,12 @@
 # SET VARIABLES #
 #################
 
-# Define HOME in case environment is not correctly set
-HOME="${HOME:-/home/pi}"
+# Load centralized configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/config.sh"
 
-# shellcheck disable=sc1091
-source /etc/birdnet/birdnet.conf &>/dev/null
+# Also source raw config for backwards compatibility
+source_raw_config
 
 # Get arguments
 OLDNAME="$1" #OLDNAME="Mésange_charbonnière-78-2024-05-02-birdnet-RTSP_1-18:14:08.mp3"
@@ -23,9 +24,9 @@ OUTPUT_TYPE="${3:-debug}" # Set 3rd argument to debug to have all outputs
 if [ -z "$OLDNAME" ]; then read -r -p 'OLDNAME (finishing by file extension): ' OLDNAME; fi
 if [ -z "$NEWNAME" ]; then read -r -p 'NEWNAME (sciname_commoname): ' NEWNAME; fi
 
-# Fixed values
-LABELS_FILE="$HOME/BirdNET-Pi/model/labels.txt"
-DB_FILE="$HOME/BirdNET-Pi/data/db/birds.db"
+# Fixed values - using centralized paths
+LABELS_FILE="${BIRDNET_MODEL_PATH}/labels.txt"
+DB_FILE="${BIRDNET_DB_PATH}"
 DETECTIONS_TABLE="detections"
 
 ###################
@@ -92,17 +93,17 @@ NEWNAME_filename="${OLDNAME//$OLDNAME_comname_safe/$NEWNAME_comname_safe}"
 # EXECUTE : MOVE FILES #
 ########################
 
-# Check if the file exists
-FILE_PATH="$HOME/BirdSongs/Extracted/By_Date/$OLDNAME_date/$OLDNAME_comname_safe/$OLDNAME"
+# Check if the file exists - using centralized paths
+FILE_PATH="${BIRDNET_EXTRACTED_DIR}/By_Date/$OLDNAME_date/$OLDNAME_comname_safe/$OLDNAME"
 if [[ -f $FILE_PATH ]]; then
     # Ensure the new directory exists
-    NEW_DIR="$HOME/BirdSongs/Extracted/By_Date/$OLDNAME_date/$NEWNAME_comname_safe"
+    NEW_DIR="${BIRDNET_EXTRACTED_DIR}/By_Date/$OLDNAME_date/$NEWNAME_comname_safe"
     mkdir -p "$NEW_DIR"
-    
+
     # Move and rename the file
     mv "$FILE_PATH" "$NEW_DIR/$NEWNAME_filename"
     mv "$FILE_PATH".png "$NEW_DIR/$NEWNAME_filename".png
-    
+
     [[ "$OUTPUT_TYPE" == "debug" ]] && echo "Files moved!"
 else
     echo "Error: File $FILE_PATH does not exist"

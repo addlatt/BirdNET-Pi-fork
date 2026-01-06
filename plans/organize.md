@@ -1222,10 +1222,17 @@ data/
 - [x] Update .gitignore for new binary and data locations
 - [x] Fix download_gotty.sh output path to scripts/runtime/
 
-### Phase 5: Configuration
-- [ ] Centralize path definitions
-- [ ] Environment variable support
-- [ ] Config file validation
+### Phase 5: Configuration Centralization ✅ COMPLETE
+
+Created a comprehensive JSON Schema (`data/config_schema.json`) defining all ~60 config keys with types, defaults, and validation constraints (min/max ranges, enums). Built centralized configuration modules for Python (`src/birdnet/config.py`), PHP (`src/web/app/bootstrap.php`), and Shell (`scripts/lib/config.sh`) that all support environment variable overrides with the `BIRDNET_*` prefix. Updated `helpers.py` to import from the new config module (fixing the hardcoded `ANALYZING_NOW` path issue), added schema-based validation to the Advanced Settings page, and migrated key shell scripts to use the new config helper.
+
+- [x] Create data/config_schema.json with all config keys, types, defaults, and validation
+- [x] Create src/birdnet/config.py with schema loading, env overrides, and validation
+- [x] Update src/birdnet/helpers.py to import from config.py
+- [x] Update src/web/app/bootstrap.php with env override support
+- [x] Create scripts/lib/config.sh shell helper
+- [x] Add validation to src/web/app/pages/advanced.php
+- [x] Fix hardcoded paths in key shell scripts (update_species.sh, birdnet_changeidentification.sh, species_notifier.sh)
 
 ---
 
@@ -1246,7 +1253,7 @@ data/
 3. ~~Update imports and test~~ ✅
 4. ~~Move to PHP/web reorganization~~ ✅
 5. ~~Organize shell scripts~~ ✅
-6. Phase 5: Centralize configuration (path definitions, environment variables)
+6. ~~Centralize configuration (path definitions, environment variables)~~ ✅
 7. Test full system on running instance
 8. Document changes
 

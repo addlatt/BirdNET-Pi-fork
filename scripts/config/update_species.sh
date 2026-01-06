@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # Update the species list
 #set -x
-source /etc/birdnet/birdnet.conf
-if [ -f $HOME/BirdNET-Pi/data/db/birds.db ];then
-sqlite3 $HOME/BirdNET-Pi/data/db/birds.db "SELECT DISTINCT(Com_Name) FROM detections" | sort >  ${IDFILE}
+
+# Load centralized configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/config.sh"
+
+# Also source raw config for backwards compatibility (IDFILE, etc.)
+source_raw_config
+
+if [ -f "${BIRDNET_DB_PATH}" ]; then
+    sqlite3 "${BIRDNET_DB_PATH}" "SELECT DISTINCT(Com_Name) FROM detections" | sort > "${IDFILE}"
 fi

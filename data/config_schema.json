@@ -1,0 +1,359 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BirdNET-Pi Configuration Schema",
+  "description": "Configuration schema for BirdNET-Pi bird sound identification system",
+  "type": "object",
+  "properties": {
+    "SITE_NAME": {
+      "type": "string",
+      "description": "Site title for banner display",
+      "default": ""
+    },
+    "LATITUDE": {
+      "type": "number",
+      "description": "Latitude for species filtering (4 decimal places)",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "LONGITUDE": {
+      "type": "number",
+      "description": "Longitude for species filtering (4 decimal places)",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "MODEL": {
+      "type": "string",
+      "description": "BirdNET model used for detection",
+      "default": "BirdNET_GLOBAL_6K_V2.4_Model_FP16",
+      "enum": [
+        "BirdNET_GLOBAL_6K_V2.4_Model_FP16",
+        "BirdNET_GLOBAL_6K_V2.4_Model_FP32"
+      ]
+    },
+    "SF_THRESH": {
+      "type": "number",
+      "description": "Species filter threshold",
+      "default": 0.03,
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "DATA_MODEL_VERSION": {
+      "type": "integer",
+      "description": "Model data version marker",
+      "default": 1,
+      "minimum": 1
+    },
+    "BIRDWEATHER_ID": {
+      "type": "string",
+      "description": "BirdWeather station ID for reporting",
+      "default": ""
+    },
+    "CADDY_PWD": {
+      "type": "string",
+      "description": "Password for web interface authentication",
+      "default": ""
+    },
+    "ICE_PWD": {
+      "type": "string",
+      "description": "Icecast2 authentication password",
+      "default": "birdnetpi"
+    },
+    "BIRDNETPI_URL": {
+      "type": "string",
+      "description": "Public URL for web hosting (empty for local only)",
+      "default": ""
+    },
+    "RTSP_STREAM": {
+      "type": "string",
+      "description": "RTSP stream URL (empty for direct recording)",
+      "default": ""
+    },
+    "RTSP_STREAM_TO_LIVESTREAM": {
+      "type": "string",
+      "description": "Stream index for livestream (0 = first stream)",
+      "default": "0"
+    },
+    "ACTIVATE_FREQSHIFT_IN_LIVESTREAM": {
+      "type": "string",
+      "description": "Enable frequency shifting in livestream (0=off, 1=on)",
+      "default": "0",
+      "enum": ["0", "1"]
+    },
+    "APPRISE_NOTIFICATION_TITLE": {
+      "type": "string",
+      "description": "Title for Apprise notifications",
+      "default": "New BirdNET-Pi Detection"
+    },
+    "APPRISE_NOTIFY_EACH_DETECTION": {
+      "type": "integer",
+      "description": "Notify on every detection (0=off, 1=on)",
+      "default": 0,
+      "enum": [0, 1]
+    },
+    "APPRISE_NOTIFY_NEW_SPECIES": {
+      "type": "integer",
+      "description": "Notify on new species (weekly) (0=off, 1=on)",
+      "default": 0,
+      "enum": [0, 1]
+    },
+    "APPRISE_WEEKLY_REPORT": {
+      "type": "integer",
+      "description": "Send weekly reports (0=off, 1=on)",
+      "default": 1,
+      "enum": [0, 1]
+    },
+    "APPRISE_NOTIFY_NEW_SPECIES_EACH_DAY": {
+      "type": "integer",
+      "description": "Notify on first detection each day (0=off, 1=on)",
+      "default": 0,
+      "enum": [0, 1]
+    },
+    "APPRISE_MINIMUM_SECONDS_BETWEEN_NOTIFICATIONS_PER_SPECIES": {
+      "type": "integer",
+      "description": "Rate limit seconds between notifications per species",
+      "default": 0,
+      "minimum": 0
+    },
+    "APPRISE_ONLY_NOTIFY_SPECIES_NAMES": {
+      "type": "string",
+      "description": "Comma-separated species names to exclude from notifications",
+      "default": ""
+    },
+    "APPRISE_ONLY_NOTIFY_SPECIES_NAMES_2": {
+      "type": "string",
+      "description": "Comma-separated species names to include in notifications",
+      "default": ""
+    },
+    "IMAGE_PROVIDER": {
+      "type": "string",
+      "description": "Source for bird images",
+      "default": "WIKIPEDIA",
+      "enum": ["WIKIPEDIA", "FLICKR"]
+    },
+    "FLICKR_API_KEY": {
+      "type": "string",
+      "description": "Flickr API key for image retrieval",
+      "default": ""
+    },
+    "FLICKR_FILTER_EMAIL": {
+      "type": "string",
+      "description": "Filter Flickr images by user email",
+      "default": ""
+    },
+    "INFO_SITE": {
+      "type": "string",
+      "description": "Site for species information links",
+      "default": "ALLABOUTBIRDS",
+      "enum": ["ALLABOUTBIRDS", "EBIRD"]
+    },
+    "COLOR_SCHEME": {
+      "type": "string",
+      "description": "UI color theme",
+      "default": "light",
+      "enum": ["light", "dark"]
+    },
+    "FULL_DISK": {
+      "type": "string",
+      "description": "Action when disk is full",
+      "default": "purge",
+      "enum": ["purge", "keep"]
+    },
+    "PURGE_THRESHOLD": {
+      "type": "integer",
+      "description": "Disk usage percentage to trigger purge",
+      "default": 95,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "MAX_FILES_SPECIES": {
+      "type": "integer",
+      "description": "Maximum files per species (0 = unlimited)",
+      "default": 0,
+      "minimum": 0
+    },
+    "BIRDNET_USER": {
+      "type": "string",
+      "description": "System user running BirdNET-Pi"
+    },
+    "RECS_DIR": {
+      "type": "string",
+      "description": "Base directory for recordings (computed from ~/BirdSongs if empty)",
+      "default": ""
+    },
+    "REC_CARD": {
+      "type": "string",
+      "description": "Sound card device (use 'default' for PulseAudio)",
+      "default": "default"
+    },
+    "PROCESSED": {
+      "type": "string",
+      "description": "Directory for processed recordings (computed from RECS_DIR if empty)",
+      "default": ""
+    },
+    "EXTRACTED": {
+      "type": "string",
+      "description": "Directory for extracted audio clips (computed from RECS_DIR if empty)",
+      "default": ""
+    },
+    "OVERLAP": {
+      "type": "number",
+      "description": "Analysis overlap in seconds",
+      "default": 0.0,
+      "minimum": 0.0,
+      "maximum": 2.9
+    },
+    "CONFIDENCE": {
+      "type": "number",
+      "description": "Minimum confidence level for detections",
+      "default": 0.7,
+      "minimum": 0.01,
+      "maximum": 0.99
+    },
+    "SENSITIVITY": {
+      "type": "number",
+      "description": "Detection sensitivity",
+      "default": 1.25,
+      "minimum": 0.5,
+      "maximum": 1.5
+    },
+    "FREQSHIFT_TOOL": {
+      "type": "string",
+      "description": "Tool for frequency shifting",
+      "default": "sox",
+      "enum": ["sox", "ffmpeg"]
+    },
+    "FREQSHIFT_HI": {
+      "type": "integer",
+      "description": "High frequency for ffmpeg shift (Hz)",
+      "default": 6000,
+      "minimum": 1000,
+      "maximum": 20000
+    },
+    "FREQSHIFT_LO": {
+      "type": "integer",
+      "description": "Low frequency for ffmpeg shift (Hz)",
+      "default": 3000,
+      "minimum": 100,
+      "maximum": 10000
+    },
+    "FREQSHIFT_RECONNECT_DELAY": {
+      "type": "integer",
+      "description": "Reconnect delay for frequency shift (ms)",
+      "default": 4000,
+      "minimum": 0
+    },
+    "FREQSHIFT_PITCH": {
+      "type": "integer",
+      "description": "Pitch shift for sox (100ths of semitone)",
+      "default": -1500,
+      "minimum": -3000,
+      "maximum": 3000
+    },
+    "CHANNELS": {
+      "type": "integer",
+      "description": "Audio recording channels",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 8
+    },
+    "PRIVACY_THRESHOLD": {
+      "type": "integer",
+      "description": "Human sound sensitivity level (0=off, 1-3=increasing sensitivity)",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 3
+    },
+    "RECORDING_LENGTH": {
+      "type": "integer",
+      "description": "Recording chunk duration in seconds",
+      "default": 15,
+      "minimum": 3,
+      "maximum": 60
+    },
+    "EXTRACTION_LENGTH": {
+      "type": "integer",
+      "description": "Extracted clip duration in seconds (empty = 6)",
+      "default": 6,
+      "minimum": 1,
+      "maximum": 30
+    },
+    "AUDIOFMT": {
+      "type": "string",
+      "description": "Audio format for extracted clips",
+      "default": "mp3",
+      "enum": ["mp3", "wav", "flac", "ogg", "opus"]
+    },
+    "DATABASE_LANG": {
+      "type": "string",
+      "description": "Language for species database",
+      "default": "en"
+    },
+    "HEARTBEAT_URL": {
+      "type": "string",
+      "description": "URL to ping after analysis (health check)",
+      "default": ""
+    },
+    "SILENCE_UPDATE_INDICATOR": {
+      "type": "integer",
+      "description": "Hide update notification badge (0=show, 1=hide)",
+      "default": 0,
+      "enum": [0, 1]
+    },
+    "AUTOMATIC_UPDATE": {
+      "type": "integer",
+      "description": "Enable automatic updates from GitHub (0=off, 1=on)",
+      "default": 0,
+      "enum": [0, 1]
+    },
+    "RAW_SPECTROGRAM": {
+      "type": "integer",
+      "description": "Remove axes/labels from spectrograms (0=off, 1=on)",
+      "default": 0,
+      "enum": [0, 1]
+    },
+    "CUSTOM_IMAGE": {
+      "type": "string",
+      "description": "Path to custom image for Overview page",
+      "default": ""
+    },
+    "CUSTOM_IMAGE_TITLE": {
+      "type": "string",
+      "description": "Title for custom image",
+      "default": ""
+    },
+    "RARE_SPECIES_THRESHOLD": {
+      "type": "integer",
+      "description": "Days since last detection to mark species as rare",
+      "default": 30,
+      "minimum": 1
+    },
+    "IDFILE": {
+      "type": "string",
+      "description": "Path to identification tracking file (computed from install directory if empty)",
+      "default": ""
+    },
+    "LogLevel_BirdnetRecordingService": {
+      "type": "string",
+      "description": "Log level for recording service",
+      "default": "error",
+      "enum": ["debug", "info", "warning", "error"]
+    },
+    "LogLevel_LiveAudioStreamService": {
+      "type": "string",
+      "description": "Log level for livestream service",
+      "default": "error",
+      "enum": ["debug", "info", "warning", "error"]
+    },
+    "LogLevel_SpectrogramViewerService": {
+      "type": "string",
+      "description": "Log level for spectrogram service",
+      "default": "error",
+      "enum": ["debug", "info", "warning", "error"]
+    }
+  },
+  "required": [
+    "LATITUDE",
+    "LONGITUDE",
+    "BIRDNET_USER"
+  ]
+}
