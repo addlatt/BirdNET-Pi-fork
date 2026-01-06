@@ -61,20 +61,28 @@ http:// ${BIRDNETPI_URL} {
   }
 
   # Protected stream
-  basicauth /stream {
-    birdnet ${HASHWORD}
+  handle /stream {
+    basicauth {
+      birdnet ${HASHWORD}
+    }
+    reverse_proxy localhost:8000
   }
-  reverse_proxy /stream localhost:8000
 
   # Protected terminal
-  basicauth /terminal* {
-    birdnet ${HASHWORD}
+  handle /terminal* {
+    basicauth {
+      birdnet ${HASHWORD}
+    }
+    reverse_proxy localhost:8888
   }
-  reverse_proxy /terminal* localhost:8888
 
   # Other reverse proxies
-  reverse_proxy /log* localhost:8080
-  reverse_proxy /stats* localhost:8501
+  handle /log* {
+    reverse_proxy localhost:8080
+  }
+  handle /stats* {
+    reverse_proxy localhost:8501
+  }
 
   # PHP front controller (default handler)
   handle {
@@ -128,10 +136,18 @@ http:// ${BIRDNETPI_URL} {
   }
 
   # Reverse proxies
-  reverse_proxy /stream localhost:8000
-  reverse_proxy /log* localhost:8080
-  reverse_proxy /stats* localhost:8501
-  reverse_proxy /terminal* localhost:8888
+  handle /stream {
+    reverse_proxy localhost:8000
+  }
+  handle /log* {
+    reverse_proxy localhost:8080
+  }
+  handle /stats* {
+    reverse_proxy localhost:8501
+  }
+  handle /terminal* {
+    reverse_proxy localhost:8888
+  }
 
   # PHP front controller (default handler)
   handle {
