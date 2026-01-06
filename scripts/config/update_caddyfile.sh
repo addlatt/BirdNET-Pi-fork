@@ -6,8 +6,12 @@ if [ -f /etc/caddy/Caddyfile ];then
   cp /etc/caddy/Caddyfile{,.original}
 fi
 
+# Derive user home from RECS_DIR (e.g., /home/addlatt/BirdSongs -> /home/addlatt)
+# This avoids issues with ${HOME} expanding to /root when run with sudo
+USER_HOME=$(dirname "${RECS_DIR}")
+
 # Web application root
-WEB_ROOT="${HOME}/BirdNET-Pi/src/web"
+WEB_ROOT="${USER_HOME}/BirdNET-Pi/src/web"
 
 if ! [ -z ${CADDY_PWD} ];then
 HASHWORD=$(caddy hash-password --plaintext ${CADDY_PWD})
@@ -40,7 +44,7 @@ http:// ${BIRDNETPI_URL} {
     basicauth {
       birdnet ${HASHWORD}
     }
-    root * ${HOME}/phpsysinfo
+    root * ${USER_HOME}/phpsysinfo
     php_fastcgi unix//run/php/php-fpm.sock
   }
 
@@ -115,7 +119,7 @@ http:// ${BIRDNETPI_URL} {
 
   # phpsysinfo (no auth)
   handle /phpsysinfo/* {
-    root * ${HOME}/phpsysinfo
+    root * ${USER_HOME}/phpsysinfo
     php_fastcgi unix//run/php/php-fpm.sock
   }
 
