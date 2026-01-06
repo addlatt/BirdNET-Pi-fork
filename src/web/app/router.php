@@ -51,6 +51,50 @@ if (($config["LATITUDE"] ?? "0.000") == "0.000" && ($config["LONGITUDE"] ?? "0.0
 } elseif (($config["LONGITUDE"] ?? "0.000") == "0.000") {
     $warnings[] = "WARNING: Your longitude is not set properly. Please do so now in Tools -> Settings.";
 }
+
+// AJAX Request Detection - Handle AJAX requests before ANY HTML output
+// These requests expect raw data/JSON/HTML fragments, not a full HTML page
+$ajax_params = [
+    'ajax_csv',           // spectrogram.php
+    'ajax_detections',    // overview.php, todays_detections.php
+    'ajax_left_chart',    // overview.php
+    'ajax_center_chart',  // overview.php
+    'fetch_chart_string', // overview.php
+    'custom_image',       // overview.php
+    'blacklistimage',     // overview.php
+    'today_stats',        // todays_detections.php
+];
+
+$is_ajax_request = false;
+foreach ($ajax_params as $param) {
+    if (isset($_GET[$param])) {
+        $is_ajax_request = true;
+        break;
+    }
+}
+
+if ($is_ajax_request && isset($_GET['view'])) {
+    // Route directly to the view file without HTML wrapper
+    $view = $_GET['view'];
+    switch ($view) {
+        case 'Overview':
+            include(PAGES_PATH . '/overview.php');
+            break;
+        case 'Todays Detections':
+            include(PAGES_PATH . '/todays_detections.php');
+            break;
+        case 'Spectrogram':
+            include(PAGES_PATH . '/spectrogram.php');
+            break;
+        case 'Species Stats':
+            include(PAGES_PATH . '/stats.php');
+            break;
+        default:
+            // Unknown AJAX view, return empty
+            break;
+    }
+    exit; // Stop processing - AJAX request handled
+}
 ?>
 <?php if (isset($_SESSION['behind']) && intval($_SESSION['behind']) >= 99): ?>
 <style>
