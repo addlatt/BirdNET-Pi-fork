@@ -7,9 +7,10 @@ set -e # exit installation if anything fails
 my_dir=$HOME/BirdNET-Pi
 export my_dir=$my_dir
 
-cd $my_dir/scripts || exit 1
+cd $my_dir || exit 1
 git log -n 1 --pretty=oneline --no-color --decorate
 
+cd $my_dir/scripts/install || exit 1
 source install_helpers.sh
 
 if [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "x86_64" ];then
@@ -56,7 +57,7 @@ install_birdnet() {
 
 install_birdnet
 
-cd $my_dir/scripts || exit 1
+cd $my_dir/scripts/install || exit 1
 
 # tzlocal.get_localzone() will fail if the Debian specific /etc/timezone is not in sync
 CURRENT_TIMEZONE=$(timedatectl show --value --property=Timezone)
