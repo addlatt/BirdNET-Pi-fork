@@ -56,9 +56,9 @@ if ($isViewRequest) {
 <div class="banner">
     <div class="logo">
 <?php if (isset($_GET['logo'])): ?>
-        <a href="https://github.com/Nachtzuster/BirdNET-Pi.git" target="_blank"><img style="width:60;height:60;" src="/assets/images/bird.png"></a>
+        <a href="https://github.com/addlatt/BirdNET-Pi-fork" target="_blank"><img style="width:60;height:60;" src="/assets/images/bird.png"></a>
 <?php else: ?>
-        <a href="https://github.com/Nachtzuster/BirdNET-Pi.git" target="_blank"><img src="/assets/images/bird.png"></a>
+        <a href="https://github.com/addlatt/BirdNET-Pi-fork" target="_blank"><img src="/assets/images/bird.png"></a>
 <?php endif; ?>
     </div>
 
