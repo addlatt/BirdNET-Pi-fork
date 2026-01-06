@@ -56,7 +56,7 @@ http:// ${BIRDNETPI_URL} {
 
   # Live spectrogram image
   handle /spectrogram.png {
-    root * ${RECS_DIR}/StreamData
+    root * ${EXTRACTED}
     file_server
   }
 
@@ -123,7 +123,7 @@ http:// ${BIRDNETPI_URL} {
 
   # Live spectrogram image
   handle /spectrogram.png {
-    root * ${RECS_DIR}/StreamData
+    root * ${EXTRACTED}
     file_server
   }
 
