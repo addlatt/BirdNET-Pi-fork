@@ -22,32 +22,36 @@ log = logging.getLogger(__name__)
 def get_model(model=None):
     conf = get_settings()
     if model is None:
-        model = conf['MODEL']
+        model = conf.get('MODEL', 'BirdNET_GLOBAL_6K_V2.4_Model_FP16')
+
+    sensitivity = float(conf.get('SENSITIVITY', 1.0))
 
     if model == 'BirdNET_6K_GLOBAL_MODEL':
-        return BirdNetV1(conf.getfloat('SENSITIVITY'))
+        return BirdNetV1(sensitivity)
     elif model == 'BirdNET_GLOBAL_6K_V2.4_Model_FP16':
-        return BirdNetV2_4(conf.getfloat('SENSITIVITY'))
+        return BirdNetV2_4(sensitivity)
     elif model == 'Perch_v2':
         return Perch()
     elif model == 'BirdNET-Go_classifier_20250916':
-        return BirdNETGo20250916(conf.getfloat('SENSITIVITY'))
+        return BirdNETGo20250916(sensitivity)
 
 
 def get_meta_model(model=None, version=None):
     conf = get_settings()
     if model is None:
-        model = conf['MODEL']
+        model = conf.get('MODEL', 'BirdNET_GLOBAL_6K_V2.4_Model_FP16')
     if version is None:
-        version = conf.getint('DATA_MODEL_VERSION')
+        version = int(conf.get('DATA_MODEL_VERSION', 1))
 
     if model not in ['BirdNET_GLOBAL_6K_V2.4_Model_FP16', 'BirdNET-Go_classifier_20250916']:
         return None
 
+    sf_thresh = float(conf.get('SF_THRESH', 0.03))
+
     if version == 1:
-        return MDataModel1(conf.getfloat('SF_THRESH'))
+        return MDataModel1(sf_thresh)
     elif version == 2:
-        return MDataModel2(conf.getfloat('SF_THRESH'))
+        return MDataModel2(sf_thresh)
 
 
 class Basemodel:
