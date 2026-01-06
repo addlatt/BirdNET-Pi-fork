@@ -109,7 +109,7 @@ var uploader = new plupload.Uploader({
                     document.body.innerHTML=this.responseText;
                 }
             };
-            xhttp.open("GET", "views.php?submit=<?php echo "$restore"; ?>");
+            xhttp.open("GET", "?submit=<?php echo "$restore"; ?>");
             xhttp.send();
         },
 

@@ -182,7 +182,7 @@ function deleteDetection(filename,copylink=false) {
         alert(this.responseText);
       }
     }
-    xhttp.open("GET", "play.php?deletefile="+filename, true);
+    xhttp.open("GET", "?view=Recordings&deletefile="+filename, true);
     xhttp.send();
   }
 }
@@ -203,9 +203,9 @@ function toggleLock(filename, type, elem) {
     }
   }
   if(type == "add") {
-    xhttp.open("GET", "play.php?excludefile="+filename+"&exclude_add=true", true);
+    xhttp.open("GET", "?view=Recordings&excludefile="+filename+"&exclude_add=true", true);
   } else {
-    xhttp.open("GET", "play.php?excludefile="+filename+"&exclude_del=true", true);  
+    xhttp.open("GET", "?view=Recordings&excludefile="+filename+"&exclude_del=true", true);  
   }
   xhttp.send();
   elem.setAttribute("src","/assets/images/spinner.gif");
@@ -248,10 +248,10 @@ function toggleShiftFreq(filename, shiftAction, elem) {
   }
   if(shiftAction == "shift") {
     console.log("shifting freqs of " + filename);
-    xhttp.open("GET", "play.php?shiftfile="+filename+"&doshift=true", true);
+    xhttp.open("GET", "?view=Recordings&shiftfile="+filename+"&doshift=true", true);
   } else {
     console.log("unshifting freqs of " + filename);
-    xhttp.open("GET", "play.php?shiftfile="+filename, true);  
+    xhttp.open("GET", "?view=Recordings&shiftfile="+filename, true);  
   }
   xhttp.send();
   elem.setAttribute("src","/assets/images/spinner.gif");
@@ -358,7 +358,7 @@ function changeDetection(filename,copylink=false) {
             alert(this.responseText);
           }
         }
-        xhttp2.open("GET", "play.php?changefile="+filename+"&newname="+newname, true);
+        xhttp2.open("GET", "?view=Recordings&changefile="+filename+"&newname="+newname, true);
         xhttp2.send();
       }
       // Hide the modal box and reset the dropdown selection
@@ -366,7 +366,7 @@ function changeDetection(filename,copylink=false) {
       this.selectedIndex = -1;
     });
   }
-  xhttp.open("GET", "play.php?getlabels=true", true);
+  xhttp.open("GET", "?view=Recordings&getlabels=true", true);
   xhttp.send();
 }
 
@@ -610,7 +610,7 @@ echo "<table>
         </td>
         </tr>";
 
-  }if($iter == 0){ echo "<tr><td><b>No recordings were found.</b><br><br><span style='font-size:medium'>They may have been deleted to make space for new recordings. You can prevent this from happening in the future by clicking the <img src='/assets/images/unlock.svg' style='width:20px'> icon in the top right of a recording.<br>You can also modify this behavior globally under \"Full Disk Behavior\" <a href='views.php?view=Advanced'>here.</a></span></td></tr>";}echo "</table>";}
+  }if($iter == 0){ echo "<tr><td><b>No recordings were found.</b><br><br><span style='font-size:medium'>They may have been deleted to make space for new recordings. You can prevent this from happening in the future by clicking the <img src='/assets/images/unlock.svg' style='width:20px'> icon in the top right of a recording.<br>You can also modify this behavior globally under \"Full Disk Behavior\" <a href='?view=Advanced'>here.</a></span></td></tr>";}echo "</table>";}
 
   if ($iter_additional) {
     echo "<div style='text-align:center'>";

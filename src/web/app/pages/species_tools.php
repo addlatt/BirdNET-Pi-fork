@@ -197,7 +197,7 @@ $result = $db->query($sql);
   $lastSeen = $row['LastSeen'] ?? '';
   $lastSeenSort = $lastSeen ? (strtotime($lastSeen) ?: 0) : 0;
 
-  $common_link = "<a href='views.php?view=Recordings&species=" . rawurlencode($row['Sci_Name']) . "'>{$common}</a>";
+  $common_link = "<a href='?view=Recordings&species=" . rawurlencode($row['Sci_Name']) . "'>{$common}</a>";
 
   $is_confirmed   = in_array($identifier_sci, $confirmed_species, true);
   $is_excluded    = in_array($identifier_sci, $excluded_species, true);
@@ -250,13 +250,13 @@ $result = $db->query($sql);
 <script src="/assets/js/Chart.bundle.js"></script>
 <script src="/assets/js/generateMiniGraph.js"></script>
 <script>
-const scriptsBase = 'scripts/';
+const scriptsBase = '?';
 const sfThresh = <?php echo json_encode($sf_thresh, JSON_UNESCAPED_UNICODE); ?>;
 const get = (url) => fetch(url, {cache:'no-store'}).then(r => r.text());
 
 /* ---------- Probability (thresholds) auto-load ---------- */
 function loadThresholds() {
-  return get(scriptsBase + 'config.php?threshold=0').then(text => {
+  return get(scriptsBase + 'view=Settings&threshold=0').then(text => {
     const lines = (text || '').split(/\r?\n/);
     const map = Object.create(null);
     for (const line of lines) {
@@ -288,7 +288,7 @@ function loadThresholds() {
 
 /* ---------- Files on Disk column auto-load ---------- */
 function addDiskCounts() {
-  return get(scriptsBase + 'species_tools.php?diskcounts=1').then(t => {
+  return get(scriptsBase + 'view=Species+Management&diskcounts=1').then(t => {
     let counts; try { counts = JSON.parse(t); } catch { console.warn('Could not parse disk counts'); return; }
 
     const table = document.getElementById('speciesTable');
@@ -329,15 +329,15 @@ window.addEventListener('scroll', function() {
 
 /* ---------- toggles / delete ---------- */
 function toggleSpecies(list, species, action) {
-  get(scriptsBase + 'species_tools.php?toggle=' + list + '&species=' + encodeURIComponent(species) + '&action=' + action)
+  get(scriptsBase + 'view=Species+Management&toggle=' + list + '&species=' + encodeURIComponent(species) + '&action=' + action)
     .then(t => { if (t.trim() === 'OK') location.reload(); });
 }
 function deleteSpecies(species) {
   let parts = species.split(' + '); let sci_species = parts[0]; let com_species = parts[1];
-  get(scriptsBase + 'species_tools.php?getcounts=' + encodeURIComponent(sci_species)).then(t => {
+  get(scriptsBase + 'view=Species+Management&getcounts=' + encodeURIComponent(sci_species)).then(t => {
     let info; try { info = JSON.parse(t); } catch { alert('Could not parse count response'); return; }
     if (!confirm('Delete ' + info.count + ' detections and local audio and png files for ' + com_species + '?')) return;
-    get(scriptsBase + 'species_tools.php?delete=' + encodeURIComponent(sci_species)).then(t2 => {
+    get(scriptsBase + 'view=Species+Management&delete=' + encodeURIComponent(sci_species)).then(t2 => {
       try { const res = JSON.parse(t2); alert('Deleted ' + res.lines + ' detections and ' + res.files + ' files for ' + com_species); }
       catch { alert('Deletion complete'); }
       location.reload();

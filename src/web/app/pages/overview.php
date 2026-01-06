@@ -114,7 +114,7 @@ if(isset($_GET['ajax_detections']) && $_GET['ajax_detections'] == "true" && isse
         <table class="<?php echo ($_GET['previous_detection_identifier'] == 'undefined') ? '' : 'fade-in';  ?>">
           <h3>Most Recent Detection: <span style="font-weight: normal;"><?php echo $mostrecent['Date']." ".$mostrecent['Time'];?></span></h3>
           <tr>
-            <td class="relative"><a target="_blank" href="index.php?filename=<?php echo $mostrecent['File_Name']; ?>"><img class="copyimage" title="Open in new tab" width="25" height="25" src="/assets/images/copy.png"></a>
+            <td class="relative"><a target="_blank" href="/?filename=<?php echo $mostrecent['File_Name']; ?>"><img class="copyimage" title="Open in new tab" width="25" height="25" src="/assets/images/copy.png"></a>
             <div class="centered_image_container" style="margin-bottom: 0px !important;">
               <?php if(!empty($config["IMAGE_PROVIDER"]) && strlen($image[2]) > 0) { ?>
                 <img onclick='setModalText(<?php echo $iterations; ?>,"<?php echo urlencode($image[2]); ?>", "<?php echo $image[3]; ?>", "<?php echo $image[4]; ?>", "<?php echo $image[1]; ?>", "<?php echo $image[5]; ?>")' src="<?php echo $image[1]; ?>" class="img1">
@@ -252,7 +252,7 @@ if (get_included_files()[0] === __FILE__) {
        location.reload();
       }
     }
-    xhttp.open("GET", "overview.php?blacklistimage="+result, true);
+    xhttp.open("GET", "?view=Overview&blacklistimage="+result, true);
     xhttp.send();
 
   }
@@ -402,7 +402,7 @@ function display_species($species_list, $title, $show_last_seen=false) {
                                         <?php if ($show_last_seen): ?>
                                             <img style="height: 1em;cursor:pointer;float:unset;display:inline" title="View species stats" onclick="generateMiniGraph(this, '<?php echo $comnamegraph; ?>', 160)" width="25" src="/assets/images/chart.svg">
                                         <?php endif; ?>
-                                        <a target="_blank" href="index.php?filename=<?php echo $todaytable['File_Name']; ?>"><img style="height: 1em;cursor:pointer;float:unset;display:inline" class="copyimage-mobile" title="Open in new tab" width="16" src="/assets/images/copy.png"></a>
+                                        <a target="_blank" href="/?filename=<?php echo $todaytable['File_Name']; ?>"><img style="height: 1em;cursor:pointer;float:unset;display:inline" class="copyimage-mobile" title="Open in new tab" width="16" src="/assets/images/copy.png"></a>
                                     </i>
                             </form></div>
                         </td>
@@ -473,7 +473,7 @@ function loadDetectionIfNewExists(previous_detection_identifier=undefined) {
       initCustomAudioPlayers();
     }
   }
-  xhttp.open("GET", "overview.php?ajax_detections=true&previous_detection_identifier="+previous_detection_identifier, true);
+  xhttp.open("GET", "?view=Overview&ajax_detections=true&previous_detection_identifier="+previous_detection_identifier, true);
   xhttp.send();
 }
 function loadLeftChart() {
@@ -484,7 +484,7 @@ function loadLeftChart() {
       loadCenterChart();
     }
   }
-  xhttp.open("GET", "overview.php?ajax_left_chart=true", true);
+  xhttp.open("GET", "?view=Overview&ajax_left_chart=true", true);
   xhttp.send();
 }
 function loadCenterChart() {
@@ -494,7 +494,7 @@ function loadCenterChart() {
       document.getElementsByClassName("center-column")[0].innerHTML = this.responseText;
     }
   }
-  xhttp.open("GET", "overview.php?ajax_center_chart=true", true);
+  xhttp.open("GET", "?view=Overview&ajax_center_chart=true", true);
   xhttp.send();
 }
 function refreshTopTen() {
@@ -504,7 +504,7 @@ function refreshTopTen() {
     if (document.getElementById("chart")) {document.getElementById("chart").src = "Charts/"+this.responseText+"?nocache="+Date.now();}
   }
   }
-  xhttp.open("GET", "overview.php?fetch_chart_string=true", true);
+  xhttp.open("GET", "?view=Overview&fetch_chart_string=true", true);
   xhttp.send();
 }
 function refreshDetection() {
@@ -538,9 +538,9 @@ function loadFiveMostRecentDetections() {
     }
   }
   if (window.innerWidth > 500) {
-    xhttp.open("GET", "todays_detections.php?ajax_detections=true&display_limit=undefined&hard_limit=5", true);
+    xhttp.open("GET", "?view=Todays+Detections&ajax_detections=true&display_limit=undefined&hard_limit=5", true);
   } else {
-    xhttp.open("GET", "todays_detections.php?ajax_detections=true&display_limit=undefined&hard_limit=5&mobile=true", true);
+    xhttp.open("GET", "?view=Todays+Detections&ajax_detections=true&display_limit=undefined&hard_limit=5&mobile=true", true);
   }
   xhttp.send();
 }
@@ -550,7 +550,7 @@ function refreshCustomImage(){
 
   function updateCustomImage() {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "overview.php?custom_image=true", true);
+    xhr.open("GET", "?view=Overview&custom_image=true", true);
     xhr.onload = function() {
       customimage.innerHTML = xhr.responseText;
     }

@@ -114,7 +114,7 @@ if(isset($_GET["latitude"])){
     echo "<script>setTimeout(
     function() {
       const xhttp = new XMLHttpRequest();
-    xhttp.open(\"GET\", \"./config.php?restart_php=true\", true);
+    xhttp.open(\"GET\", \"?view=Settings&restart_php=true\", true);
     xhttp.send();
     }, 1000);</script>";
   }
@@ -256,7 +256,7 @@ function sendTestNotification(e) {
             e.classList.remove("disabled");
         }
     }
-    xmlHttp.open("GET", "scripts/config.php?sendtest=true"+"&apprise_notification_body="+apprise_notification_body+"&apprise_config="+apprise_config+"&apprise_notification_title="+apprise_notification_title, true); // true for asynchronous
+    xmlHttp.open("GET", "?view=Settings&sendtest=true"+"&apprise_notification_body="+apprise_notification_body+"&apprise_config="+apprise_config+"&apprise_notification_title="+apprise_notification_title, true); // true for asynchronous
     xmlHttp.send(null);
 }
 </script>
@@ -376,7 +376,7 @@ function runProcess() {
       output.innerHTML = xhr.responseText;
     }
   };
-  xhr.open('GET', `scripts/config.php?threshold=${threshold}`);
+  xhr.open('GET', `?view=Settings&threshold=${threshold}`);
   xhr.send();
 }
 </script>
@@ -483,7 +483,7 @@ https://discordapp.com/api/webhooks/{WebhookID}/{WebhookToken}
       <input type="checkbox" name="apprise_notify_each_detection" <?php if($config['APPRISE_NOTIFY_EACH_DETECTION'] == 1 && filesize($home."/BirdNET-Pi/apprise.txt") != 0) { echo "checked"; };?> >
       <label for="apprise_weekly_report">Notify each new detection</label><br>
       <input type="checkbox" name="apprise_weekly_report" <?php if($config['APPRISE_WEEKLY_REPORT'] == 1 && filesize($home."/BirdNET-Pi/apprise.txt") != 0) { echo "checked"; };?> >
-      <label for="apprise_weekly_report">Send <a href="views.php?view=Weekly%20Report"> weekly report</a></label><br>
+      <label for="apprise_weekly_report">Send <a href="?view=Weekly%20Report"> weekly report</a></label><br>
 
       <hr>
       <label for="minimum_time_limit">Minimum time between notifications of the same species (sec):</label>

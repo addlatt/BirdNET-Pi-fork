@@ -206,7 +206,7 @@ if(isset($_GET['ajax_detections']) && $_GET['ajax_detections'] == "true"  ) {
           <tr class="relative" id="<?php echo $iterations; ?>">
           <td class="relative">
             <img style='cursor:pointer;right:45px' src='/assets/images/delete.svg' onclick='deleteDetection("<?php echo $filename_formatted; ?>")' class="copyimage" width=25 title='Delete Detection'>
-            <a target="_blank" href="index.php?filename=<?php echo $todaytable['File_Name']; ?>"><img class="copyimage" title="Open in new tab" width=25 src="/assets/images/copy.png"></a>
+            <a target="_blank" href="/?filename=<?php echo $todaytable['File_Name']; ?>"><img class="copyimage" title="Open in new tab" width=25 src="/assets/images/copy.png"></a>
         
             
           <div class="centered_image_container">
@@ -244,7 +244,7 @@ if(isset($_GET['ajax_detections']) && $_GET['ajax_detections'] == "true"  ) {
       	    <?php if($_GET['kiosk'] == false){?>
 	              <a href="https://wikipedia.org/wiki/<?php echo $sciname;?>" target="_blank"><img style="height: 1em;cursor:pointer;float:unset;display:inline" title="Wikipedia" src="/assets/images/wiki.png" width="25"></a>
 	                    <img style="height: 1em;cursor:pointer;float:unset;display:inline" title="View species stats" onclick="generateMiniGraph(this, '<?php echo $comnamegraph; ?>')" width=25 src="/assets/images/chart.svg">
-	                    <a target="_blank" href="index.php?filename=<?php echo $todaytable['File_Name']; ?>"><img style="height: 1em;cursor:pointer;float:unset;display:inline" class="copyimage-mobile" title="Open in new tab" width=16 src="/assets/images/copy.png"></a>
+	                    <a target="_blank" href="/?filename=<?php echo $todaytable['File_Name']; ?>"><img style="height: 1em;cursor:pointer;float:unset;display:inline" class="copyimage-mobile" title="Open in new tab" width=16 src="/assets/images/copy.png"></a>
           	    <?php } ?></i>
 	                <br>
 	            </div>
@@ -343,7 +343,7 @@ if (get_included_files()[0] === __FILE__) {
           alert("Database busy.")
         }
       }
-      xhttp.open("GET", "play.php?deletefile="+filename, true);
+      xhttp.open("GET", "?view=Recordings&deletefile="+filename, true);
       xhttp.send();
     }
   }
@@ -370,7 +370,7 @@ if (get_included_files()[0] === __FILE__) {
        location.reload();
       }
     }
-    xhttp.open("GET", "overview.php?blacklistimage="+result, true);
+    xhttp.open("GET", "?view=Overview&blacklistimage="+result, true);
     xhttp.send();
 
   }
@@ -504,12 +504,12 @@ function loadDetections(detections_limit, element=undefined) {
     initCustomAudioPlayers();    
   }
   if(searchterm != ""){
-    xhttp.open("GET", "todays_detections.php?ajax_detections=true&display_limit="+detections_limit+"&searchterm="+searchterm, true);
+    xhttp.open("GET", "?view=Todays+Detections&ajax_detections=true&display_limit="+detections_limit+"&searchterm="+searchterm, true);
   } else {
     <?php if($kiosk == true) { ?>
-      xhttp.open("GET", "todays_detections.php?ajax_detections=true&display_limit="+detections_limit+"&kiosk=true", true);
+      xhttp.open("GET", "?view=Todays+Detections&ajax_detections=true&display_limit="+detections_limit+"&kiosk=true", true);
     <?php } else { ?>
-      xhttp.open("GET", "todays_detections.php?ajax_detections=true&display_limit="+detections_limit, true);
+      xhttp.open("GET", "?view=Todays+Detections&ajax_detections=true&display_limit="+detections_limit, true);
     <?php } ?>
   }
   xhttp.send();
@@ -521,7 +521,7 @@ function refreshTodayStats() {
       document.getElementById("todaystats").innerHTML = this.responseText;
     }
   }
-  xhttp.open("GET", "todays_detections.php?today_stats=true", true);
+  xhttp.open("GET", "?view=Todays+Detections&today_stats=true", true);
   xhttp.send();
 }
 window.addEventListener("load", function(){

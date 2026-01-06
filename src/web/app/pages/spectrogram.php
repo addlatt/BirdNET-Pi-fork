@@ -122,7 +122,7 @@ if(isset($_GET['legacy']) && $_GET['legacy'] == "true") {
 window.onload = function(){
   var playersrc =  document.getElementById('playersrc');
   playersrc.onerror = function() {
-    window.location="views.php?view=Spectrogram&legacy=true";
+    window.location="?view=Spectrogram&legacy=true";
   };
 
   // if user agent includes iPhone or Mac use legacy mode
@@ -221,7 +221,7 @@ function loadDetectionIfNewExists() {
       }
     }
   };
-  xhttp.open("GET", "spectrogram.php?ajax_csv=true&newest_file="+newest_file, true);
+  xhttp.open("GET", "?view=Spectrogram&ajax_csv=true&newest_file="+newest_file, true);
   xhttp.send();
 }
 
@@ -274,7 +274,7 @@ function toggleFreqshift(state) {
   // Create the XMLHttpRequest object.
   const xhr = new XMLHttpRequest();
   // Initialize the request
-  xhr.open("GET", 'views.php?activate_freqshift_in_livestream=' + state + '&view=Advanced&submit=advanced');
+  xhr.open("GET", '?activate_freqshift_in_livestream=' + state + '&view=Advanced&submit=advanced');
   // Send the request
   xhr.send();
   // Fired once the request completes successfully
@@ -495,7 +495,7 @@ if (typeof (rtsp_stream_select) !== 'undefined' && rtsp_stream_select !== null) 
             // Create the XMLHttpRequest object.
             const xhr = new XMLHttpRequest();
             // Initialize the request
-            xhr.open("GET", 'views.php?rtsp_stream_to_livestream=' + this.value + '&view=Advanced&submit=advanced');
+            xhr.open("GET", '?rtsp_stream_to_livestream=' + this.value + '&view=Advanced&submit=advanced');
             // Send the request
             xhr.send();
             // Fired once the request completes successfully
