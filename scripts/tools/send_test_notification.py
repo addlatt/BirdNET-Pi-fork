@@ -35,8 +35,8 @@ if __name__ == "__main__":
         now = datetime.datetime.now()
         d = {'Sci_Name': 'Aptenodytes patagonicus', 'Com_Name': 'King Penguin', 'Confidence': 0.84, 'File_Name': 'this_is_not_a_file.mp3',
              'Date': now.strftime('%Y-%m-%d'), 'Time': now.strftime("%H:%M:%S"), 'Week': now.isocalendar()[1],
-             'Lat': conf.getfloat('LATITUDE'), 'Lon': conf.getfloat('LONGITUDE'), 'Cutoff': conf.getfloat('CONFIDENCE'),
-             'Sens': conf.getfloat('SENSITIVITY'), 'Overlap': conf.getfloat('OVERLAP')}
+             'Lat': float(conf.get('LATITUDE', 0)), 'Lon': float(conf.get('LONGITUDE', 0)), 'Cutoff': float(conf.get('CONFIDENCE', 0)),
+             'Sens': float(conf.get('SENSITIVITY', 1.0)), 'Overlap': float(conf.get('OVERLAP', 0))}
 
     notifications.sendAppriseNotifications(d['Sci_Name'], d['Com_Name'], d['Confidence'], round(d['Confidence'] * 100), d['File_Name'], d['Date'], d['Time'],
                                            d['Week'], d['Lat'], d['Lon'], d['Cutoff'], d['Sens'], d['Overlap'])

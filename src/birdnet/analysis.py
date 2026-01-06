@@ -89,13 +89,14 @@ def analyzeAudioData(chunks, overlap, lat, lon, week):
 
 def filter_humans(predictions):
     conf = get_settings()
-    priv_thresh = conf.getfloat('PRIVACY_THRESHOLD')
+    priv_thresh = float(conf.get('PRIVACY_THRESHOLD', 0))
     human_cutoff = max(10, int(6000 * priv_thresh / 100.0))
     log.debug("HUMAN-CUTOFF AT: %d", human_cutoff)
     try:
-        if conf.getint('EXTRACTION_LENGTH') > 9:
+        extraction_length = int(conf.get('EXTRACTION_LENGTH', 0))
+        if extraction_length > 9:
             log.warning("EXTRACTION_LENGTH is set to %d. Privacy filter might miss human sound, "
-                        "if you care about privacy, set EXTRACTION_LENGTH to below 9 or leave empty.", conf.getint('EXTRACTION_LENGTH'))
+                        "if you care about privacy, set EXTRACTION_LENGTH to below 9 or leave empty.", extraction_length)
     except ValueError:
         pass
 
@@ -148,20 +149,20 @@ def run_analysis(file):
 
     # Read audio data & handle errors
     try:
-        audio_data = readAudioData(file.file_name, conf.getfloat('OVERLAP'), model.sample_rate, model.chunk_duration)
+        audio_data = readAudioData(file.file_name, float(conf.get('OVERLAP', 0)), model.sample_rate, model.chunk_duration)
     except (NameError, TypeError) as e:
         log.error("Error with the following info: %s", e)
         return []
 
     # Process audio data and get detections
-    raw_detections, predicted_species_list = analyzeAudioData(audio_data, conf.getfloat('OVERLAP'), conf.getfloat('LATITUDE'),
-                                                              conf.getfloat('LONGITUDE'), file.week)
+    raw_detections, predicted_species_list = analyzeAudioData(audio_data, float(conf.get('OVERLAP', 0)), float(conf.get('LATITUDE', 0)),
+                                                              float(conf.get('LONGITUDE', 0)), file.week)
     confident_detections = []
     for time_slot, entries in raw_detections.items():
         sci_name, confidence = entries[0]
         log.info('%s-(%s_%s, %s)', time_slot, sci_name, names.get(sci_name, sci_name), confidence)
         for sci_name, confidence in entries:
-            if confidence >= conf.getfloat('CONFIDENCE'):
+            if confidence >= float(conf.get('CONFIDENCE', 0)):
                 com_name = names.get(sci_name, sci_name)
                 if sci_name not in include_list and len(include_list) != 0:
                     log.warning("Excluded as INCLUDE_LIST is active but this species is not in it: %s %s", sci_name, com_name)

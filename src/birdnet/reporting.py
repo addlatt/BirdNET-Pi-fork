@@ -36,12 +36,12 @@ def extract_safe(in_file, out_file, start, stop):
     # from that value and divided by 2, so that the 3 seconds of the call are
     # within 3.5 seconds of audio context before and after.
     try:
-        ex_len = conf.getint('EXTRACTION_LENGTH')
-    except ValueError:
+        ex_len = int(conf.get('EXTRACTION_LENGTH', 6))
+    except (ValueError, TypeError):
         ex_len = 6
     spacer = (ex_len - 3) / 2
     safe_start = max(0, start - spacer)
-    safe_stop = min(conf.getint('RECORDING_LENGTH'), stop + spacer)
+    safe_stop = min(int(conf.get('RECORDING_LENGTH', 15)), stop + spacer)
 
     extract(in_file, out_file, safe_start, safe_stop)
 

@@ -14,8 +14,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     conf = get_settings()
-    lat = conf.getfloat('LATITUDE')
-    lon = conf.getfloat('LONGITUDE')
+    lat = float(conf.get('LATITUDE', 0))
+    lon = float(conf.get('LONGITUDE', 0))
     week = datetime.datetime.today().isocalendar()[1]
 
     print(f'Getting species list for {lat}/{lon}, Week {week}...', flush=True)
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     with open(labels_path, 'r') as lfile:
         labels = [line.strip() for line in lfile]
 
-    model = MDataModel1(args.threshold) if conf.getint('DATA_MODEL_VERSION') == 1 else MDataModel2(args.threshold)
+    model = MDataModel1(args.threshold) if int(conf.get('DATA_MODEL_VERSION', 2)) == 1 else MDataModel2(args.threshold)
     model.set_meta_data(lat, lon, week)
     species_list = model.get_species_list_details(labels)
 

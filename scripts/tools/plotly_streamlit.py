@@ -202,8 +202,8 @@ font_size = 15
 
 def sunrise_sunset_scatter(date_range):
     conf = get_settings()
-    latitude = conf.getfloat('LATITUDE')
-    longitude = conf.getfloat('LONGITUDE')
+    latitude = float(conf.get('LATITUDE', 0))
+    longitude = float(conf.get('LONGITUDE', 0))
 
     sun = Sun(latitude, longitude)
 
