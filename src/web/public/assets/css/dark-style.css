@@ -1,6 +1,6 @@
 @font-face {
    font-family: 'Roboto Flex' ;
-   src: url('static/RobotoFlex-Regular.ttf') format('truetype');
+   src: url('../fonts/RobotoFlex-Regular.ttf') format('truetype');
 }
 
 * {
