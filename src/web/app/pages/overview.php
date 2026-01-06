@@ -426,13 +426,16 @@ display_species($rare_species, 'Rare Species', true);
 <?php
 $refresh = $config['RECORDING_LENGTH'];
 $dividedrefresh = $refresh/4;
-if($dividedrefresh < 1) { 
+if($dividedrefresh < 1) {
   $dividedrefresh = 1;
 }
 $time = time();
-if (file_exists('./Charts/'.$chart)) {
-  echo "<img id='chart' src=\"Charts/$chart?nocache=$time\">";
-} 
+// Charts are stored in EXTRACTED/Charts, use absolute path for file_exists check
+$extracted_dir = $config['EXTRACTED'] ?? $home . "/BirdSongs/Extracted";
+$chart_path = $extracted_dir . '/Charts/' . $chart;
+if (file_exists($chart_path)) {
+  echo "<img id='chart' src=\"/Charts/$chart?nocache=$time\">";
+}
 ?>
 </div>
 

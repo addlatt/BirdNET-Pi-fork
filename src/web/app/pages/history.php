@@ -8,6 +8,7 @@ error_reporting(E_ALL);
 ini_set('display_errors',1);
 ini_set('display_startup_errors',1);
 
+$home = get_home();
 $config = get_config();
 
 if(isset($_GET['date'])){
@@ -17,6 +18,9 @@ $theDate = date('Y-m-d');
 }
 $chart = "Combo-$theDate.png";
 $chart2 = "Combo2-$theDate.png";
+// Charts are stored in EXTRACTED/Charts, use absolute path for file_exists check
+$extracted_dir = $config['EXTRACTED'] ?? $home . "/BirdSongs/Extracted";
+$charts_dir = $extracted_dir . '/Charts';
 
 $db = get_db();
 
@@ -145,13 +149,13 @@ function submitID() {
 <?php
 $time = time();
 
-if (file_exists('./Charts/'.$chart)) {
+if (file_exists($charts_dir . '/' . $chart)) {
   echo "<img src=\"/Charts/$chart?nocache=$time\" >";
 } else {
   echo "<p>No Charts for $theDate</p>";
 }
 echo "<hr>";
-if (file_exists('./Charts/'.$chart2)) {
+if (file_exists($charts_dir . '/' . $chart2)) {
   echo "<img src=\"/Charts/$chart2?nocache=$time\">";
 } else {
   echo "<p>No Charts For $theDate</p>";

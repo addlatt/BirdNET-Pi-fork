@@ -24,7 +24,7 @@ BirdNET-Pi is a bird sound identification system running on a Raspberry Pi 5 (4G
 
 ### Tech Stack
 
-| Layer | Technology |
+| Layer | Technology |1
 |-------|------------|
 | OS | Raspberry Pi OS (Debian), Linux 6.12 |
 | Init | systemd |
