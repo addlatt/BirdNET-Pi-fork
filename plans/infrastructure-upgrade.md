@@ -1,0 +1,1231 @@
+# BirdNET-Pi Infrastructure Upgrade Plan
+
+## Goal
+
+Migrate from the current shell/PHP/Python mix to a clean, maintainable Go + Python + Preact architecture using an **incremental approach** that minimizes risk and delivers value early.
+
+**Target Hardware:** Raspberry Pi 5 (4GB RAM, NVMe storage, Debian Trixie)
+
+**Future-Proofing:** This plan is designed to support Part 2 features (VAD, LLM, interactive charts) without architectural changes.
+
+---
+
+## Current State
+
+- Shell scripts for orchestration and scheduling
+- PHP for web interface (recently reorganized with front-controller pattern)
+- Python for BirdNET inference (recently restructured as proper package)
+- Centralized configuration with JSON schema
+- SQLite database with single `detections` table
+
+## Target State
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Preact Frontend                              │
+│         Modern UI, WebSocket for real-time updates               │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ HTTP / WebSocket (typed messages)
+┌────────────────────────▼────────────────────────────────────────┐
+│                      Go Backend                                  │
+│     API server, static files, scheduling, config management      │
+│     SQLite read-only, proxies to Python for ML operations        │
+│     Memory monitoring, WebSocket hub with channels               │
+└──────────┬──────────────────────────────────────────────────────┘
+           │ HTTP (bidirectional request/response)
+           │
+┌──────────▼──────────────────────────────────────────────────────┐
+│                   Python ML Service                              │
+│     FastAPI application (extensible router architecture)         │
+│     BirdNET inference, detection notifications to Go             │
+│     Model manager abstraction for future models (VAD, LLM)       │
+└─────────────────────────────────────────────────────────────────┘
+           │
+           │ Direct write
+           ▼
+┌──────────────────┐
+│     SQLite       │
+│  (shared read)   │
+└──────────────────┘
+```
+
+### Key Architecture Decisions
+
+**1. Python as Full FastAPI Service (not minimal daemon)**
+- Extensible router architecture supports Part 2 features (VAD, LLM)
+- Model manager abstraction enables lazy loading/unloading
+- Request/response pattern for future ML operations
+
+**2. Go ↔ Python Bidirectional Communication**
+- Python → Go: Detection notifications (fire-and-forget)
+- Go → Python: Status checks, future ML requests (request/response with timeouts)
+
+**3. WebSocket with Typed Messages**
+- Channel-based subscriptions for different data streams
+- Supports Part 2 features (spectrogram streaming, LLM responses)
+
+**4. Memory-Aware Design**
+- Monitoring infrastructure for Part 2 memory-heavy features
+- Model manager supports load/unload lifecycle
+
+---
+
+## Technology Choices
+
+### Frontend
+
+| Technology | Size | Purpose |
+|------------|------|---------|
+| Preact | ~3KB | UI framework, React-compatible |
+| Vite | dev only | Build tooling |
+| uPlot | ~30KB | Charts (detection timeline, species counts) |
+| Tailwind CSS | purged | Styling |
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| Go | API server, static files, scheduling, config management |
+| Chi | HTTP router |
+| sqlc | Type-safe database access (read-only) |
+| gorilla/websocket | Real-time updates with typed messages |
+| golang-migrate | Database schema versioning |
+| SQLite | Database (read by Go, written by Python) |
+
+### Python ML Service
+
+| Technology | Purpose |
+|------------|---------|
+| Python 3.11+ | Runtime |
+| FastAPI | Full API framework (extensible for Part 2) |
+| Existing `src/birdnet/` | Analysis, inference, reporting |
+| inotify | File watching |
+| SQLite | Direct writes |
+
+---
+
+## Project Structure
+
+```
+birdnet-pi/
+├── cmd/
+│   └── server/
+│       └── main.go              # Go server entrypoint
+├── internal/
+│   ├── api/
+│   │   ├── routes.go            # Route definitions
+│   │   ├── detections.go        # Detection endpoints (read-only)
+│   │   ├── species.go           # Species endpoints
+│   │   ├── charts.go            # Chart data endpoints
+│   │   ├── settings.go          # Config endpoints
+│   │   ├── system.go            # System status, memory monitoring
+│   │   └── internal.go          # Internal endpoints (Python notifications)
+│   ├── db/
+│   │   ├── schema.sql           # Database schema
+│   │   ├── queries.sql          # sqlc queries (read-only)
+│   │   └── generated/           # sqlc output
+│   ├── ws/
+│   │   ├── hub.go               # WebSocket hub with channels
+│   │   ├── client.go            # WebSocket client management
+│   │   └── messages.go          # Typed message definitions
+│   ├── mlclient/
+│   │   ├── client.go            # Python service client
+│   │   └── types.go             # Request/response types
+│   ├── config/
+│   │   ├── config.go            # YAML config with schema validation
+│   │   └── schema.go            # Config schema definitions
+│   ├── monitor/
+│   │   └── memory.go            # Memory monitoring (Part 2 ready)
+│   └── scheduler/
+│       └── jobs.go              # Cron-style jobs (cleanup, disk check)
+├── migrations/
+│   ├── 000001_initial_schema.up.sql
+│   ├── 000001_initial_schema.down.sql
+│   └── ...
+├── src/
+│   ├── birdnet/                 # Existing Python package
+│   │   ├── analysis.py
+│   │   ├── models.py
+│   │   ├── reporting.py
+│   │   ├── config.py
+│   │   └── ...
+│   └── service/                 # New: FastAPI service
+│       ├── main.py              # FastAPI application
+│       ├── routers/
+│       │   ├── analysis.py      # /analysis/* endpoints
+│       │   ├── status.py        # /health, /status, /memory
+│       │   ├── vad.py           # /vad/* (Part 2, stub)
+│       │   └── llm.py           # /llm/* (Part 2, stub)
+│       ├── models/
+│       │   ├── base.py          # ModelManager base class
+│       │   ├── birdnet.py       # BirdNET model manager
+│       │   ├── vad.py           # VAD model manager (Part 2)
+│       │   └── llm.py           # LLM model manager (Part 2)
+│       ├── pipeline.py          # Analysis pipeline
+│       └── notifier.py          # Go notification client
+├── web/
+│   ├── src/
+│   │   ├── app.jsx
+│   │   ├── components/
+│   │   │   ├── DetectionList.jsx
+│   │   │   ├── SpeciesChart.jsx
+│   │   │   ├── Spectrogram.jsx
+│   │   │   └── Settings.jsx
+│   │   ├── pages/
+│   │   │   ├── Overview.jsx
+│   │   │   ├── TodaysDetections.jsx
+│   │   │   ├── Stats.jsx
+│   │   │   ├── History.jsx
+│   │   │   └── Settings.jsx
+│   │   └── hooks/
+│   │       ├── useWebSocket.js
+│   │       └── useChartData.js
+│   ├── index.html
+│   └── vite.config.js
+├── scripts/
+│   ├── install/                 # KEEP: Installation scripts (shell)
+│   ├── runtime/                 # MIGRATE: Recording daemon to Go
+│   ├── tools/                   # KEEP: CLI utilities (shell)
+│   └── config/                  # KEEP: Config management (shell)
+├── config.yaml                  # Unified configuration
+├── config.schema.yaml           # Validation schema
+└── README.md
+```
+
+---
+
+## Migration Phases (Incremental Approach)
+
+### Phase 1: Go API Foundation + Preact Shell (Week 1)
+
+**Goal:** Go server running alongside existing PHP, serving one Preact page, with Part 2-ready architecture.
+
+**Tasks:**
+- [ ] Initialize Go module with Chi router
+- [ ] Set up SQLite with sqlc (read-only queries)
+- [ ] Implement golang-migrate for schema versioning
+- [ ] Create initial migration from existing schema
+- [ ] Implement WebSocket hub with typed messages and channels
+- [ ] Implement memory monitoring infrastructure
+- [ ] Create ML client with request/response support
+- [ ] Basic endpoints: health, detections, species, system status
+- [ ] Scaffold Preact + Vite project
+- [ ] Build Overview page in Preact (hitting Go API)
+- [ ] Configure Caddy to serve both PHP and Go
+
+**Go Endpoints:**
+```
+# Public API
+GET  /api/health
+GET  /api/detections
+GET  /api/detections/:id
+GET  /api/species
+GET  /api/stats
+
+# System (Part 2 ready)
+GET  /api/system/status
+GET  /api/system/memory
+
+# Internal (Python → Go)
+POST /internal/detection
+
+# WebSocket
+WS   /ws
+```
+
+**WebSocket Message Types:**
+```go
+// internal/ws/messages.go
+
+type WSMessage struct {
+    Type    string          `json:"type"`
+    Channel string          `json:"channel,omitempty"`
+    Payload json.RawMessage `json:"payload"`
+}
+
+// Part 1 message types
+const (
+    TypeDetection = "detection"
+    TypeStatus    = "status"
+)
+
+// Part 2 message types (defined now, used later)
+const (
+    TypeSpectrogramFrame = "spectrogram_frame"
+    TypeLLMStream        = "llm_stream"
+    TypeVADResult        = "vad_result"
+)
+```
+
+**WebSocket Hub with Channels:**
+```go
+// internal/ws/hub.go
+
+type Hub struct {
+    clients     map[*Client]bool
+    channels    map[string]map[*Client]bool
+    broadcast   chan *Message
+    subscribe   chan *Subscription
+    unsubscribe chan *Subscription
+}
+
+func (h *Hub) Subscribe(client *Client, channel string)
+func (h *Hub) Unsubscribe(client *Client, channel string)
+func (h *Hub) Broadcast(channel string, msgType string, payload interface{})
+func (h *Hub) BroadcastAll(msgType string, payload interface{})
+```
+
+**ML Client Interface:**
+```go
+// internal/mlclient/client.go
+
+type Client struct {
+    baseURL    string
+    httpClient *http.Client
+}
+
+// Part 1 methods
+func (c *Client) GetStatus(ctx context.Context) (*Status, error)
+func (c *Client) GetHealth(ctx context.Context) error
+func (c *Client) GetMemoryUsage(ctx context.Context) (*MemoryStats, error)
+
+// Part 2 methods (interface ready, implementation later)
+// func (c *Client) CheckVAD(ctx context.Context, audioPath string) (*VADResult, error)
+// func (c *Client) AskLLM(ctx context.Context, req *LLMRequest) (*LLMResponse, error)
+```
+
+**Memory Monitor:**
+```go
+// internal/monitor/memory.go
+
+type MemoryMonitor struct {
+    components map[string]func() uint64
+}
+
+func (m *MemoryMonitor) Register(name string, getter func() uint64)
+func (m *MemoryMonitor) GetUsage() map[string]uint64
+func (m *MemoryMonitor) GetTotal() uint64
+
+// Part 2: decision helpers
+func (m *MemoryMonitor) ShouldUnloadLLM(threshold uint64) bool
+```
+
+**Caddy Configuration:**
+```caddyfile
+http:// {
+  # New Preact frontend (served by Go)
+  handle /app/* {
+    reverse_proxy localhost:8080
+  }
+
+  # New Go API
+  handle /api/* {
+    reverse_proxy localhost:8080
+  }
+
+  # WebSocket
+  handle /ws {
+    reverse_proxy localhost:8080
+  }
+
+  # Existing PHP (keep running)
+  handle /* {
+    root * /home/{user}/BirdNET-Pi-fork/src/web/public
+    php_fastcgi unix//run/php/php-fpm.sock
+    file_server
+  }
+
+  # Recordings (unchanged)
+  handle /By_Date/* {
+    root * /home/{user}/BirdSongs/Extracted
+    file_server
+  }
+}
+```
+
+**Milestone:** Go server running with Part 2-ready WebSocket and monitoring infrastructure.
+
+---
+
+### Phase 2: Python FastAPI Service + Detection Flow (Week 2)
+
+**Goal:** Python as full FastAPI service with extensible architecture, real-time detection updates flowing to browser.
+
+**Tasks:**
+- [ ] Create FastAPI application with router architecture
+- [ ] Implement ModelManager base class for model lifecycle
+- [ ] Create BirdNET model manager using ModelManager pattern
+- [ ] Migrate analysis daemon to use FastAPI service
+- [ ] Implement notifier module for Go communication
+- [ ] Add memory reporting to status endpoint
+- [ ] Create stub routers for Part 2 (VAD, LLM)
+- [ ] Implement internal endpoint in Go to receive notifications
+- [ ] Add `useWebSocket` hook to Preact with channel support
+- [ ] Update Overview page with real-time detection list
+- [ ] Set up systemd service
+
+**Python Service Structure:**
+```python
+# src/service/main.py
+
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from .routers import analysis, status, vad, llm
+from .models.birdnet import birdnet_manager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: load BirdNET model
+    birdnet_manager.load()
+    yield
+    # Shutdown: cleanup
+    birdnet_manager.unload()
+
+app = FastAPI(
+    title="BirdNET-Pi ML Service",
+    lifespan=lifespan
+)
+
+# Part 1 routers
+app.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
+app.include_router(status.router, prefix="/status", tags=["status"])
+
+# Part 2 routers (stubs, return 501 Not Implemented)
+app.include_router(vad.router, prefix="/vad", tags=["vad"])
+app.include_router(llm.router, prefix="/llm", tags=["llm"])
+```
+
+**Model Manager Base Class:**
+```python
+# src/service/models/base.py
+
+from abc import ABC, abstractmethod
+from typing import Optional
+import threading
+
+class ModelManager(ABC):
+    """Base class for ML model lifecycle management."""
+
+    def __init__(self):
+        self._model = None
+        self._lock = threading.Lock()
+        self._load_time: Optional[float] = None
+
+    @abstractmethod
+    def _load_model(self):
+        """Load the model. Implement in subclass."""
+        pass
+
+    @abstractmethod
+    def _unload_model(self):
+        """Unload the model. Implement in subclass."""
+        pass
+
+    @abstractmethod
+    def memory_usage(self) -> int:
+        """Return approximate memory usage in bytes."""
+        pass
+
+    def load(self):
+        with self._lock:
+            if self._model is None:
+                self._model = self._load_model()
+                self._load_time = time.time()
+
+    def unload(self):
+        with self._lock:
+            if self._model is not None:
+                self._unload_model()
+                self._model = None
+                self._load_time = None
+
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+    def get_model(self):
+        if not self.is_loaded():
+            self.load()
+        return self._model
+```
+
+**BirdNET Model Manager:**
+```python
+# src/service/models/birdnet.py
+
+from .base import ModelManager
+from birdnet.models import get_model
+
+class BirdNETManager(ModelManager):
+    def __init__(self):
+        super().__init__()
+        self._memory_estimate = 500 * 1024 * 1024  # ~500MB
+
+    def _load_model(self):
+        return get_model()
+
+    def _unload_model(self):
+        self._model = None
+        # Force garbage collection
+        import gc
+        gc.collect()
+
+    def memory_usage(self) -> int:
+        if self.is_loaded():
+            return self._memory_estimate
+        return 0
+
+# Singleton instance
+birdnet_manager = BirdNETManager()
+```
+
+**Part 2 Stub Routers:**
+```python
+# src/service/routers/vad.py
+
+from fastapi import APIRouter, HTTPException
+
+router = APIRouter()
+
+@router.post("/check")
+async def check_vad(audio_path: str):
+    """Check audio file for voice activity. (Part 2)"""
+    raise HTTPException(status_code=501, detail="VAD not implemented yet")
+
+@router.get("/status")
+async def vad_status():
+    """Get VAD model status. (Part 2)"""
+    return {"enabled": False, "status": "not_implemented"}
+```
+
+```python
+# src/service/routers/llm.py
+
+from fastapi import APIRouter, HTTPException
+
+router = APIRouter()
+
+@router.post("/ask")
+async def ask_llm(question: str):
+    """Ask a question to the LLM. (Part 2)"""
+    raise HTTPException(status_code=501, detail="LLM not implemented yet")
+
+@router.get("/status")
+async def llm_status():
+    """Get LLM model status. (Part 2)"""
+    return {"enabled": False, "loaded": False, "status": "not_implemented"}
+```
+
+**Status Router with Memory:**
+```python
+# src/service/routers/status.py
+
+from fastapi import APIRouter
+from ..models.birdnet import birdnet_manager
+
+router = APIRouter()
+
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
+
+@router.get("/status")
+async def status():
+    return {
+        "birdnet": {
+            "loaded": birdnet_manager.is_loaded(),
+            "memory_bytes": birdnet_manager.memory_usage(),
+        },
+        "vad": {"enabled": False},
+        "llm": {"enabled": False, "loaded": False},
+    }
+
+@router.get("/memory")
+async def memory():
+    return {
+        "birdnet": birdnet_manager.memory_usage(),
+        "vad": 0,  # Part 2
+        "llm": 0,  # Part 2
+        "total": birdnet_manager.memory_usage(),
+    }
+```
+
+**Detection Notifier:**
+```python
+# src/service/notifier.py
+
+import os
+import requests
+from typing import Optional
+import logging
+
+log = logging.getLogger(__name__)
+
+GO_SERVER_URL = os.environ.get("GO_SERVER_URL", "http://127.0.0.1:8080")
+
+def notify_detection(detection: dict) -> bool:
+    """Notify Go server of new detection for WebSocket broadcast."""
+    try:
+        response = requests.post(
+            f"{GO_SERVER_URL}/internal/detection",
+            json=detection,
+            timeout=1.0
+        )
+        return response.status_code == 200
+    except requests.RequestException as e:
+        # Non-fatal: Go might be down, detection is already in DB
+        log.warning(f"Failed to notify Go server: {e}")
+        return False
+```
+
+**Python Service Endpoints:**
+```
+# Analysis
+POST /analysis/file           # Analyze single file
+GET  /analysis/queue          # Queue status
+
+# Status
+GET  /status/health           # Health check
+GET  /status/status           # Full status
+GET  /status/memory           # Memory usage by component
+
+# Part 2 stubs (return 501)
+POST /vad/check
+GET  /vad/status
+POST /llm/ask
+GET  /llm/status
+```
+
+**Detection Flow:**
+```
+1. Recording daemon writes WAV to StreamData/
+2. Python service (inotify) detects new file
+3. Python analyzes with BirdNET model
+4. Python writes to SQLite
+5. Python POSTs to Go: POST /internal/detection
+6. Go broadcasts to WebSocket channel "detections"
+7. Preact receives via WebSocket, updates UI
+```
+
+**Milestone:** Full FastAPI service with extensible architecture, real-time updates working.
+
+---
+
+### Phase 3: Incremental Preact Pages (Weeks 3-4)
+
+**Goal:** Migrate remaining PHP pages to Preact, one at a time.
+
+**Migration Order (by complexity):**
+
+| Week | Page | Complexity | Notes |
+|------|------|------------|-------|
+| 3.1 | Stats | Low | Read-only, simple charts |
+| 3.2 | Today's Detections | Low | List with filtering |
+| 3.3 | History | Medium | Date picker, pagination |
+| 3.4 | Species List | Medium | CRUD for include/exclude lists |
+| 4.1 | Spectrogram | Medium | Image updates (Part 2: real-time WebSocket) |
+| 4.2 | Settings | High | Form validation, service control |
+| 4.3 | Advanced Settings | High | Schema validation, multiple sections |
+| 4.4 | Play/Audio | Medium | Audio player, file browser |
+
+**Tasks per page:**
+- [ ] Create Go API endpoints for page data
+- [ ] Build Preact page component
+- [ ] Add to Preact router
+- [ ] Test alongside PHP equivalent
+- [ ] Update Caddy routing when ready
+
+**Go Endpoints Added:**
+```
+# Charts (Part 2 interactive graphs ready)
+GET  /api/charts/timeline?start=&end=&species=
+GET  /api/charts/frequency?start=&end=
+GET  /api/charts/heatmap?start=&end=
+GET  /api/charts/confidence?species=
+
+# Stats
+GET  /api/stats/daily
+GET  /api/stats/weekly
+GET  /api/stats/species-counts
+
+# History
+GET  /api/detections/by-date/:date
+GET  /api/dates
+
+# Settings
+GET  /api/settings
+PUT  /api/settings
+GET  /api/settings/schema
+
+# Services
+GET  /api/services
+POST /api/services/:name/restart
+POST /api/services/:name/stop
+POST /api/services/:name/start
+
+# Audio
+GET  /api/audio/dates
+GET  /api/audio/files/:date
+```
+
+**Preact WebSocket Hook with Channels:**
+```javascript
+// web/src/hooks/useWebSocket.js
+
+import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
+
+export function useWebSocket(url) {
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastMessage, setLastMessage] = useState(null);
+  const ws = useRef(null);
+  const subscribers = useRef(new Map());
+
+  useEffect(() => {
+    ws.current = new WebSocket(url);
+
+    ws.current.onopen = () => setIsConnected(true);
+    ws.current.onclose = () => setIsConnected(false);
+
+    ws.current.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      setLastMessage(message);
+
+      // Notify channel subscribers
+      const channelSubs = subscribers.current.get(message.type) || [];
+      channelSubs.forEach(callback => callback(message.payload));
+    };
+
+    return () => ws.current?.close();
+  }, [url]);
+
+  const subscribe = useCallback((messageType, callback) => {
+    if (!subscribers.current.has(messageType)) {
+      subscribers.current.set(messageType, []);
+    }
+    subscribers.current.get(messageType).push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const subs = subscribers.current.get(messageType);
+      const index = subs.indexOf(callback);
+      if (index > -1) subs.splice(index, 1);
+    };
+  }, []);
+
+  return { isConnected, lastMessage, subscribe };
+}
+```
+
+**Milestone:** All pages migrated to Preact, PHP still available as fallback.
+
+---
+
+### Phase 4: Go Scheduler + Runtime Scripts (Week 5)
+
+**Goal:** Replace continuously-running shell cron jobs with Go scheduler.
+
+**Scripts to Migrate to Go:**
+
+| Script | New Location | Trigger |
+|--------|--------------|---------|
+| `cleanup.sh` | `internal/scheduler/cleanup.go` | Every 3 minutes |
+| `disk_check.sh` | `internal/scheduler/disk.go` | Every 5 minutes |
+| `disk_species_clean.sh` | `internal/scheduler/retention.go` | Daily 2 AM |
+
+**Scripts to KEEP in Shell:**
+
+| Script | Reason |
+|--------|--------|
+| `install_*.sh` | Run once during installation |
+| `uninstall.sh` | Rarely used |
+| `backup_data.sh` | Interactive/manual operation |
+| `update_birdnet.sh` | Complex git operations |
+| `createdb.sh` | Installation only |
+| `dump_logs.sh` | Diagnostic tool |
+| `print_diagnostic_info.sh` | Diagnostic tool |
+
+**Tasks:**
+- [ ] Implement scheduler package with cron-like timing
+- [ ] Migrate cleanup job
+- [ ] Migrate disk check job
+- [ ] Migrate retention job
+- [ ] Add scheduler endpoints for manual triggers
+- [ ] Test scheduler reliability over 24h
+- [ ] Remove migrated cron entries
+
+**Scheduler API:**
+```
+GET  /api/scheduler/jobs
+POST /api/scheduler/jobs/:name/run
+GET  /api/scheduler/jobs/:name/log
+```
+
+**Milestone:** Go handles all periodic runtime tasks.
+
+---
+
+### Phase 5: Configuration Migration (Week 6)
+
+**Goal:** Unified YAML configuration with validation, Part 2 sections included.
+
+**Tasks:**
+- [ ] Create `config.yaml` format with Part 2 sections
+- [ ] Create `config.schema.yaml` with full validation
+- [ ] Implement Go config loader with schema validation
+- [ ] Update Python to read YAML
+- [ ] Add config reload endpoint
+- [ ] Build Settings page with schema-driven forms
+- [ ] Write migration script for existing installations
+
+**Configuration Structure (Part 2 Ready):**
+```yaml
+# config.yaml
+
+# === Part 1 Configuration ===
+
+server:
+  host: 0.0.0.0
+  port: 8080
+
+location:
+  latitude: 42.3601
+  longitude: -71.0589
+
+analysis:
+  model: BirdNET_GLOBAL_6K_V2.4_Model_FP16
+  confidence: 0.7          # min: 0.01, max: 0.99
+  sensitivity: 1.25        # min: 0.5, max: 1.5
+  overlap: 0.0             # min: 0.0, max: 2.9
+  privacy_threshold: 0     # 0=off, 1-3=increasing
+
+recording:
+  device: default
+  length: 15               # seconds
+  channels: 2
+
+extraction:
+  length: 6                # seconds
+  format: mp3              # mp3, wav, flac, ogg, opus
+
+storage:
+  recordings_path: ~/BirdSongs
+  retention_days: 30
+  max_files_per_species: 0 # 0 = unlimited
+  purge_threshold: 95      # disk % to trigger purge
+
+notifications:
+  apprise:
+    enabled: false
+    title: "New BirdNET-Pi Detection"
+    notify_each_detection: false
+    notify_new_species: false
+    notify_weekly_report: true
+  birdweather:
+    id: ""
+
+interface:
+  site_name: "BirdNET-Pi"
+  color_scheme: light      # light, dark
+  image_provider: WIKIPEDIA # WIKIPEDIA, FLICKR
+  info_site: ALLABOUTBIRDS  # ALLABOUTBIRDS, EBIRD
+
+# === Part 2 Configuration (disabled by default) ===
+
+vad:
+  enabled: false
+  threshold: 0.5           # min: 0.0, max: 1.0
+  action: skip             # skip, flag, log_only
+  min_speech_duration: 0.5 # seconds
+
+llm:
+  enabled: false
+  model: tinyllama-1.1b    # tinyllama-1.1b, qwen2.5-0.5b, phi-3-mini
+  model_path: ""           # Custom path, or auto-download
+  idle_timeout: 300        # seconds before unloading
+  max_tokens: 512
+  temperature: 0.7
+
+spectrogram:
+  enabled: false
+  fps: 10
+  websocket_channel: spectrogram
+
+charts:
+  default_range_days: 7
+  max_range_days: 365
+  heatmap_enabled: true
+```
+
+**Configuration Schema:**
+```yaml
+# config.schema.yaml
+
+type: object
+required:
+  - location
+  - analysis
+properties:
+  server:
+    type: object
+    properties:
+      host:
+        type: string
+        default: "0.0.0.0"
+      port:
+        type: integer
+        default: 8080
+        minimum: 1
+        maximum: 65535
+
+  location:
+    type: object
+    required:
+      - latitude
+      - longitude
+    properties:
+      latitude:
+        type: number
+        minimum: -90
+        maximum: 90
+      longitude:
+        type: number
+        minimum: -180
+        maximum: 180
+
+  analysis:
+    type: object
+    properties:
+      model:
+        type: string
+        enum:
+          - BirdNET_GLOBAL_6K_V2.4_Model_FP16
+          - BirdNET_6K_GLOBAL_MODEL
+        default: BirdNET_GLOBAL_6K_V2.4_Model_FP16
+      confidence:
+        type: number
+        minimum: 0.01
+        maximum: 0.99
+        default: 0.7
+      sensitivity:
+        type: number
+        minimum: 0.5
+        maximum: 1.5
+        default: 1.25
+
+  # Part 2 schemas
+  vad:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+      threshold:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        default: 0.5
+      action:
+        type: string
+        enum: [skip, flag, log_only]
+        default: skip
+
+  llm:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+      model:
+        type: string
+        enum: [tinyllama-1.1b, qwen2.5-0.5b, phi-3-mini]
+        default: tinyllama-1.1b
+      idle_timeout:
+        type: integer
+        minimum: 60
+        maximum: 3600
+        default: 300
+```
+
+**Milestone:** Clean YAML configuration with Part 2 sections ready.
+
+---
+
+### Phase 6: PHP Decommission + Cleanup (Week 7)
+
+**Goal:** Remove PHP, finalize architecture.
+
+**Tasks:**
+- [ ] Run both systems in parallel for 1 week
+- [ ] Validate all Preact pages against PHP equivalents
+- [ ] Update Caddy to remove PHP routes
+- [ ] Stop php-fpm service
+- [ ] Archive `src/web/` PHP code
+- [ ] Update systemd units
+- [ ] Update installation scripts
+- [ ] Update documentation
+- [ ] Set up backup strategy
+
+**Final Caddy Configuration:**
+```caddyfile
+http:// {
+  # Go serves everything
+  reverse_proxy localhost:8080
+
+  # Direct file serving for recordings (optional optimization)
+  handle /recordings/* {
+    root * /home/{user}/BirdSongs/Extracted
+    file_server
+  }
+}
+```
+
+**Milestone:** PHP fully retired, Part 2-ready architecture complete.
+
+---
+
+## Systemd Services
+
+### Go Server
+```ini
+# /etc/systemd/system/birdnet-server.service
+[Unit]
+Description=BirdNET Go Server
+After=network.target birdnet-ml.service
+
+[Service]
+Type=simple
+ExecStart=/opt/birdnet/server
+WorkingDirectory=/opt/birdnet
+Restart=always
+RestartSec=5
+User=birdnet
+Environment=BIRDNET_CONFIG=/etc/birdnet/config.yaml
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Python ML Service
+```ini
+# /etc/systemd/system/birdnet-ml.service
+[Unit]
+Description=BirdNET ML Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/birdnet/venv/bin/uvicorn service.main:app --host 127.0.0.1 --port 8001
+WorkingDirectory=/opt/birdnet/src
+Restart=always
+RestartSec=5
+User=birdnet
+Environment=BIRDNET_CONFIG=/etc/birdnet/config.yaml
+Environment=GO_SERVER_URL=http://127.0.0.1:8080
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Recording Daemon (unchanged)
+```ini
+# /etc/systemd/system/birdnet-recording.service
+# Keep existing shell-based recording daemon
+```
+
+---
+
+## Database Schema Versioning
+
+Using golang-migrate for schema management:
+
+```
+migrations/
+├── 000001_initial_schema.up.sql
+├── 000001_initial_schema.down.sql
+├── 000002_add_indexes.up.sql
+├── 000002_add_indexes.down.sql
+└── ...
+```
+
+### Initial Migration (000001_initial_schema.up.sql)
+```sql
+CREATE TABLE IF NOT EXISTS detections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date DATE NOT NULL,
+  time TIME NOT NULL,
+  sci_name VARCHAR(100) NOT NULL,
+  com_name VARCHAR(100) NOT NULL,
+  confidence FLOAT NOT NULL,
+  lat FLOAT,
+  lon FLOAT,
+  cutoff FLOAT,
+  week INT,
+  sens FLOAT,
+  overlap FLOAT,
+  file_name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  -- Part 2 columns added via later migrations
+);
+
+CREATE INDEX idx_detections_date_time ON detections(date DESC, time DESC);
+CREATE INDEX idx_detections_sci_name ON detections(sci_name);
+CREATE INDEX idx_detections_com_name ON detections(com_name);
+
+-- Schema version tracking (golang-migrate handles this)
+```
+
+### Part 2 Migration (000003_add_vad.up.sql)
+```sql
+-- Added when VAD feature is implemented
+ALTER TABLE detections ADD COLUMN vad_score REAL;
+ALTER TABLE detections ADD COLUMN vad_skipped BOOLEAN DEFAULT FALSE;
+
+CREATE INDEX idx_detections_vad_skipped ON detections(vad_skipped) WHERE vad_skipped = TRUE;
+```
+
+---
+
+## Resource Budget
+
+### Part 1 (Infrastructure)
+
+| Component | RAM | Notes |
+|-----------|-----|-------|
+| Go server | ~20MB | Includes WebSocket connections |
+| Python ML service | ~500MB | BirdNET model loaded |
+| SQLite | ~50MB | Shared cache |
+| Recording daemon | ~20MB | ffmpeg/arecord |
+| System | ~500MB | |
+| **Total** | ~1.1GB | |
+
+### Part 2 (All Features Enabled)
+
+| Component | RAM | Notes |
+|-----------|-----|-------|
+| Part 1 infrastructure | ~1.1GB | |
+| Silero VAD | ~100MB | Always loaded when enabled |
+| LLM (TinyLlama) | ~1GB | Lazy loaded, unloads after idle |
+| Spectrogram buffer | ~50MB | When streaming enabled |
+| **Peak Total** | ~2.3GB | LLM loaded |
+| **Typical** | ~1.3GB | LLM unloaded |
+
+Comfortable within 4GB, with headroom for OS and buffers.
+
+---
+
+## Risks and Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Data loss during migration | Full backup before each phase, parallel running |
+| Performance regression | Benchmark critical paths before/after |
+| Detection notification failure | Non-fatal: detection in DB, WebSocket is optional |
+| Go learning curve | Start with simple endpoints, iterate |
+| Breaking existing installations | Incremental migration, backward-compatible config |
+| PHP/Preact feature mismatch | Side-by-side testing before PHP removal |
+| Part 2 memory pressure | ModelManager with lazy load/unload, monitoring |
+
+---
+
+## Success Criteria
+
+### Part 1 Complete
+- [ ] All existing functionality preserved
+- [ ] Real-time detection updates via WebSocket
+- [ ] Single YAML configuration file with validation
+- [ ] No PHP in runtime
+- [ ] Shell scripts retained for installation/maintenance only
+- [ ] Sub-second page loads
+- [ ] Database schema versioned with migrations
+- [ ] Clean codebase, documented
+
+### Part 2 Ready
+- [ ] Python service has extensible router architecture
+- [ ] ModelManager base class implemented
+- [ ] Part 2 stub endpoints return 501
+- [ ] WebSocket hub supports typed messages and channels
+- [ ] Memory monitoring infrastructure in place
+- [ ] Config schema includes Part 2 sections (disabled)
+- [ ] ML client supports request/response pattern
+
+---
+
+## Timeline Summary
+
+| Phase | Duration | Key Deliverable |
+|-------|----------|-----------------|
+| 1. Go API + Preact Shell | Week 1 | Go running with Part 2-ready infrastructure |
+| 2. Python FastAPI Service | Week 2 | Extensible ML service, real-time updates |
+| 3. Preact Pages | Weeks 3-4 | All pages migrated incrementally |
+| 4. Go Scheduler | Week 5 | Runtime jobs in Go |
+| 5. Configuration | Week 6 | YAML config with Part 2 sections |
+| 6. PHP Decommission | Week 7 | Clean final architecture |
+
+**Total: 7 weeks**
+
+---
+
+## Architecture Diagram (Part 2 Ready)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Preact Frontend                              │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
+│  │  Detection  │ │ Interactive │ │   LLM UI    │  (Part 2)     │
+│  │    List     │ │   Charts    │ │             │               │
+│  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘               │
+└─────────┼───────────────┼───────────────┼───────────────────────┘
+          │               │               │
+          │ WebSocket     │ HTTP          │ HTTP
+          │ (typed msgs)  │               │
+┌─────────▼───────────────▼───────────────▼───────────────────────┐
+│                      Go Backend                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  /api/detections   /api/charts/*   /api/llm/*  (proxy)   │   │
+│  │  /api/species      /api/system/*   /api/vad/*  (proxy)   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │  WebSocket  │  │  MLClient   │  │  Memory     │              │
+│  │  Hub        │  │ (req/resp)  │  │  Monitor    │              │
+│  │  (channels) │  │             │  │             │              │
+│  └──────┬──────┘  └──────┬──────┘  └─────────────┘              │
+└─────────┼────────────────┼──────────────────────────────────────┘
+          │                │
+          │ notifications  │ HTTP (request/response)
+          │                │
+┌─────────▼────────────────▼──────────────────────────────────────┐
+│                   Python ML Service (FastAPI)                    │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │  Routers:  /analysis/*   /status/*   /vad/*    /llm/*      │ │
+│  │             (Part 1)      (Part 1)   (stub)    (stub)      │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐                 │
+│  │  BirdNET   │  │  Silero    │  │  TinyLlama │                 │
+│  │  Manager   │  │  VAD Mgr   │  │  LLM Mgr   │                 │
+│  │  (loaded)  │  │  (Part 2)  │  │  (Part 2)  │                 │
+│  └────────────┘  └────────────┘  └────────────┘                 │
+│         │                                                        │
+│         └─── All extend ModelManager base class                  │
+└──────────────────────────────────────────────────────────────────┘
+          │
+          │ Direct write
+          ▼
+┌──────────────────┐
+│     SQLite       │
+│  (versioned)     │
+└──────────────────┘
+```
+
+---
+
+## Quick Reference: What's Part 2 Ready
+
+| Component | Part 1 Implementation | Part 2 Extension Point |
+|-----------|----------------------|------------------------|
+| WebSocket | Detection notifications | Typed messages, channels for spectrogram/LLM |
+| Python Service | BirdNET analysis | Router architecture for VAD/LLM routers |
+| Model Loading | BirdNETManager | ModelManager base class for VAD/LLM |
+| Memory | Basic monitoring | Per-component tracking, unload decisions |
+| Config | Core settings | VAD/LLM/spectrogram sections (disabled) |
+| Database | Base schema + migrations | Migration system for VAD columns |
+| Go ML Client | Status checks | Request/response for VAD/LLM calls |

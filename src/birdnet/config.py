@@ -57,6 +57,61 @@ def get_analyzing_now() -> Path:
     return Path(recs_dir) / 'StreamData' / 'analyzing_now.txt'
 
 
+def get_install_dir() -> Path:
+    """Get the BirdNET-Pi installation directory.
+
+    Uses INSTALL_DIR from config, falling back to ~/BirdNET-Pi.
+    """
+    config = get_config()
+    install_dir = config.get('INSTALL_DIR', '')
+    if install_dir:
+        return Path(install_dir)
+    return Path(os.path.expanduser('~/BirdNET-Pi'))
+
+
+def get_species_list_path(list_type: str) -> Path:
+    """Get path to a species list file.
+
+    Args:
+        list_type: One of 'include', 'exclude', or 'whitelist'
+
+    Returns:
+        Path to the species list file
+    """
+    install_dir = get_install_dir()
+    return install_dir / f'{list_type}_species_list.txt'
+
+
+def get_include_species_list() -> Path:
+    """Get path to the include species list file."""
+    return get_species_list_path('include')
+
+
+def get_exclude_species_list() -> Path:
+    """Get path to the exclude species list file."""
+    return get_species_list_path('exclude')
+
+
+def get_whitelist_species_list() -> Path:
+    """Get path to the whitelist species list file."""
+    return get_species_list_path('whitelist')
+
+
+def get_birddb_path() -> Path:
+    """Get path to the BirdDB.txt log file."""
+    return get_install_dir() / 'BirdDB.txt'
+
+
+def get_apprise_config_path() -> Path:
+    """Get path to the Apprise configuration file."""
+    return get_install_dir() / 'apprise.txt'
+
+
+def get_apprise_body_path() -> Path:
+    """Get path to the Apprise notification body template."""
+    return get_install_dir() / 'body.txt'
+
+
 def _load_schema() -> Dict[str, Any]:
     """Load configuration schema for validation and defaults."""
     global _schema_cache

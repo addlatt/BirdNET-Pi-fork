@@ -1,34 +1,35 @@
+"""Notification system for BirdNET-Pi using Apprise."""
 import apprise
 import os
 import socket
 import requests
 import html
 import time
+from pathlib import Path
+from typing import Optional
 
+from .config import get_settings, get_apprise_config_path, get_apprise_body_path, get_install_dir
 from .db import get_todays_count_for, get_this_weeks_count_for
-from .helpers import get_settings
 
-userDir = os.path.expanduser('~')
-APPRISE_CONFIG = userDir + '/BirdNET-Pi/apprise.txt'
-APPRISE_BODY = userDir + '/BirdNET-Pi/body.txt'
-
-apobj = None
-images = {}
-species_last_notified = {}
+apobj: Optional[apprise.Apprise] = None
+images: dict[str, str] = {}
+species_last_notified: dict[str, int] = {}
 
 
-def notify(body, title, attached=""):
+def notify(body: str, title: str, attached: str = "") -> None:
+    """Send a notification via Apprise."""
     global apobj
     if apobj is None:
+        user_dir = Path.home()
         asset = apprise.AppriseAsset(
             plugin_paths=[
-                userDir + "/.apprise/plugins",
-                userDir + "/.config/apprise/plugins",
+                str(user_dir / ".apprise" / "plugins"),
+                str(user_dir / ".config" / "apprise" / "plugins"),
             ]
         )
         apobj = apprise.Apprise(asset=asset)
         config = apprise.AppriseConfig()
-        config.add(APPRISE_CONFIG)
+        config.add(str(get_apprise_config_path()))
         apobj.add(config)
 
     if attached != "":
@@ -44,8 +45,24 @@ def notify(body, title, attached=""):
         )
 
 
-def sendAppriseNotifications(sci_name, com_name, confidence, confidencepct, path, date, time_of_day, week, latitude, longitude, cutoff, sens, overlap):
-    def render_template(template, reason=""):
+def sendAppriseNotifications(
+    sci_name: str,
+    com_name: str,
+    confidence: str,
+    confidencepct: str,
+    path: str,
+    date: str,
+    time_of_day: str,
+    week: str,
+    latitude: str,
+    longitude: str,
+    cutoff: str,
+    sens: str,
+    overlap: str,
+) -> None:
+    """Send notifications for a bird detection based on configured rules."""
+
+    def render_template(template: str, reason: str = "") -> str:
         ret = template.replace("$sciname", sci_name) \
             .replace("$comname", com_name) \
             .replace("$confidencepct", str(confidencepct)) \
@@ -70,8 +87,8 @@ def sendAppriseNotifications(sci_name, com_name, confidence, confidencepct, path
 
     settings_dict = get_settings()
     title = html.unescape(settings_dict.get('APPRISE_NOTIFICATION_TITLE'))
-    f = open(APPRISE_BODY, 'r')
-    body = f.read()
+    with open(get_apprise_body_path(), 'r') as f:
+        body = f.read()
 
     websiteurl = settings_dict.get('BIRDNETPI_URL')
     if websiteurl is None or len(websiteurl) == 0:
@@ -118,9 +135,11 @@ def sendAppriseNotifications(sci_name, com_name, confidence, confidencepct, path
             species_last_notified[com_name] = int(time.time())
 
 
-def should_notify(com_name):
+def should_notify(com_name: str) -> bool:
+    """Check if a notification should be sent for the given species."""
     settings_dict = get_settings()
-    if not (os.path.exists(APPRISE_CONFIG) and os.path.getsize(APPRISE_CONFIG) > 0):
+    apprise_config = get_apprise_config_path()
+    if not (apprise_config.exists() and apprise_config.stat().st_size > 0):
         return False
 
     # check if this is an excluded species
@@ -152,4 +171,4 @@ def should_notify(com_name):
 
 
 if __name__ == "__main__":
-    print("notfications")
+    print("notifications")

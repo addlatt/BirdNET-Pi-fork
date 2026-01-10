@@ -10,6 +10,7 @@ import os
 import re
 import subprocess
 from collections import OrderedDict
+from typing import Optional
 
 # Import configuration from centralized module
 from .config import (
@@ -28,10 +29,10 @@ from .config import (
 
 # Backwards-compatible ANALYZING_NOW - now dynamically computed from RECS_DIR
 # Use get_analyzing_now() for dynamic path that respects config
-ANALYZING_NOW = str(get_analyzing_now())
+ANALYZING_NOW: str = str(get_analyzing_now())
 
 
-def get_font():
+def get_font() -> dict[str, str]:
     """Get font configuration based on database language."""
     conf = get_config()
     font_dir = get_font_dir()
@@ -49,7 +50,7 @@ def get_font():
     return ret
 
 
-def get_open_files_in_dir(dir_name):
+def get_open_files_in_dir(dir_name: str) -> list[str]:
     """Get list of open files in a directory using lsof."""
     result = subprocess.run(['lsof', '-w', '-Fn', '+D', f'{dir_name}'], check=False, capture_output=True)
     ret = result.stdout.decode('utf-8')
@@ -60,7 +61,7 @@ def get_open_files_in_dir(dir_name):
     return names
 
 
-def get_wav_files():
+def get_wav_files() -> list[str]:
     """Get list of WAV files available for processing."""
     conf = get_config()
     recs_dir = conf.get('RECS_DIR', os.path.expanduser('~/BirdSongs'))
@@ -74,7 +75,7 @@ def get_wav_files():
     return files
 
 
-def get_language(language=None):
+def get_language(language: Optional[str] = None) -> dict[str, str]:
     """Load language labels from JSON file."""
     if language is None:
         conf = get_config()
@@ -86,7 +87,7 @@ def get_language(language=None):
     return ret
 
 
-def save_language(labels, language):
+def save_language(labels: dict[str, str], language: str) -> None:
     """Save language labels to JSON file."""
     model_path = get_model_path()
     file_name = model_path / 'l18n' / f'labels_{language}.json'
@@ -94,7 +95,7 @@ def save_language(labels, language):
         f.write(json.dumps(OrderedDict(sorted(labels.items())), indent=2, ensure_ascii=False))
 
 
-def get_model_labels(model=None):
+def get_model_labels(model: Optional[str] = None) -> list[str]:
     """Get list of species labels from model file."""
     if model is None:
         conf = get_config()
@@ -108,7 +109,7 @@ def get_model_labels(model=None):
     return labels
 
 
-def set_label_file():
+def set_label_file() -> None:
     """Generate combined labels file with translations."""
     lang = get_language()
     labels = [f'{label}_{lang[label]}\n' for label in get_model_labels()]

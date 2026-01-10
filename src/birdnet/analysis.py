@@ -1,21 +1,35 @@
+"""Audio analysis pipeline for BirdNET-Pi bird detection."""
 import logging
 import os
 import time
+from typing import Any, Optional
 
 import librosa
 import numpy as np
+from numpy.typing import NDArray
 
 from .classes import Detection, ParseFileName
-from .helpers import get_settings, get_language
-from .models import get_model
+from .config import (
+    get_settings,
+    get_include_species_list,
+    get_exclude_species_list,
+    get_whitelist_species_list,
+)
+from .helpers import get_language
+from .models import get_model, Basemodel
 
 log = logging.getLogger(__name__)
 
-MODEL = None
+# BirdNET model constants
+BIRDNET_TOTAL_SPECIES = 6000  # Total species in BirdNET 6K model
+MIN_HUMAN_CHECK_PREDICTIONS = 10  # Minimum predictions to scan for human sounds
+
+MODEL: Optional[Basemodel] = None
 
 
-def loadCustomSpeciesList(path):
-    species_list = []
+def loadCustomSpeciesList(path: str) -> list[str]:
+    """Load a custom species list from a file."""
+    species_list: list[str] = []
     if os.path.isfile(path):
         with open(path, 'r') as csfile:
             species_list = [line.strip().split('_')[0] for line in csfile.readlines()]
@@ -23,9 +37,15 @@ def loadCustomSpeciesList(path):
     return species_list
 
 
-def splitSignal(sig, rate, overlap, seconds=3.0, minlen=1.5):
-    # Split signal with overlap
-    sig_splits = []
+def splitSignal(
+    sig: NDArray[np.float32],
+    rate: int,
+    overlap: float,
+    seconds: float = 3.0,
+    minlen: float = 1.5,
+) -> list[NDArray[np.float32]]:
+    """Split audio signal into overlapping chunks."""
+    sig_splits: list[NDArray[np.float32]] = []
     for i in range(0, len(sig), int((seconds - overlap) * rate)):
         split = sig[i:i + int(seconds * rate)]
 
@@ -44,7 +64,13 @@ def splitSignal(sig, rate, overlap, seconds=3.0, minlen=1.5):
     return sig_splits
 
 
-def readAudioData(path, overlap, sample_rate, chunk_duration):
+def readAudioData(
+    path: str,
+    overlap: float,
+    sample_rate: int,
+    chunk_duration: float,
+) -> list[NDArray[np.float32]]:
+    """Read audio file and split into chunks for analysis."""
     log.info('READING AUDIO DATA...')
 
     # Open file with librosa (uses ffmpeg or libav)
@@ -58,8 +84,19 @@ def readAudioData(path, overlap, sample_rate, chunk_duration):
     return chunks
 
 
-def analyzeAudioData(chunks, overlap, lat, lon, week):
-    detections = []
+# Type alias for prediction results: list of (species_name, confidence) tuples
+PredictionList = list[tuple[str, float]]
+
+
+def analyzeAudioData(
+    chunks: list[NDArray[np.float32]],
+    overlap: float,
+    lat: float,
+    lon: float,
+    week: int,
+) -> tuple[dict[str, PredictionList], list[str]]:
+    """Analyze audio chunks and return detections with predicted species list."""
+    detections: list[PredictionList] = []
     model = load_global_model()
 
     start = time.time()
@@ -74,7 +111,7 @@ def analyzeAudioData(chunks, overlap, lat, lon, week):
         log.debug("PPPPP: %s", p)
         detections.append(p)
 
-    labeled = {}
+    labeled: dict[str, PredictionList] = {}
     pred_start = 0.0
     for p in filter_humans(detections):
         # Save timestamp and result
@@ -87,10 +124,11 @@ def analyzeAudioData(chunks, overlap, lat, lon, week):
     return labeled, predicted_species_list
 
 
-def filter_humans(predictions):
+def filter_humans(predictions: list[PredictionList]) -> list[PredictionList]:
+    """Filter out predictions containing human voices for privacy."""
     conf = get_settings()
     priv_thresh = float(conf.get('PRIVACY_THRESHOLD', 0))
-    human_cutoff = max(10, int(6000 * priv_thresh / 100.0))
+    human_cutoff = max(MIN_HUMAN_CHECK_PREDICTIONS, int(BIRDNET_TOTAL_SPECIES * priv_thresh / 100.0))
     log.debug("HUMAN-CUTOFF AT: %d", human_cutoff)
     try:
         extraction_length = int(conf.get('EXTRACTION_LENGTH', 0))
@@ -101,7 +139,7 @@ def filter_humans(predictions):
         pass
 
     # mask for humans
-    human_mask = [False] * len(predictions)
+    human_mask: list[bool] = [False] * len(predictions)
     for i, prediction in enumerate(predictions):
         for p in prediction[:human_cutoff]:
             if 'Human' in p[0]:
@@ -109,14 +147,14 @@ def filter_humans(predictions):
                 break
 
     # mask for predictions that have a human neighbour
-    human_neighbour_mask = [False] * len(predictions)
+    human_neighbour_mask: list[bool] = [False] * len(predictions)
     for i, _ in enumerate(human_mask):
         if i != 0 and human_mask[i - 1]:
             human_neighbour_mask[i] = True
         if i != len(human_mask) - 1 and human_mask[i + 1]:
             human_neighbour_mask[i] = True
 
-    clean_detections = []
+    clean_detections: list[PredictionList] = []
     for prediction, human, has_human_neighbour in zip(predictions, human_mask, human_neighbour_mask):
         if human or has_human_neighbour:
             log.debug('Overwriting prediction %s', prediction[0])
@@ -128,7 +166,8 @@ def filter_humans(predictions):
     return clean_detections
 
 
-def load_global_model():
+def load_global_model() -> Basemodel:
+    """Load or return the cached global ML model."""
     global MODEL
     if MODEL is None:
         log.info('LOADING TF LITE MODEL...')
@@ -138,10 +177,11 @@ def load_global_model():
     return MODEL
 
 
-def run_analysis(file):
-    include_list = loadCustomSpeciesList(os.path.expanduser("~/BirdNET-Pi/include_species_list.txt"))
-    exclude_list = loadCustomSpeciesList(os.path.expanduser("~/BirdNET-Pi/exclude_species_list.txt"))
-    whitelist_list = loadCustomSpeciesList(os.path.expanduser("~/BirdNET-Pi/whitelist_species_list.txt"))
+def run_analysis(file: ParseFileName) -> list[Detection]:
+    """Run the full analysis pipeline on an audio file."""
+    include_list = loadCustomSpeciesList(str(get_include_species_list()))
+    exclude_list = loadCustomSpeciesList(str(get_exclude_species_list()))
+    whitelist_list = loadCustomSpeciesList(str(get_whitelist_species_list()))
 
     conf = get_settings()
     model = load_global_model()
@@ -157,7 +197,7 @@ def run_analysis(file):
     # Process audio data and get detections
     raw_detections, predicted_species_list = analyzeAudioData(audio_data, float(conf.get('OVERLAP', 0)), float(conf.get('LATITUDE', 0)),
                                                               float(conf.get('LONGITUDE', 0)), file.week)
-    confident_detections = []
+    confident_detections: list[Detection] = []
     for time_slot, entries in raw_detections.items():
         sci_name, confidence = entries[0]
         log.info('%s-(%s_%s, %s)', time_slot, sci_name, names.get(sci_name, sci_name), confidence)

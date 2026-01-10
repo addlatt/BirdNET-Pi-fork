@@ -175,6 +175,11 @@
       "type": "string",
       "description": "System user running BirdNET-Pi"
     },
+    "INSTALL_DIR": {
+      "type": "string",
+      "description": "BirdNET-Pi installation directory",
+      "default": ""
+    },
     "RECS_DIR": {
       "type": "string",
       "description": "Base directory for recordings (computed from ~/BirdSongs if empty)",
