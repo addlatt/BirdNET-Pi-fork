@@ -17,7 +17,7 @@ type DB struct {
 // New creates a new database connection with read-only access.
 func New(dbPath string) (*DB, error) {
 	// Open in read-only mode with shared cache for better concurrency
-	connStr := fmt.Sprintf("file:%s?mode=ro&cache=shared&_journal_mode=WAL", dbPath)
+	connStr := fmt.Sprintf("file:%s?mode=ro&cache=shared", dbPath)
 	conn, err := sql.Open("sqlite3", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
