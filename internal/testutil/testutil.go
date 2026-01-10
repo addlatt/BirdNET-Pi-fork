@@ -4,7 +4,6 @@ package testutil
 import (
 	"database/sql"
 	"testing"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -19,27 +18,25 @@ func TestDB(t *testing.T) *sql.DB {
 		t.Fatalf("failed to create test database: %v", err)
 	}
 
-	// Create schema
+	// Create schema matching the actual Pi database
 	schema := `
 		CREATE TABLE IF NOT EXISTS detections (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			date DATE NOT NULL,
-			time TIME NOT NULL,
-			sci_name VARCHAR(100) NOT NULL,
-			com_name VARCHAR(100) NOT NULL,
-			confidence REAL NOT NULL,
-			lat REAL,
-			lon REAL,
-			cutoff REAL,
-			week INTEGER,
-			sens REAL,
-			overlap REAL,
-			file_name VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			Date DATE NOT NULL,
+			Time TIME NOT NULL,
+			Sci_Name VARCHAR(100) NOT NULL,
+			Com_Name VARCHAR(100) NOT NULL,
+			Confidence REAL,
+			Lat REAL,
+			Lon REAL,
+			Cutoff REAL,
+			Week INTEGER,
+			Sens REAL,
+			Overlap REAL,
+			File_Name VARCHAR(100) NOT NULL
 		);
-		CREATE INDEX IF NOT EXISTS idx_detections_date_time ON detections(date DESC, time DESC);
-		CREATE INDEX IF NOT EXISTS idx_detections_sci_name ON detections(sci_name);
-		CREATE INDEX IF NOT EXISTS idx_detections_com_name ON detections(com_name);
+		CREATE INDEX IF NOT EXISTS idx_detections_date_time ON detections(Date DESC, Time DESC);
+		CREATE INDEX IF NOT EXISTS idx_detections_sci_name ON detections(Sci_Name);
+		CREATE INDEX IF NOT EXISTS idx_detections_com_name ON detections(Com_Name);
 	`
 
 	if _, err := db.Exec(schema); err != nil {
@@ -59,8 +56,8 @@ func SeedDetections(t *testing.T, db *sql.DB, detections []Detection) {
 	t.Helper()
 
 	stmt, err := db.Prepare(`
-		INSERT INTO detections (date, time, sci_name, com_name, confidence, lat, lon, file_name, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO detections (Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, File_Name)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		t.Fatalf("failed to prepare insert statement: %v", err)
@@ -68,11 +65,7 @@ func SeedDetections(t *testing.T, db *sql.DB, detections []Detection) {
 	defer stmt.Close()
 
 	for _, d := range detections {
-		createdAt := d.CreatedAt
-		if createdAt.IsZero() {
-			createdAt = time.Now()
-		}
-		_, err := stmt.Exec(d.Date, d.Time, d.SciName, d.ComName, d.Confidence, d.Lat, d.Lon, d.FileName, createdAt)
+		_, err := stmt.Exec(d.Date, d.Time, d.SciName, d.ComName, d.Confidence, d.Lat, d.Lon, d.FileName)
 		if err != nil {
 			t.Fatalf("failed to insert detection: %v", err)
 		}
@@ -89,13 +82,12 @@ type Detection struct {
 	Lat        *float64
 	Lon        *float64
 	FileName   string
-	CreatedAt  time.Time
 }
 
 // SampleDetections returns a slice of sample detection data for testing.
 func SampleDetections() []Detection {
-	today := time.Now().Format("2006-01-02")
-	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	today := "2026-01-10"
+	yesterday := "2026-01-09"
 	lat := 42.3601
 	lon := -71.0589
 

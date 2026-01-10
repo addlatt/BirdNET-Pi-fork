@@ -5,22 +5,20 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/birdnet-pi/birdnet/internal/db/generated"
+	db "github.com/birdnet-pi/birdnet/internal/db/generated"
 	"github.com/go-chi/chi/v5"
 )
 
 // DetectionResponse represents a single detection in API responses.
 type DetectionResponse struct {
-	ID         int64   `json:"id"`
-	Date       string  `json:"date"`
-	Time       string  `json:"time"`
-	SciName    string  `json:"sci_name"`
-	ComName    string  `json:"com_name"`
-	Confidence float64 `json:"confidence"`
+	Date       string   `json:"date"`
+	Time       string   `json:"time"`
+	SciName    string   `json:"sci_name"`
+	ComName    string   `json:"com_name"`
+	Confidence float64  `json:"confidence"`
 	Lat        *float64 `json:"lat,omitempty"`
 	Lon        *float64 `json:"lon,omitempty"`
-	FileName   string  `json:"file_name"`
-	CreatedAt  string  `json:"created_at"`
+	FileName   string   `json:"file_name"`
 }
 
 // ListDetectionsResponse represents the list detections response.
@@ -110,18 +108,25 @@ func (h *Handlers) ListDetections(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
-// GetDetection handles GET /api/detections/{id} requests.
+// GetDetection handles GET /api/detections/{date}/{time}/{species} requests.
+// Since the database has no ID column, we use a composite key.
 func (h *Handlers) GetDetection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid detection ID")
+	date := chi.URLParam(r, "date")
+	time := chi.URLParam(r, "time")
+	species := chi.URLParam(r, "species")
+
+	if date == "" || time == "" || species == "" {
+		writeError(w, http.StatusBadRequest, "Missing date, time, or species parameter")
 		return
 	}
 
-	detection, err := h.db.Queries.GetDetection(ctx, id)
+	detection, err := h.db.Queries.GetDetection(ctx, db.GetDetectionParams{
+		Date:    date,
+		Time:    time,
+		SciName: species,
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, "Detection not found")
@@ -137,14 +142,12 @@ func (h *Handlers) GetDetection(w http.ResponseWriter, r *http.Request) {
 // detectionToResponse converts a database detection to API response format.
 func detectionToResponse(d db.Detection) DetectionResponse {
 	resp := DetectionResponse{
-		ID:         d.ID,
 		Date:       d.Date,
 		Time:       d.Time,
 		SciName:    d.SciName,
 		ComName:    d.ComName,
 		Confidence: d.Confidence,
 		FileName:   d.FileName,
-		CreatedAt:  d.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if d.Lat.Valid {

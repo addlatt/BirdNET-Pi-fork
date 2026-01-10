@@ -10,17 +10,22 @@ import (
 )
 
 const getDetection = `-- name: GetDetection :one
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, Cutoff, Week, Sens, Overlap, File_Name
 FROM detections
-WHERE id = ?
+WHERE Date = ? AND Time = ? AND Sci_Name = ?
 LIMIT 1
 `
 
-func (q *Queries) GetDetection(ctx context.Context, id int64) (Detection, error) {
-	row := q.db.QueryRowContext(ctx, getDetection, id)
+type GetDetectionParams struct {
+	Date    string `json:"date"`
+	Time    string `json:"time"`
+	SciName string `json:"sci_name"`
+}
+
+func (q *Queries) GetDetection(ctx context.Context, arg GetDetectionParams) (Detection, error) {
+	row := q.db.QueryRowContext(ctx, getDetection, arg.Date, arg.Time, arg.SciName)
 	var i Detection
 	err := row.Scan(
-		&i.ID,
 		&i.Date,
 		&i.Time,
 		&i.SciName,
@@ -33,15 +38,14 @@ func (q *Queries) GetDetection(ctx context.Context, id int64) (Detection, error)
 		&i.Sens,
 		&i.Overlap,
 		&i.FileName,
-		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listDetections = `-- name: ListDetections :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, Cutoff, Week, Sens, Overlap, File_Name
 FROM detections
-ORDER BY date DESC, time DESC
+ORDER BY Date DESC, Time DESC
 LIMIT ? OFFSET ?
 `
 
@@ -60,7 +64,6 @@ func (q *Queries) ListDetections(ctx context.Context, arg ListDetectionsParams) 
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -73,7 +76,6 @@ func (q *Queries) ListDetections(ctx context.Context, arg ListDetectionsParams) 
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -89,10 +91,10 @@ func (q *Queries) ListDetections(ctx context.Context, arg ListDetectionsParams) 
 }
 
 const listDetectionsByDate = `-- name: ListDetectionsByDate :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, Cutoff, Week, Sens, Overlap, File_Name
 FROM detections
-WHERE date = ?
-ORDER BY time DESC
+WHERE Date = ?
+ORDER BY Time DESC
 `
 
 func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Detection, error) {
@@ -105,7 +107,6 @@ func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Dete
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -118,7 +119,6 @@ func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Dete
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -134,10 +134,10 @@ func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Dete
 }
 
 const listDetectionsByDateRange = `-- name: ListDetectionsByDateRange :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, Cutoff, Week, Sens, Overlap, File_Name
 FROM detections
-WHERE date >= ? AND date <= ?
-ORDER BY date DESC, time DESC
+WHERE Date >= ? AND Date <= ?
+ORDER BY Date DESC, Time DESC
 LIMIT ? OFFSET ?
 `
 
@@ -158,7 +158,6 @@ func (q *Queries) ListDetectionsByDateRange(ctx context.Context, arg ListDetecti
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -171,7 +170,6 @@ func (q *Queries) ListDetectionsByDateRange(ctx context.Context, arg ListDetecti
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -187,10 +185,10 @@ func (q *Queries) ListDetectionsByDateRange(ctx context.Context, arg ListDetecti
 }
 
 const listDetectionsBySpecies = `-- name: ListDetectionsBySpecies :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, Cutoff, Week, Sens, Overlap, File_Name
 FROM detections
-WHERE sci_name = ? OR com_name = ?
-ORDER BY date DESC, time DESC
+WHERE Sci_Name = ? OR Com_Name = ?
+ORDER BY Date DESC, Time DESC
 LIMIT ? OFFSET ?
 `
 
@@ -211,7 +209,6 @@ func (q *Queries) ListDetectionsBySpecies(ctx context.Context, arg ListDetection
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -224,7 +221,6 @@ func (q *Queries) ListDetectionsBySpecies(ctx context.Context, arg ListDetection
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -254,7 +250,7 @@ func (q *Queries) CountDetections(ctx context.Context) (int64, error) {
 const countDetectionsByDate = `-- name: CountDetectionsByDate :one
 SELECT COUNT(*) as count
 FROM detections
-WHERE date = ?
+WHERE Date = ?
 `
 
 func (q *Queries) CountDetectionsByDate(ctx context.Context, date string) (int64, error) {
@@ -267,7 +263,7 @@ func (q *Queries) CountDetectionsByDate(ctx context.Context, date string) (int64
 const countDetectionsToday = `-- name: CountDetectionsToday :one
 SELECT COUNT(*) as count
 FROM detections
-WHERE date = DATE('now')
+WHERE Date = DATE('now')
 `
 
 func (q *Queries) CountDetectionsToday(ctx context.Context) (int64, error) {
@@ -278,9 +274,9 @@ func (q *Queries) CountDetectionsToday(ctx context.Context) (int64, error) {
 }
 
 const listSpecies = `-- name: ListSpecies :many
-SELECT DISTINCT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence
+SELECT DISTINCT Sci_Name, Com_Name, COUNT(*) as detection_count, MAX(Confidence) as max_confidence
 FROM detections
-GROUP BY sci_name, com_name
+GROUP BY Sci_Name, Com_Name
 ORDER BY detection_count DESC
 `
 
@@ -320,10 +316,10 @@ func (q *Queries) ListSpecies(ctx context.Context) ([]ListSpeciesRow, error) {
 }
 
 const listSpeciesToday = `-- name: ListSpeciesToday :many
-SELECT DISTINCT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence
+SELECT DISTINCT Sci_Name, Com_Name, COUNT(*) as detection_count, MAX(Confidence) as max_confidence
 FROM detections
-WHERE date = DATE('now')
-GROUP BY sci_name, com_name
+WHERE Date = DATE('now')
+GROUP BY Sci_Name, Com_Name
 ORDER BY detection_count DESC
 `
 
@@ -357,16 +353,16 @@ func (q *Queries) ListSpeciesToday(ctx context.Context) ([]ListSpeciesRow, error
 
 const getSpeciesStats = `-- name: GetSpeciesStats :one
 SELECT
-    sci_name,
-    com_name,
+    Sci_Name,
+    Com_Name,
     COUNT(*) as total_detections,
-    MAX(confidence) as max_confidence,
-    AVG(confidence) as avg_confidence,
-    MIN(date) as first_detection,
-    MAX(date) as last_detection
+    MAX(Confidence) as max_confidence,
+    AVG(Confidence) as avg_confidence,
+    MIN(Date) as first_detection,
+    MAX(Date) as last_detection
 FROM detections
-WHERE sci_name = ?
-GROUP BY sci_name, com_name
+WHERE Sci_Name = ?
+GROUP BY Sci_Name, Com_Name
 `
 
 type GetSpeciesStatsRow struct {
@@ -396,14 +392,14 @@ func (q *Queries) GetSpeciesStats(ctx context.Context, sciName string) (GetSpeci
 
 const getDailyStats = `-- name: GetDailyStats :many
 SELECT
-    date,
+    Date,
     COUNT(*) as detection_count,
-    COUNT(DISTINCT sci_name) as species_count,
-    AVG(confidence) as avg_confidence
+    COUNT(DISTINCT Sci_Name) as species_count,
+    AVG(Confidence) as avg_confidence
 FROM detections
-WHERE date >= ?
-GROUP BY date
-ORDER BY date DESC
+WHERE Date >= ?
+GROUP BY Date
+ORDER BY Date DESC
 `
 
 type GetDailyStatsRow struct {
@@ -443,10 +439,10 @@ func (q *Queries) GetDailyStats(ctx context.Context, startDate string) ([]GetDai
 
 const getHourlyDistribution = `-- name: GetHourlyDistribution :many
 SELECT
-    CAST(strftime('%H', time) AS INTEGER) as hour,
+    CAST(strftime('%H', Time) AS INTEGER) as hour,
     COUNT(*) as detection_count
 FROM detections
-WHERE date >= ?
+WHERE Date >= ?
 GROUP BY hour
 ORDER BY hour
 `
@@ -483,10 +479,10 @@ func (q *Queries) GetHourlyDistribution(ctx context.Context, startDate string) (
 }
 
 const getTopSpecies = `-- name: GetTopSpecies :many
-SELECT sci_name, com_name, COUNT(*) as detection_count
+SELECT Sci_Name, Com_Name, COUNT(*) as detection_count
 FROM detections
-WHERE date >= ?
-GROUP BY sci_name, com_name
+WHERE Date >= ?
+GROUP BY Sci_Name, Com_Name
 ORDER BY detection_count DESC
 LIMIT ?
 `
@@ -530,9 +526,9 @@ func (q *Queries) GetTopSpecies(ctx context.Context, arg GetTopSpeciesParams) ([
 }
 
 const getRecentDetections = `-- name: GetRecentDetections :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT Date, Time, Sci_Name, Com_Name, Confidence, Lat, Lon, Cutoff, Week, Sens, Overlap, File_Name
 FROM detections
-ORDER BY date DESC, time DESC
+ORDER BY Date DESC, Time DESC
 LIMIT ?
 `
 
@@ -546,7 +542,6 @@ func (q *Queries) GetRecentDetections(ctx context.Context, limit int64) ([]Detec
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -559,7 +554,6 @@ func (q *Queries) GetRecentDetections(ctx context.Context, limit int64) ([]Detec
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -575,7 +569,7 @@ func (q *Queries) GetRecentDetections(ctx context.Context, limit int64) ([]Detec
 }
 
 const getTotalSpeciesCount = `-- name: GetTotalSpeciesCount :one
-SELECT COUNT(DISTINCT sci_name) as count
+SELECT COUNT(DISTINCT Sci_Name) as count
 FROM detections
 `
 
@@ -587,9 +581,9 @@ func (q *Queries) GetTotalSpeciesCount(ctx context.Context) (int64, error) {
 }
 
 const getTotalSpeciesCountToday = `-- name: GetTotalSpeciesCountToday :one
-SELECT COUNT(DISTINCT sci_name) as count
+SELECT COUNT(DISTINCT Sci_Name) as count
 FROM detections
-WHERE date = DATE('now')
+WHERE Date = DATE('now')
 `
 
 func (q *Queries) GetTotalSpeciesCountToday(ctx context.Context) (int64, error) {
@@ -600,9 +594,9 @@ func (q *Queries) GetTotalSpeciesCountToday(ctx context.Context) (int64, error) 
 }
 
 const getDetectionDates = `-- name: GetDetectionDates :many
-SELECT DISTINCT date
+SELECT DISTINCT Date
 FROM detections
-ORDER BY date DESC
+ORDER BY Date DESC
 LIMIT ? OFFSET ?
 `
 

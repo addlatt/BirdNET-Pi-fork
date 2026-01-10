@@ -1,0 +1,24 @@
+[Unit]
+Description=BirdNET-Pi Go API Server
+After=network.target
+
+[Service]
+Type=simple
+User=birdnet
+WorkingDirectory=/var/www/birdnet
+Environment="PORT=8080"
+Environment="DB_PATH=/home/birdnet/BirdNET-Pi/data/db/birds.db"
+Environment="ML_SERVICE_URL=http://127.0.0.1:8001"
+Environment="STATIC_DIR=/var/www/birdnet/web/dist"
+ExecStart=/var/www/birdnet/bin/birdnet-server
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log/birdnet
+
+[Install]
+WantedBy=multi-user.target

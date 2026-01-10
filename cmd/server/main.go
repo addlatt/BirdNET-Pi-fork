@@ -64,7 +64,7 @@ func main() {
 
 		// Detections
 		r.Get("/detections", handlers.ListDetections)
-		r.Get("/detections/{id}", handlers.GetDetection)
+		r.Get("/detections/{date}/{time}/{species}", handlers.GetDetection)
 
 		// Species
 		r.Get("/species", handlers.ListSpecies)

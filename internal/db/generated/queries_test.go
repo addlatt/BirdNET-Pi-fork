@@ -3,7 +3,6 @@ package db_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	db "github.com/birdnet-pi/birdnet/internal/db/generated"
 	"github.com/birdnet-pi/birdnet/internal/testutil"
@@ -17,32 +16,44 @@ func TestGetDetection(t *testing.T) {
 	// Seed test data
 	testutil.SeedDetections(t, sqlDB, testutil.SampleDetections())
 
+	today := "2026-01-10"
+
 	tests := []struct {
 		name    string
-		id      int64
+		date    string
+		time    string
+		sciName string
 		wantErr bool
 	}{
 		{
 			name:    "existing detection",
-			id:      1,
+			date:    today,
+			time:    "08:30:00",
+			sciName: "Turdus migratorius",
 			wantErr: false,
 		},
 		{
 			name:    "non-existent detection",
-			id:      999,
+			date:    "2020-01-01",
+			time:    "00:00:00",
+			sciName: "Unknown species",
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			detection, err := queries.GetDetection(ctx, tt.id)
+			detection, err := queries.GetDetection(ctx, db.GetDetectionParams{
+				Date:    tt.date,
+				Time:    tt.time,
+				SciName: tt.sciName,
+			})
 			if tt.wantErr {
 				testutil.AssertError(t, err)
 				return
 			}
 			testutil.AssertNoError(t, err)
-			testutil.AssertEqual(t, detection.ID, tt.id, "detection ID")
+			testutil.AssertEqual(t, detection.SciName, tt.sciName, "detection species")
 		})
 	}
 }
@@ -101,8 +112,9 @@ func TestListDetectionsByDate(t *testing.T) {
 	// Seed test data
 	testutil.SeedDetections(t, sqlDB, testutil.SampleDetections())
 
-	today := time.Now().Format("2006-01-02")
-	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	// Use hardcoded dates matching sample data
+	today := "2026-01-10"
+	yesterday := "2026-01-09"
 
 	tests := []struct {
 		name      string

@@ -196,29 +196,32 @@ birdnet-pi/
 
 ## Migration Phases (Incremental Approach)
 
-### Phase 1: Go API Foundation + Preact Shell (Week 1)
+### Phase 1: Go API Foundation + Preact Shell (Week 1) ✅ COMPLETE
 
 **Goal:** Go server running alongside existing PHP, serving one Preact page, with Part 2-ready architecture.
 
+**Implementation Summary:**
+The actual Pi database schema differed from the plan—it uses capitalized column names (Date, Time, Sci_Name) with no auto-increment ID or created_at column, requiring a composite key pattern (date/time/species) for lookups. SQLite's WAL mode is incompatible with read-only connections, so the connection string was simplified to `mode=ro&cache=shared`. The Preact + Vite build produces minimal bundles (~35KB JS gzipped), and the Go server successfully serves real detection data from the Pi database with all tests passing.
+
 **Tasks:**
-- [ ] Initialize Go module with Chi router
-- [ ] Set up SQLite with sqlc (read-only queries)
-- [ ] Implement golang-migrate for schema versioning
-- [ ] Create initial migration from existing schema
-- [ ] Implement WebSocket hub with typed messages and channels
-- [ ] Implement memory monitoring infrastructure
-- [ ] Create ML client with request/response support
-- [ ] Basic endpoints: health, detections, species, system status
-- [ ] Scaffold Preact + Vite project
-- [ ] Build Overview page in Preact (hitting Go API)
-- [ ] Configure Caddy to serve both PHP and Go
+- [x] Initialize Go module with Chi router
+- [x] Set up SQLite with sqlc (read-only queries)
+- [x] Implement golang-migrate for schema versioning
+- [x] Create initial migration from existing schema
+- [x] Implement WebSocket hub with typed messages and channels
+- [x] Implement memory monitoring infrastructure
+- [x] Create ML client with request/response support
+- [x] Basic endpoints: health, detections, species, system status
+- [x] Scaffold Preact + Vite project
+- [x] Build Overview page in Preact (hitting Go API)
+- [x] Configure Caddy to serve both PHP and Go
 
 **Go Endpoints:**
 ```
 # Public API
 GET  /api/health
 GET  /api/detections
-GET  /api/detections/:id
+GET  /api/detections/{date}/{time}/{species}  # Composite key (no auto-increment ID in schema)
 GET  /api/species
 GET  /api/stats
 
@@ -1049,27 +1052,26 @@ migrations/
 
 ### Initial Migration (000001_initial_schema.up.sql)
 ```sql
+-- Matches actual Pi database schema (capitalized column names, no auto-increment ID)
 CREATE TABLE IF NOT EXISTS detections (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  date DATE NOT NULL,
-  time TIME NOT NULL,
-  sci_name VARCHAR(100) NOT NULL,
-  com_name VARCHAR(100) NOT NULL,
-  confidence FLOAT NOT NULL,
-  lat FLOAT,
-  lon FLOAT,
-  cutoff FLOAT,
-  week INT,
-  sens FLOAT,
-  overlap FLOAT,
-  file_name VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  -- Part 2 columns added via later migrations
+    Date DATE NOT NULL,
+    Time TIME NOT NULL,
+    Sci_Name VARCHAR(100) NOT NULL,
+    Com_Name VARCHAR(100) NOT NULL,
+    Confidence REAL,
+    Lat REAL,
+    Lon REAL,
+    Cutoff REAL,
+    Week INTEGER,
+    Sens REAL,
+    Overlap REAL,
+    File_Name VARCHAR(100) NOT NULL
 );
 
-CREATE INDEX idx_detections_date_time ON detections(date DESC, time DESC);
-CREATE INDEX idx_detections_sci_name ON detections(sci_name);
-CREATE INDEX idx_detections_com_name ON detections(com_name);
+CREATE INDEX IF NOT EXISTS idx_detections_date_time ON detections(Date DESC, Time DESC);
+CREATE INDEX IF NOT EXISTS idx_detections_sci_name ON detections(Sci_Name);
+CREATE INDEX IF NOT EXISTS idx_detections_com_name ON detections(Com_Name);
+CREATE INDEX IF NOT EXISTS idx_detections_confidence ON detections(Confidence);
 
 -- Schema version tracking (golang-migrate handles this)
 ```

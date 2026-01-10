@@ -222,14 +222,16 @@ func TestReceiveDetection_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestGetDetection_InvalidID(t *testing.T) {
+func TestGetDetection_MissingParams(t *testing.T) {
 	handlers, _ := setupTestHandlers(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/detections/invalid", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/detections/2024-01-15/10:30:00/", nil)
 
-	// Set up chi URL params
+	// Set up chi URL params - missing species
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", "invalid")
+	rctx.URLParams.Add("date", "2024-01-15")
+	rctx.URLParams.Add("time", "10:30:00")
+	rctx.URLParams.Add("species", "") // empty species
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	rec := httptest.NewRecorder()
@@ -248,7 +250,6 @@ func TestDetectionToResponse(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    struct {
-			ID         int64
 			Date       string
 			Time       string
 			SciName    string
@@ -264,7 +265,6 @@ func TestDetectionToResponse(t *testing.T) {
 		{
 			name: "with coordinates",
 			input: struct {
-				ID         int64
 				Date       string
 				Time       string
 				SciName    string
@@ -274,7 +274,6 @@ func TestDetectionToResponse(t *testing.T) {
 				Lon        sql.NullFloat64
 				FileName   string
 			}{
-				ID:         1,
 				Date:       "2024-01-15",
 				Time:       "10:30:00",
 				SciName:    "Turdus migratorius",
@@ -290,7 +289,6 @@ func TestDetectionToResponse(t *testing.T) {
 		{
 			name: "without coordinates",
 			input: struct {
-				ID         int64
 				Date       string
 				Time       string
 				SciName    string
@@ -300,7 +298,6 @@ func TestDetectionToResponse(t *testing.T) {
 				Lon        sql.NullFloat64
 				FileName   string
 			}{
-				ID:         2,
 				Date:       "2024-01-15",
 				Time:       "11:00:00",
 				SciName:    "Cardinalis cardinalis",
@@ -320,7 +317,6 @@ func TestDetectionToResponse(t *testing.T) {
 			// Create a mock detection - this would normally come from the DB
 			// For now just verify the response structure
 			resp := DetectionResponse{
-				ID:         tt.input.ID,
 				Date:       tt.input.Date,
 				Time:       tt.input.Time,
 				SciName:    tt.input.SciName,
@@ -336,11 +332,11 @@ func TestDetectionToResponse(t *testing.T) {
 				resp.Lon = &lon
 			}
 
-			if resp.ID != tt.input.ID {
-				t.Errorf("ID = %d, want %d", resp.ID, tt.input.ID)
-			}
 			if resp.ComName != tt.input.ComName {
 				t.Errorf("ComName = %s, want %s", resp.ComName, tt.input.ComName)
+			}
+			if resp.SciName != tt.input.SciName {
+				t.Errorf("SciName = %s, want %s", resp.SciName, tt.input.SciName)
 			}
 			if tt.checkLat && resp.Lat == nil {
 				t.Error("Lat should not be nil")
