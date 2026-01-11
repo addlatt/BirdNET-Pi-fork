@@ -1,5 +1,28 @@
-export function StatsCards({ stats }) {
-  const cards = [
+import type { JSX, VNode } from 'preact';
+import type { StatsResponse } from '../types/api';
+
+/**
+ * StatsCards props
+ */
+interface StatsCardsProps {
+  /** Stats data from API */
+  stats: StatsResponse;
+}
+
+/**
+ * Card data structure
+ */
+interface StatCard {
+  label: string;
+  value: string | number;
+  icon: VNode;
+}
+
+/**
+ * Stats summary cards component.
+ */
+export function StatsCards({ stats }: StatsCardsProps): JSX.Element {
+  const cards: StatCard[] = [
     {
       label: 'Detections Today',
       value: stats.detections_today || 0,
@@ -55,7 +78,10 @@ export function StatsCards({ stats }) {
   );
 }
 
-function formatNumber(num) {
+/**
+ * Format large numbers with K/M suffix.
+ */
+function formatNumber(num: number): string {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
   }

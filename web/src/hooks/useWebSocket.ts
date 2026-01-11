@@ -1,16 +1,33 @@
 import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
+import type { WSMessage, WSMessageType } from '../types/api';
+
+/**
+ * Callback type for message handlers
+ */
+type MessageCallback<T = unknown> = (payload: T, message: WSMessage<T>) => void;
+
+/**
+ * WebSocket hook return type
+ */
+interface UseWebSocketReturn {
+  isConnected: boolean;
+  lastMessage: WSMessage | null;
+  subscribe: <T = unknown>(messageType: WSMessageType | string, callback: MessageCallback<T>) => () => void;
+  subscribeChannel: <T = unknown>(channel: string, callback: MessageCallback<T>) => () => void;
+  send: <T = unknown>(type: string, payload: T) => void;
+}
 
 /**
  * WebSocket hook with channel subscription support.
- * @param {string} url - WebSocket URL
- * @returns {Object} WebSocket state and methods
+ * @param url - WebSocket URL
+ * @returns WebSocket state and methods
  */
-export function useWebSocket(url) {
+export function useWebSocket(url: string): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState(null);
-  const ws = useRef(null);
-  const subscribers = useRef(new Map());
-  const reconnectTimeout = useRef(null);
+  const [lastMessage, setLastMessage] = useState<WSMessage | null>(null);
+  const ws = useRef<WebSocket | null>(null);
+  const subscribers = useRef<Map<string, MessageCallback[]>>(new Map());
+  const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Connect to WebSocket
   useEffect(() => {
@@ -38,9 +55,9 @@ export function useWebSocket(url) {
           console.error('WebSocket error:', error);
         };
 
-        ws.current.onmessage = (event) => {
+        ws.current.onmessage = (event: MessageEvent) => {
           try {
-            const message = JSON.parse(event.data);
+            const message = JSON.parse(event.data) as WSMessage;
             setLastMessage(message);
 
             // Notify type subscribers
@@ -75,17 +92,17 @@ export function useWebSocket(url) {
   }, [url]);
 
   // Subscribe to a message type
-  const subscribe = useCallback((messageType, callback) => {
+  const subscribe = useCallback(<T = unknown>(messageType: WSMessageType | string, callback: MessageCallback<T>) => {
     if (!subscribers.current.has(messageType)) {
       subscribers.current.set(messageType, []);
     }
-    subscribers.current.get(messageType).push(callback);
+    subscribers.current.get(messageType)!.push(callback as MessageCallback);
 
     // Return unsubscribe function
     return () => {
       const subs = subscribers.current.get(messageType);
       if (subs) {
-        const index = subs.indexOf(callback);
+        const index = subs.indexOf(callback as MessageCallback);
         if (index > -1) {
           subs.splice(index, 1);
         }
@@ -94,12 +111,12 @@ export function useWebSocket(url) {
   }, []);
 
   // Subscribe to a channel
-  const subscribeChannel = useCallback((channel, callback) => {
+  const subscribeChannel = useCallback(<T = unknown>(channel: string, callback: MessageCallback<T>) => {
     const key = `channel:${channel}`;
     if (!subscribers.current.has(key)) {
       subscribers.current.set(key, []);
     }
-    subscribers.current.get(key).push(callback);
+    subscribers.current.get(key)!.push(callback as MessageCallback);
 
     // Send subscription message to server
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
@@ -113,7 +130,7 @@ export function useWebSocket(url) {
     return () => {
       const subs = subscribers.current.get(key);
       if (subs) {
-        const index = subs.indexOf(callback);
+        const index = subs.indexOf(callback as MessageCallback);
         if (index > -1) {
           subs.splice(index, 1);
         }
@@ -130,7 +147,7 @@ export function useWebSocket(url) {
   }, []);
 
   // Send a message
-  const send = useCallback((type, payload) => {
+  const send = useCallback(<T = unknown>(type: string, payload: T) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type, payload }));
     }

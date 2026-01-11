@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'preact/hooks';
+import type { JSX } from 'preact';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { fetchStats, fetchDetections } from '../hooks/useApi';
+import type { StatsResponse, Detection, DetectionNotification } from '../types/api';
 import { DetectionList } from '../components/DetectionList';
 import { StatsCards } from '../components/StatsCards';
 
-export function Overview() {
-  const [stats, setStats] = useState(null);
-  const [recentDetections, setRecentDetections] = useState([]);
+/**
+ * Overview page component.
+ */
+export function Overview(): JSX.Element {
+  const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [recentDetections, setRecentDetections] = useState<Detection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // WebSocket connection
   const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
@@ -27,7 +32,7 @@ export function Overview() {
         setRecentDetections(detectionsData.detections || []);
         setError(null);
       } catch (err) {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
       }
@@ -37,9 +42,19 @@ export function Overview() {
 
   // Subscribe to real-time detection updates
   useEffect(() => {
-    const unsubscribe = subscribe('detection', (payload) => {
+    const unsubscribe = subscribe<DetectionNotification>('detection', (payload) => {
+      // Convert notification to Detection format
+      const detection: Detection = {
+        date: payload.date,
+        time: payload.time,
+        sci_name: payload.sci_name,
+        com_name: payload.com_name,
+        confidence: payload.confidence,
+        file_name: payload.file_name,
+      };
+
       // Add new detection to the top of the list
-      setRecentDetections((prev) => [payload, ...prev.slice(0, 9)]);
+      setRecentDetections((prev) => [detection, ...prev.slice(0, 9)]);
 
       // Update stats
       setStats((prev) => {
