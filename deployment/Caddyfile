@@ -21,6 +21,13 @@ http:// {
 	}
 
 	# ==========================================================================
+	# NEW: WebSocket endpoint for real-time updates
+	# ==========================================================================
+	handle /ws {
+		reverse_proxy localhost:8080
+	}
+
+	# ==========================================================================
 	# NEW: Preact app - serve static files from web/dist
 	# ==========================================================================
 	# Use handle_path to automatically strip /app prefix and serve SPA
