@@ -263,6 +263,49 @@ export interface ListDatesParams {
 }
 
 // =============================================================================
+// Species Management Types (internal/api/species_lists.go)
+// =============================================================================
+
+/** List types for species management */
+export type SpeciesListType = 'confirmed' | 'excluded' | 'whitelisted' | 'include';
+
+/** Response from GET /api/species-lists */
+export interface SpeciesListsResponse {
+  confirmed: string[];
+  excluded: string[];
+  whitelisted: string[];
+  include: string[];
+}
+
+/** Request body for add/remove operations */
+export interface SpeciesListRequest {
+  species: string;
+}
+
+/** Request body for full list replacement */
+export interface UpdateSpeciesListRequest {
+  species: string[];
+}
+
+/** Response from GET /api/labels */
+export interface LabelsResponse {
+  labels: string[];
+  total: number;
+}
+
+/** Response from GET /api/species/{name}/count */
+export interface SpeciesCountResponse {
+  detection_count: number;
+  file_count: number;
+}
+
+/** Response from DELETE /api/species/{name}/all */
+export interface DeleteSpeciesResponse {
+  detections_deleted: number;
+  files_deleted: number;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 

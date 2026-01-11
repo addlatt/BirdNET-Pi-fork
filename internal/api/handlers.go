@@ -9,18 +9,22 @@ import (
 
 // Handlers contains all API handler dependencies.
 type Handlers struct {
-	db        *db.DB
-	hub       *ws.Hub
-	monitor   *monitor.MemoryMonitor
-	mlClient  *mlclient.Client
+	db         *db.DB
+	hub        *ws.Hub
+	monitor    *monitor.MemoryMonitor
+	mlClient   *mlclient.Client
+	scriptsDir string
+	dataDir    string
 }
 
 // NewHandlers creates a new Handlers instance with all dependencies.
-func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClient *mlclient.Client) *Handlers {
+func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClient *mlclient.Client, scriptsDir, dataDir string) *Handlers {
 	return &Handlers{
-		db:       db,
-		hub:      hub,
-		monitor:  monitor,
-		mlClient: mlClient,
+		db:         db,
+		hub:        hub,
+		monitor:    monitor,
+		mlClient:   mlClient,
+		scriptsDir: scriptsDir,
+		dataDir:    dataDir,
 	}
 }

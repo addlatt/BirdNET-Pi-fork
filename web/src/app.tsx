@@ -5,6 +5,7 @@ import { Overview } from './pages/Overview';
 import { TodaysDetections } from './pages/TodaysDetections';
 import { History } from './pages/History';
 import { Stats } from './pages/Stats';
+import { SpeciesManagement } from './pages/SpeciesManagement';
 
 /**
  * Main application component with routing.
@@ -19,6 +20,7 @@ export function App(): JSX.Element {
           <Route path="/app/detections" component={TodaysDetections} />
           <Route path="/app/history" component={History} />
           <Route path="/app/stats" component={Stats} />
+          <Route path="/app/species" component={SpeciesManagement} />
           <Route default component={Overview} />
         </Router>
       </main>

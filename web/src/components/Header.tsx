@@ -20,6 +20,7 @@ export function Header(): JSX.Element {
     { href: '/app/detections', label: 'Today' },
     { href: '/app/history', label: 'History' },
     { href: '/app/stats', label: 'Stats' },
+    { href: '/app/species', label: 'Species' },
   ];
 
   return (

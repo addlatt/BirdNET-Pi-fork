@@ -23,6 +23,8 @@ func main() {
 	port := getEnv("PORT", "8080")
 	dbPath := getEnv("DB_PATH", "data/db/birds.db")
 	mlServiceURL := getEnv("ML_SERVICE_URL", "http://127.0.0.1:8001")
+	scriptsDir := getEnv("SCRIPTS_DIR", "scripts")
+	dataDir := getEnv("DATA_DIR", "data")
 
 	// Initialize database (read-only)
 	database, err := db.New(dbPath)
@@ -55,7 +57,7 @@ func main() {
 	r.Use(corsMiddleware)
 
 	// Initialize API handlers
-	handlers := api.NewHandlers(database, hub, memMonitor, mlClient)
+	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, scriptsDir, dataDir)
 
 	// Public API routes
 	r.Route("/api", func(r chi.Router) {
@@ -72,8 +74,20 @@ func main() {
 
 		// Species
 		r.Get("/species", handlers.ListSpecies)
+		r.Get("/species/all", handlers.ListAllSpecies)
 		r.Get("/species/{name}", handlers.GetSpeciesDetail)
 		r.Get("/species/{name}/history", handlers.GetSpeciesHistory)
+		r.Get("/species/{name}/count", handlers.GetSpeciesCount)
+		r.Delete("/species/{name}/all", handlers.DeleteAllSpeciesDetections)
+
+		// Species Lists (confirmed, excluded, whitelisted, include)
+		r.Get("/species-lists", handlers.GetSpeciesLists)
+		r.Put("/species-lists/{listType}", handlers.UpdateSpeciesList)
+		r.Post("/species-lists/{listType}/add", handlers.AddToSpeciesList)
+		r.Post("/species-lists/{listType}/remove", handlers.RemoveFromSpeciesList)
+
+		// Labels (all available species from labels.txt)
+		r.Get("/labels", handlers.GetLabels)
 
 		// Stats
 		r.Get("/stats", handlers.GetStats)

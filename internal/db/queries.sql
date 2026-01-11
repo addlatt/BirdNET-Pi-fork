@@ -240,3 +240,31 @@ ORDER BY date ASC;
 -- Delete a detection by its composite key
 DELETE FROM detections
 WHERE date = ? AND time = ? AND sci_name = ?;
+
+-- =============================================================================
+-- Phase 3.4: Species Management Queries
+-- =============================================================================
+
+-- name: DeleteAllDetectionsForSpecies :execresult
+-- Delete ALL detections for a species (destructive!)
+DELETE FROM detections
+WHERE sci_name = ?;
+
+-- name: GetSpeciesFilePaths :many
+-- Get all file paths for a species (for file deletion)
+SELECT date, com_name, file_name
+FROM detections
+WHERE sci_name = ?;
+
+-- name: CountDetectionsBySpecies :one
+-- Count detections for a specific species
+SELECT COUNT(*) as count
+FROM detections
+WHERE sci_name = ?;
+
+-- name: ListAllSpeciesWithLastSeen :many
+-- Get all species with detection count, max confidence, and last seen date
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY detection_count DESC;
