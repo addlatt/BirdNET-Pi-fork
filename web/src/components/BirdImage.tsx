@@ -94,6 +94,7 @@ export function BirdImage({ sciName, comName, class: className, size = 'medium' 
           url.searchParams.set('pithumbsize', String(config.width));
           url.searchParams.set('format', 'json');
           url.searchParams.set('origin', '*');
+          url.searchParams.set('redirects', '1'); // Follow Wikipedia redirects
 
           const response = await fetch(url.toString());
           if (!response.ok) continue;
