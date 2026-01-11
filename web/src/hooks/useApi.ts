@@ -22,6 +22,9 @@ import type {
   LabelsResponse,
   SpeciesCountResponse,
   DeleteSpeciesResponse,
+  SpectrogramInfoResponse,
+  RecentDetection,
+  RecentDetectionsResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -363,6 +366,39 @@ export async function fetchHealth(): Promise<HealthResponse> {
 }
 
 // =============================================================================
+// Spectrogram Endpoints
+// =============================================================================
+
+/**
+ * Fetch spectrogram info/metadata from the API.
+ * GET /api/spectrogram/info
+ */
+export async function fetchSpectrogramInfo(): Promise<SpectrogramInfoResponse> {
+  return apiFetch<SpectrogramInfoResponse>(`${API_BASE}/spectrogram/info`);
+}
+
+/**
+ * Get the spectrogram image URL with cache-busting parameter.
+ */
+export function getSpectrogramImageUrl(): string {
+  return `${API_BASE}/spectrogram/image?t=${Date.now()}`;
+}
+
+/** Query parameters for GET /api/spectrogram/detections */
+export interface RecentDetectionsParams {
+  limit?: number;
+}
+
+/**
+ * Fetch recent detections for the spectrogram page.
+ * GET /api/spectrogram/detections
+ */
+export async function fetchRecentDetections(params: RecentDetectionsParams = {}): Promise<RecentDetectionsResponse> {
+  const query = buildQuery(params as Record<string, string | number | undefined>);
+  return apiFetch<RecentDetectionsResponse>(`${API_BASE}/spectrogram/detections${query}`);
+}
+
+// =============================================================================
 // Re-export types for convenience
 // =============================================================================
 
@@ -389,4 +425,7 @@ export type {
   LabelsResponse,
   SpeciesCountResponse,
   DeleteSpeciesResponse,
+  SpectrogramInfoResponse,
+  RecentDetection,
+  RecentDetectionsResponse,
 };

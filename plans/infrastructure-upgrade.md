@@ -643,7 +643,7 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 | 3.1 | Stats | Low | ✅ Complete | Read-only, species list with sorting, detail modal |
 | 3.2 | Today's Detections | Low | ✅ Complete | Search, filters, delete, info links, bird images, history chart |
 | 3.3 | History | Medium | ✅ Complete | Date picker, pagination, reuses DetectionList |
-| 3.4 | Species List | Medium | | CRUD for include/exclude lists |
+| 3.4 | Species Management | Medium | ✅ Complete | Species table, list editor, toggles, delete |
 | 4.1 | Spectrogram | Medium | | Image updates (Part 2: real-time WebSocket) |
 | 4.2 | Settings | High | | Form validation, service control |
 | 4.3 | Advanced Settings | High | | Schema validation, multiple sections |
@@ -865,6 +865,172 @@ GET /api/stats                                        # Now includes detections_
 ```
 GET /api/dates?limit=365  # List dates with detections (sorted DESC)
 ```
+
+---
+
+#### Phase 3.4 Learnings (Species Management Page Migration)
+
+**Completed:** Full species management page with sortable/filterable table, toggle icons for confirmed/excluded/whitelisted status, species list editor modal, and delete all detections functionality
+
+**Backend Changes:**
+
+1. **Species List File Management** - Created `species_lists.go` to manage text-based species list files (confirmed, excluded, whitelisted, include). Each file contains one scientific name per line:
+   ```go
+   // Read list file, return as string slice
+   func (h *Handlers) readSpeciesList(listType string) ([]string, error)
+   // Write list file from string slice
+   func (h *Handlers) writeSpeciesList(listType string, species []string) error
+   ```
+
+2. **File Path Configuration** - Added `scriptsDir` and `dataDir` fields to Handlers struct, configured via `SCRIPTS_DIR` and `DATA_DIR` environment variables. Species list files are stored at `{scriptsDir}/confirmed.txt`, etc.
+
+3. **Delete All Species Detections** - Composite operation that deletes database records AND associated audio/spectrogram files:
+   ```go
+   // 1. Get file paths for species
+   // 2. Delete files from disk (By_Date/{date}/{filename}.{mp3,png})
+   // 3. Delete database records
+   ```
+
+4. **Labels Endpoint** - New `/api/labels` endpoint reads the BirdNET labels file to provide autocomplete suggestions in the list editor.
+
+**Frontend Changes:**
+
+1. **SpeciesTable Component** - Sortable/filterable table with:
+   - Column headers that toggle sort direction (name, scientific name, detections, confidence, last seen)
+   - Search filter with debouncing
+   - Toggle icons for confirmed (✓), excluded (✗), whitelisted (♡) status
+   - Delete button with confirmation
+   - localStorage persistence for sort/filter preferences
+
+2. **SpeciesListEditor Modal** - Dual-list UI pattern:
+   - Left panel: searchable list of all available species (from labels)
+   - Right panel: current list members with remove buttons
+   - Add/remove operations with real-time updates
+   - Cancel/Save buttons
+
+3. **List Management Cards** - Four cards showing counts for include, exclude, whitelist, and confirmed lists with Edit buttons.
+
+4. **Delete Confirmation Modal** - Shows detection and file counts before confirming destructive operation.
+
+**Key Files Added/Modified:**
+- `internal/db/queries.sql:146-162` - `DeleteAllDetectionsForSpecies`, `GetSpeciesFilePaths`, `CountDetectionsBySpecies`, `ListAllSpeciesWithLastSeen` queries
+- `internal/api/species_lists.go` - NEW file for species list file CRUD operations
+- `internal/api/species.go:157-250` - `GetSpeciesCount`, `DeleteAllSpeciesDetections`, `ListAllSpecies` endpoints
+- `cmd/server/main.go` - Added `SCRIPTS_DIR`, `DATA_DIR` env vars and 8 new routes
+- `web/src/types/api.ts` - `SpeciesListType`, `SpeciesListsResponse`, `LabelsResponse`, `SpeciesCountResponse`, `DeleteSpeciesResponse` types
+- `web/src/hooks/useApi.ts` - `fetchAllSpecies`, `fetchSpeciesCount`, `deleteAllSpeciesDetections`, `fetchSpeciesLists`, `addToSpeciesList`, `removeFromSpeciesList`, `updateSpeciesList`, `fetchLabels` functions
+- `web/src/components/SpeciesTable.tsx` - NEW sortable/filterable species table component
+- `web/src/components/SpeciesListEditor.tsx` - NEW modal for editing species lists
+- `web/src/pages/SpeciesManagement.tsx` - NEW page integrating all species management features
+- `web/src/app.tsx` - Added `/app/species` route
+- `web/src/components/Header.tsx` - Added "Species" nav link
+
+**API Endpoints Added:**
+```
+GET    /api/species/all                      # List all detected species with counts
+GET    /api/species/{name}/count             # Get detection/file counts for species
+DELETE /api/species/{name}/all               # Delete all detections for species
+GET    /api/species-lists                    # Get all species lists
+PUT    /api/species-lists/{listType}         # Replace entire list
+POST   /api/species-lists/{listType}/add     # Add species to list
+POST   /api/species-lists/{listType}/remove  # Remove species from list
+GET    /api/labels                           # Get BirdNET model labels for autocomplete
+```
+
+---
+
+### Phase 4: Live/Spectrogram Page
+
+#### Phase 4.1 Learnings (Spectrogram Page Migration - Part 1)
+
+**Completed:** Static spectrogram page with auto-refreshing image, live audio stream player, recent detections feed with WebSocket updates, and connection status indicator.
+
+**PHP Analysis Findings:**
+
+The original PHP spectrogram page (`src/web/app/pages/spectrogram.php`) had two modes:
+1. **Legacy mode**: Static PNG image refresh for older/mobile browsers
+2. **Canvas mode**: Real-time Web Audio API visualization with frequency analysis
+
+For Part 1, we implemented the simpler static image approach with:
+- Sox-generated spectrogram.png served via Go endpoint
+- Icecast2 livestream audio playback
+- WebSocket-based detection notifications
+
+**Backend Changes:**
+
+1. **Spectrogram Info Endpoint** - Returns metadata about spectrogram availability:
+   ```go
+   GET /api/spectrogram/info
+   Response: {
+     image_url: string,
+     last_modified: string,
+     available: boolean,
+     livestream_url: string,
+     refresh_seconds: number
+   }
+   ```
+
+2. **Spectrogram Image Endpoint** - Serves the spectrogram PNG with cache-control headers:
+   ```go
+   GET /api/spectrogram/image
+   // Serves {dataDir}/extracted/spectrogram.png
+   // Headers: Cache-Control: no-cache, no-store, must-revalidate
+   ```
+
+3. **Recent Detections Endpoint** - Returns latest detections for sidebar feed:
+   ```go
+   GET /api/spectrogram/detections?limit=10
+   Response: {
+     detections: RecentDetection[],
+     total: number
+   }
+   ```
+
+**Frontend Changes:**
+
+1. **Spectrogram Page Component** (`web/src/pages/Spectrogram.tsx`):
+   - Auto-refreshing spectrogram image (configurable interval)
+   - HTML5 audio player for Icecast livestream
+   - Recent detections sidebar with WebSocket real-time updates
+   - Connection status indicator (Live/Offline)
+   - Graceful handling of missing spectrogram image
+
+2. **Auto-refresh Pattern** - Uses `setInterval` with cache-busting URL:
+   ```typescript
+   useEffect(() => {
+     const refreshMs = (info.refresh_seconds || 3) * 1000;
+     const interval = setInterval(() => {
+       setImageUrl(getSpectrogramImageUrl()); // Adds ?t=Date.now()
+     }, refreshMs);
+     return () => clearInterval(interval);
+   }, [info]);
+   ```
+
+3. **WebSocket Integration** - Reuses existing hook pattern:
+   ```typescript
+   subscribe<DetectionNotification>('detection', (payload) => {
+     setRecentDetections(prev => [detection, ...prev].slice(0, 10));
+   });
+   ```
+
+**Key Files Added/Modified:**
+- `internal/api/spectrogram.go` - NEW file with 3 endpoints
+- `cmd/server/main.go:95-98` - Added spectrogram routes
+- `web/src/types/api.ts:308-334` - `SpectrogramInfoResponse`, `RecentDetection`, `RecentDetectionsResponse` types
+- `web/src/hooks/useApi.ts:368-399` - `fetchSpectrogramInfo`, `getSpectrogramImageUrl`, `fetchRecentDetections` functions
+- `web/src/pages/Spectrogram.tsx` - NEW page component
+- `web/src/app.tsx` - Added `/app/live` route
+- `web/src/components/Header.tsx` - Added "Live" nav link
+
+**API Endpoints Added:**
+```
+GET  /api/spectrogram/info        # Spectrogram metadata and livestream URL
+GET  /api/spectrogram/image       # Serve spectrogram PNG with no-cache headers
+GET  /api/spectrogram/detections  # Recent detections for sidebar feed
+```
+
+**Part 2 Preparation:**
+The WebSocket infrastructure already supports typed messages for future real-time spectrogram streaming (Web Audio API visualization). The `spectrogram_frame` message type is defined in `types/api.ts`.
 
 ---
 

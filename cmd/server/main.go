@@ -92,6 +92,11 @@ func main() {
 		// Stats
 		r.Get("/stats", handlers.GetStats)
 
+		// Spectrogram
+		r.Get("/spectrogram/info", handlers.GetSpectrogramInfo)
+		r.Get("/spectrogram/image", handlers.GetSpectrogramImage)
+		r.Get("/spectrogram/detections", handlers.GetRecentDetections)
+
 		// System
 		r.Get("/system/status", handlers.SystemStatus)
 		r.Get("/system/memory", handlers.SystemMemory)

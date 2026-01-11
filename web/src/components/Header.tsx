@@ -17,6 +17,7 @@ export function Header(): JSX.Element {
 
   const navLinks: NavLink[] = [
     { href: '/app/', label: 'Overview' },
+    { href: '/app/live', label: 'Live' },
     { href: '/app/detections', label: 'Today' },
     { href: '/app/history', label: 'History' },
     { href: '/app/stats', label: 'Stats' },

@@ -306,6 +306,34 @@ export interface DeleteSpeciesResponse {
 }
 
 // =============================================================================
+// Spectrogram Types (internal/api/spectrogram.go)
+// =============================================================================
+
+/** Response from GET /api/spectrogram/info */
+export interface SpectrogramInfoResponse {
+  image_url: string;
+  last_modified?: string;
+  available: boolean;
+  livestream_url: string;
+  refresh_seconds: number;
+}
+
+/** Recent detection for spectrogram page */
+export interface RecentDetection {
+  time: string;
+  com_name: string;
+  sci_name: string;
+  confidence: number;
+  file_name: string;
+}
+
+/** Response from GET /api/spectrogram/detections */
+export interface RecentDetectionsResponse {
+  detections: RecentDetection[];
+  total: number;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 
