@@ -1,0 +1,55 @@
+# BirdNET-Pi Caddy Configuration
+# This configuration serves both the legacy PHP application and the new Go API
+
+{
+	# Global options
+	admin off
+	auto_https off
+}
+
+:80 {
+	# Encode responses with gzip
+	encode gzip
+
+	# Go API endpoints - proxy to Go server
+	handle /api/* {
+		reverse_proxy localhost:8080
+	}
+
+	# Internal endpoints (Python ML service -> Go)
+	handle /internal/* {
+		reverse_proxy localhost:8080
+	}
+
+	# WebSocket endpoint
+	handle /ws {
+		reverse_proxy localhost:8080
+	}
+
+	# Preact app - serve static files
+	handle /app/* {
+		uri strip_prefix /app
+		root * /var/www/birdnet/web/dist
+		file_server
+		try_files {path} /index.html
+	}
+
+	# Static assets (audio files, spectrograms, etc.)
+	handle /static/* {
+		root * /var/www/birdnet
+		file_server
+	}
+
+	# PHP application - legacy pages
+	handle {
+		root * /var/www/html
+		php_fastcgi unix//run/php/php-fpm.sock
+		file_server
+	}
+
+	# Logging
+	log {
+		output file /var/log/caddy/birdnet.log
+		format console
+	}
+}

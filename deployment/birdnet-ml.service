@@ -1,0 +1,64 @@
+# BirdNET-Pi ML Service
+# FastAPI service for bird detection inference and Go backend integration
+#
+# Installation:
+#   sudo cp birdnet-ml.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable birdnet-ml
+#   sudo systemctl start birdnet-ml
+#
+# View logs:
+#   sudo journalctl -u birdnet-ml -f
+
+[Unit]
+Description=BirdNET-Pi ML Service
+Documentation=https://github.com/Nachtzuster/BirdNET-Pi
+After=network.target
+# Start before the Go server so ML service is ready when Go starts
+Before=birdnet-server.service
+
+[Service]
+Type=simple
+User=birdnet
+Group=birdnet
+
+# Working directory - adjust path as needed
+WorkingDirectory=/opt/birdnet/src
+
+# Run uvicorn with the FastAPI app
+# Adjust the python/venv path as needed for your installation
+ExecStart=/opt/birdnet/venv/bin/uvicorn service.main:app --host 127.0.0.1 --port 8001
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+Environment=BIRDNET_CONFIG=/etc/birdnet/birdnet.conf
+Environment=GO_SERVER_URL=http://127.0.0.1:8080
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Resource limits (adjust based on Pi model)
+# 4GB Pi 5 can handle 2GB for ML service comfortably
+MemoryMax=2G
+CPUWeight=80
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+# Allow read/write to specific directories
+ReadWritePaths=/var/log/birdnet
+ReadWritePaths=/home/birdnet/BirdSongs
+
+# Standard output/error handling
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=birdnet-ml
+
+[Install]
+WantedBy=multi-user.target

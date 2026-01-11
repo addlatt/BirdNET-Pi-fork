@@ -1,3 +1,4 @@
+"""Reporting and post-processing for BirdNET-Pi detections."""
 import glob
 import json
 import logging
@@ -8,18 +9,24 @@ import tempfile
 import io
 import soundfile
 from time import sleep
+from typing import Any
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
-from .helpers import get_settings, get_font, DB_PATH
+from .config import get_settings, get_birddb_path
+from .helpers import get_font, DB_PATH
 from .classes import Detection, ParseFileName
 from .notifications import sendAppriseNotifications
 
 log = logging.getLogger(__name__)
 
+# BirdNET analysis constants
+DETECTION_WINDOW_SECONDS = 3  # Duration of each BirdNET detection window (fixed by model)
 
-def extract(in_file, out_file, start, stop):
+
+def extract(in_file: str, out_file: str, start: float, stop: float) -> str:
+    """Extract a segment from an audio file using sox."""
     result = subprocess.run(['sox', '-V1', f'{in_file}', f'{out_file}', 'trim', f'={start}', f'={stop}'],
                             check=True, capture_output=True)
     ret = result.stdout.decode('utf-8')
@@ -29,24 +36,26 @@ def extract(in_file, out_file, start, stop):
     return ret
 
 
-def extract_safe(in_file, out_file, start, stop):
+def extract_safe(in_file: str, out_file: str, start: float, stop: float) -> None:
+    """Extract audio with configurable context padding around the detection."""
     conf = get_settings()
     # This section sets the SPACER that will be used to pad the audio clip with
-    # context. If EXTRACTION_LENGTH is 10, for instance, 3 seconds are removed
-    # from that value and divided by 2, so that the 3 seconds of the call are
-    # within 3.5 seconds of audio context before and after.
+    # context. If EXTRACTION_LENGTH is 10, for instance, DETECTION_WINDOW_SECONDS
+    # are removed from that value and divided by 2, so that the detection window
+    # is centered within equal audio context before and after.
     try:
         ex_len = int(conf.get('EXTRACTION_LENGTH', 6))
     except (ValueError, TypeError):
         ex_len = 6
-    spacer = (ex_len - 3) / 2
+    spacer = (ex_len - DETECTION_WINDOW_SECONDS) / 2
     safe_start = max(0, start - spacer)
     safe_stop = min(int(conf.get('RECORDING_LENGTH', 15)), stop + spacer)
 
     extract(in_file, out_file, safe_start, safe_stop)
 
 
-def spectrogram(in_file, title, comment, raw=0):
+def spectrogram(in_file: str, title: str, comment: str, raw: int = 0) -> None:
+    """Generate a spectrogram image from an audio file with title and comment."""
     fd, tmp_file = tempfile.mkstemp(suffix='.png')
     os.close(fd)
     args = ['sox', '-V1', f'{in_file}', '-n', 'remix', '1', 'rate', '24k', 'spectrogram',
@@ -73,7 +82,8 @@ def spectrogram(in_file, title, comment, raw=0):
     os.remove(tmp_file)
 
 
-def extract_detection(file: ParseFileName, detection: Detection):
+def extract_detection(file: ParseFileName, detection: Detection) -> str:
+    """Extract audio clip for a detection and generate spectrogram."""
     conf = get_settings()
     new_file_name = f'{detection.common_name_safe}-{detection.confidence_pct}-{detection.date}-birdnet-{file.RTSP_id}{detection.time}.{conf["AUDIOFMT"]}'
     new_dir = os.path.join(conf['EXTRACTED'], 'By_Date', f'{detection.date}', f'{detection.common_name_safe}')
@@ -87,8 +97,17 @@ def extract_detection(file: ParseFileName, detection: Detection):
     return new_file
 
 
-def write_to_db(file: ParseFileName, detection: Detection):
+def write_to_db(file: ParseFileName, detection: Detection, notify: bool = True) -> None:
+    """Write a detection to the SQLite database.
+
+    Args:
+        file: Parsed filename with metadata.
+        detection: Detection object to write.
+        notify: If True, notify Go server for WebSocket broadcast.
+    """
     conf = get_settings()
+    db_written = False
+
     # Connect to SQLite Database
     for attempt_number in range(3):
         try:
@@ -104,13 +123,55 @@ def write_to_db(file: ParseFileName, detection: Detection):
 
             con.commit()
             con.close()
+            db_written = True
             break
         except BaseException as e:
             log.warning("Database busy: %s", e)
             sleep(2)
 
+    # Notify Go server for real-time WebSocket broadcast
+    if db_written and notify:
+        notify_go_server(detection, conf)
 
-def summary(file: ParseFileName, detection: Detection):
+
+def notify_go_server(detection: Detection, conf: dict) -> bool:
+    """Notify Go server of a new detection for WebSocket broadcast.
+
+    This is a fire-and-forget notification. Failures are logged but non-fatal
+    since the detection is already saved in the database.
+
+    Args:
+        detection: Detection object to notify about.
+        conf: Configuration dictionary with lat/lon.
+
+    Returns:
+        True if notification succeeded, False otherwise.
+    """
+    try:
+        # Import here to avoid circular imports and allow optional dependency
+        from service.notifier import notify_detection
+        return notify_detection(
+            date=detection.date,
+            time=detection.time,
+            sci_name=detection.scientific_name,
+            com_name=detection.common_name,
+            confidence=detection.confidence,
+            file_name=os.path.basename(detection.file_name_extr) if detection.file_name_extr else "",
+            lat=float(conf.get('LATITUDE', 0)),
+            lon=float(conf.get('LONGITUDE', 0)),
+        )
+    except ImportError:
+        # Service module not available (running without FastAPI service)
+        log.debug("Go notification skipped: service module not available")
+        return False
+    except Exception as e:
+        # Non-fatal: detection is already in DB
+        log.warning("Go notification failed: %s", e)
+        return False
+
+
+def summary(file: ParseFileName, detection: Detection) -> str:
+    """Generate a summary string for a detection."""
     # Date;Time;Sci_Name;Com_Name;Confidence;Lat;Lon;Cutoff;Week;Sens;Overlap
     # 2023-03-03;12:48:01;Phleocryptes melanops;Wren-like Rushbird;0.76950216;-1;-1;0.7;9;1.25;0.0
     conf = get_settings()
@@ -121,12 +182,14 @@ def summary(file: ParseFileName, detection: Detection):
     return s
 
 
-def write_to_file(file: ParseFileName, detection: Detection):
-    with open(os.path.expanduser('~/BirdNET-Pi/BirdDB.txt'), 'a') as rfile:
+def write_to_file(file: ParseFileName, detection: Detection) -> None:
+    """Append a detection summary to BirdDB.txt."""
+    with open(get_birddb_path(), 'a') as rfile:
         rfile.write(f'{summary(file, detection)}\n')
 
 
-def update_json_file(file: ParseFileName, detections: [Detection]):
+def update_json_file(file: ParseFileName, detections: list[Detection]) -> None:
+    """Update JSON sidecar file, removing old ones first."""
     if file.RTSP_id is None:
         mask = f'{os.path.dirname(file.file_name)}/*.json'
     else:
@@ -137,20 +200,28 @@ def update_json_file(file: ParseFileName, detections: [Detection]):
     write_to_json_file(file, detections)
 
 
-def write_to_json_file(file: ParseFileName, detections: [Detection]):
+def write_to_json_file(file: ParseFileName, detections: list[Detection]) -> None:
+    """Write detections to a JSON sidecar file."""
     conf = get_settings()
     json_file = f'{file.file_name}.json'
     log.debug(f'WRITING RESULTS TO {json_file}')
-    dets = {'file_name': os.path.basename(json_file), 'timestamp': file.iso8601, 'delay': conf['RECORDING_LENGTH'],
-            'detections': [{"start": det.start, "common_name": det.common_name, "confidence": det.confidence} for det in
-                           detections]}
+    dets: dict[str, Any] = {
+        'file_name': os.path.basename(json_file),
+        'timestamp': file.iso8601,
+        'delay': conf['RECORDING_LENGTH'],
+        'detections': [
+            {"start": det.start, "common_name": det.common_name, "confidence": det.confidence}
+            for det in detections
+        ]
+    }
     with open(json_file, 'w') as rfile:
         rfile.write(json.dumps(dets))
     log.debug(f'DONE! WROTE {len(detections)} RESULTS.')
 
 
-def apprise(file: ParseFileName, detections: [Detection]):
-    species_apprised_this_run = []
+def apprise(file: ParseFileName, detections: list[Detection]) -> None:
+    """Send Apprise notifications for detections."""
+    species_apprised_this_run: list[str] = []
     conf = get_settings()
 
     for detection in detections:
@@ -167,7 +238,8 @@ def apprise(file: ParseFileName, detections: [Detection]):
             species_apprised_this_run.append(detection.species)
 
 
-def bird_weather(file: ParseFileName, detections: [Detection]):
+def bird_weather(file: ParseFileName, detections: list[Detection]) -> None:
+    """Post detections to the BirdWeather API."""
     conf = get_settings()
     if conf['BIRDWEATHER_ID'] == "":
         return
@@ -202,22 +274,29 @@ def bird_weather(file: ParseFileName, detections: [Detection]):
             # POST detection to server
             detection_url = f'https://app.birdweather.com/api/v1/stations/{conf["BIRDWEATHER_ID"]}/detections'
 
-            data = {'timestamp': detection.iso8601, 'lat': conf['LATITUDE'], 'lon': conf['LONGITUDE'],
-                    'soundscapeId': soundscape_id,
-                    'soundscapeStartTime': detection.start, 'soundscapeEndTime': detection.stop,
-                    'commonName': detection.common_name, 'scientificName': detection.scientific_name,
-                    'algorithm': '2p4' if conf['MODEL'] == 'BirdNET_GLOBAL_6K_V2.4_Model_FP16' else 'alpha',
-                    'confidence': detection.confidence}
+            post_data: dict[str, Any] = {
+                'timestamp': detection.iso8601,
+                'lat': conf['LATITUDE'],
+                'lon': conf['LONGITUDE'],
+                'soundscapeId': soundscape_id,
+                'soundscapeStartTime': detection.start,
+                'soundscapeEndTime': detection.stop,
+                'commonName': detection.common_name,
+                'scientificName': detection.scientific_name,
+                'algorithm': '2p4' if conf['MODEL'] == 'BirdNET_GLOBAL_6K_V2.4_Model_FP16' else 'alpha',
+                'confidence': detection.confidence
+            }
 
-            log.debug(data)
+            log.debug(post_data)
             try:
-                response = requests.post(detection_url, json=data, timeout=20)
+                response = requests.post(detection_url, json=post_data, timeout=20)
                 log.info("Detection POST Response Status - %d", response.status_code)
             except BaseException as e:
                 log.error("Cannot POST detection: %s", e)
 
 
-def heartbeat():
+def heartbeat() -> None:
+    """Send a heartbeat request to the configured URL."""
     conf = get_settings()
     if conf['HEARTBEAT_URL']:
         try:
