@@ -65,9 +65,12 @@ func main() {
 		// Detections
 		r.Get("/detections", handlers.ListDetections)
 		r.Get("/detections/{date}/{time}/{species}", handlers.GetDetection)
+		r.Delete("/detections/{date}/{time}/{species}", handlers.DeleteDetection)
 
 		// Species
 		r.Get("/species", handlers.ListSpecies)
+		r.Get("/species/{name}", handlers.GetSpeciesDetail)
+		r.Get("/species/{name}/history", handlers.GetSpeciesHistory)
 
 		// Stats
 		r.Get("/stats", handlers.GetStats)

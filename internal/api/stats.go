@@ -9,11 +9,12 @@ import (
 
 // StatsResponse represents overall statistics.
 type StatsResponse struct {
-	TotalDetections      int64               `json:"total_detections"`
-	TotalSpecies         int64               `json:"total_species"`
-	DetectionsToday      int64               `json:"detections_today"`
-	SpeciesToday         int64               `json:"species_today"`
-	DailyStats           []DailyStatResponse `json:"daily_stats,omitempty"`
+	TotalDetections      int64                `json:"total_detections"`
+	TotalSpecies         int64                `json:"total_species"`
+	DetectionsToday      int64                `json:"detections_today"`
+	DetectionsLastHour   int64                `json:"detections_last_hour"`
+	SpeciesToday         int64                `json:"species_today"`
+	DailyStats           []DailyStatResponse  `json:"daily_stats,omitempty"`
 	HourlyDistribution   []HourlyStatResponse `json:"hourly_distribution,omitempty"`
 	TopSpecies           []TopSpeciesResponse `json:"top_species,omitempty"`
 }
@@ -73,6 +74,12 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 		response.DetectionsToday = todayCount
 	}
 
+	// Get last hour count
+	lastHourCount, err := h.db.Queries.CountDetectionsLastHour(ctx)
+	if err == nil {
+		response.DetectionsLastHour = lastHourCount
+	}
+
 	speciesToday, err := h.db.Queries.GetTotalSpeciesCountToday(ctx)
 	if err == nil {
 		response.SpeciesToday = speciesToday
@@ -84,11 +91,15 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			response.DailyStats = make([]DailyStatResponse, 0, len(dailyStats))
 			for _, s := range dailyStats {
+				avgConf := 0.0
+				if s.AvgConfidence.Valid {
+					avgConf = s.AvgConfidence.Float64
+				}
 				response.DailyStats = append(response.DailyStats, DailyStatResponse{
 					Date:           s.Date,
 					DetectionCount: s.DetectionCount,
 					SpeciesCount:   s.SpeciesCount,
-					AvgConfidence:  s.AvgConfidence,
+					AvgConfidence:  avgConf,
 				})
 			}
 		}
@@ -112,8 +123,8 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("include_top_species") == "true" {
 		topLimit := parseIntParam(r.URL.Query().Get("top_limit"), 10)
 		topSpecies, err := h.db.Queries.GetTopSpecies(ctx, db.GetTopSpeciesParams{
-			StartDate: startDate,
-			Limit:     int64(topLimit),
+			Date:  startDate,
+			Limit: int64(topLimit),
 		})
 		if err == nil {
 			response.TopSpecies = make([]TopSpeciesResponse, 0, len(topSpecies))

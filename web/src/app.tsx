@@ -1,10 +1,14 @@
 import { Router, Route } from 'preact-router';
+import type { JSX } from 'preact';
 import { Header } from './components/Header';
 import { Overview } from './pages/Overview';
 import { TodaysDetections } from './pages/TodaysDetections';
 import { Stats } from './pages/Stats';
 
-export function App() {
+/**
+ * Main application component with routing.
+ */
+export function App(): JSX.Element {
   return (
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />

@@ -9,3 +9,16 @@ sql:
         out: "generated"
         emit_json_tags: true
         emit_db_tags: true
+        overrides:
+          - column: "detections.date"
+            go_type: "string"
+          - column: "detections.time"
+            go_type: "string"
+          - column: "detections.created_at"
+            go_type: "string"
+          - db_type: "DATE"
+            go_type: "string"
+          - db_type: "TIME"
+            go_type: "string"
+          - db_type: "TIMESTAMP"
+            go_type: "string"

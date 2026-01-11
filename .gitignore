@@ -75,3 +75,48 @@ Birders_Guide_Installer_Configuration.txt
 # -----------------------------------------------------------------------------
 *.flac
 # Note: .wav in tests/testdata/ IS committed for testing
+
+# -----------------------------------------------------------------------------
+# Go
+# -----------------------------------------------------------------------------
+# Compiled binaries
+/server
+/cmd/server/server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# -----------------------------------------------------------------------------
+# Node.js / Preact Frontend (web/)
+# -----------------------------------------------------------------------------
+# These are also in web/.gitignore but added here for safety
+web/node_modules/
+web/dist/
+web/.vite/
+web/coverage/
+web/*.local
+web/.env*
+
+# npm/yarn/pnpm logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------------------------------------------------------
+# OS Files
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*~

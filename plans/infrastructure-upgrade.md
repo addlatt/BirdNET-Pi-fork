@@ -638,16 +638,16 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 
 **Migration Order (by complexity):**
 
-| Week | Page | Complexity | Notes |
-|------|------|------------|-------|
-| 3.1 | Stats | Low | Read-only, simple charts |
-| 3.2 | Today's Detections | Low | List with filtering |
-| 3.3 | History | Medium | Date picker, pagination |
-| 3.4 | Species List | Medium | CRUD for include/exclude lists |
-| 4.1 | Spectrogram | Medium | Image updates (Part 2: real-time WebSocket) |
-| 4.2 | Settings | High | Form validation, service control |
-| 4.3 | Advanced Settings | High | Schema validation, multiple sections |
-| 4.4 | Play/Audio | Medium | Audio player, file browser |
+| Week | Page | Complexity | Status | Notes |
+|------|------|------------|--------|-------|
+| 3.1 | Stats | Low | ✅ Complete | Read-only, species list with sorting, detail modal |
+| 3.2 | Today's Detections | Low | ✅ Complete | Search, filters, delete, info links, bird images, history chart |
+| 3.3 | History | Medium | | Date picker, pagination |
+| 3.4 | Species List | Medium | | CRUD for include/exclude lists |
+| 4.1 | Spectrogram | Medium | | Image updates (Part 2: real-time WebSocket) |
+| 4.2 | Settings | High | | Form validation, service control |
+| 4.3 | Advanced Settings | High | | Schema validation, multiple sections |
+| 4.4 | Play/Audio | Medium | | Audio player, file browser |
 
 **Tasks per page:**
 - [ ] Create Go API endpoints for page data
@@ -655,6 +655,145 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 - [ ] Add to Preact router
 - [ ] Test alongside PHP equivalent
 - [ ] Update Caddy routing when ready
+
+---
+
+#### Phase 3.1 Learnings (Stats Page Migration)
+
+**Completed:** Stats page with species list, sorting, detail modal, audio player
+
+**Backend Changes:**
+
+1. **sqlc Type Overrides Required** - SQLite DATE/TIME columns and aggregate functions (MAX, AVG) return `interface{}` or `time.Time` by default. Added explicit overrides in `sqlc.yaml`:
+   ```yaml
+   overrides:
+     - column: "detections.date"
+       go_type: "string"
+     - column: "detections.time"
+       go_type: "string"
+     - db_type: "DATE"
+       go_type: "string"
+   ```
+
+2. **Aggregate Function Handling** - `MAX(confidence)` returns `interface{}`, requiring helper functions for type assertions:
+   ```go
+   func toFloat64(v interface{}) float64 {
+     switch val := v.(type) {
+     case float64: return val
+     case int64: return float64(val)
+     default: return 0
+     }
+   }
+   ```
+
+3. **Composite Key Queries** - Detection lookups require `(date, time, sci_name)` composite key, not a single ID. Added `GetDetectionByCompositeKey` query.
+
+4. **Sort Parameter API Design** - Species endpoint accepts `?sort=alphabetical|occurrences|confidence|date` with separate sqlc queries per sort order (sqlc doesn't support dynamic ORDER BY).
+
+**Frontend Changes:**
+
+1. **TypeScript Migration** - Converted entire frontend from JSX to TSX for type safety matching Go API:
+   - `src/types/api.ts` - All API response types mirroring Go structs
+   - Typed hooks: `useApi.ts`, `useWebSocket.ts`
+   - Strict mode enabled in `tsconfig.json`
+
+2. **Component Architecture:**
+   - `AudioPlayer.tsx` - Reusable audio player with spectrogram overlay
+   - `SpeciesDetail.tsx` - Modal component for species detail view
+   - Pattern: Fetch on mount, show loading state, handle errors
+
+3. **API Hook Pattern:**
+   ```typescript
+   export async function fetchSpeciesDetail(name: string): Promise<SpeciesDetail> {
+     return apiFetch<SpeciesDetail>(`${API_BASE}/species/${encodeURIComponent(name)}`);
+   }
+   ```
+
+**Key Files Added:**
+- `internal/api/species.go` - Species list and detail endpoints
+- `web/src/types/api.ts` - TypeScript API types
+- `web/src/components/AudioPlayer.tsx` - Audio player component
+- `web/src/components/SpeciesDetail.tsx` - Species detail modal
+
+---
+
+#### Phase 3.2 Learnings (Today's Detections Page Migration)
+
+**Completed:** Full PHP feature parity including search, confidence filter, stats header, delete detection, info links, bird images, species history chart
+
+**Backend Changes:**
+
+1. **sqlc NOT Operator Limitation** - Attempted to add a query with `NOT LIKE` patterns for exclusion search, but sqlc only generated 2 parameters (Date, Confidence) instead of the full set. This appears to be a sqlc bug with complex WHERE clauses. **Workaround:** Implement NOT search in Go code if needed (rare use case).
+
+2. **Search Query Pattern** - Multi-field text search requires repeating the search pattern for each field:
+   ```sql
+   WHERE (com_name LIKE ? OR sci_name LIKE ? OR file_name LIKE ? OR time LIKE ?)
+     AND confidence >= ?
+   ```
+   The API wraps the search term with `%` wildcards before passing to sqlc.
+
+3. **Filtered Count Query** - Need separate COUNT query with same filters to get accurate total for pagination:
+   ```sql
+   -- name: CountSearchDetectionsByDate :one
+   SELECT COUNT(*) as count FROM detections
+   WHERE date = ? AND (com_name LIKE ? OR ...) AND confidence >= ?;
+   ```
+
+4. **Species History Date Calculation** - Proper Go time handling for date range:
+   ```go
+   startDate := time.Now().AddDate(0, 0, -days).Format("2006-01-02")
+   ```
+
+5. **Delete Endpoint** - Uses composite key (date/time/sci_name) in URL path, requires proper URL encoding on frontend.
+
+**Frontend Changes:**
+
+1. **Wikipedia API Integration** - For bird images, the API requires `origin=*` parameter for CORS. Scientific names need underscores:
+   ```typescript
+   url.searchParams.set('titles', sciName);  // "Turdus migratorius"
+   url.searchParams.set('origin', '*');
+   ```
+   Implemented with in-memory cache to avoid repeated API calls.
+
+2. **Real-time Filter Sync** - WebSocket detection updates must be filtered client-side to match current search/confidence filters. New detections that don't pass filters are silently ignored.
+
+3. **Delete Confirmation UX** - Inline confirmation panel with clear warning message, not a browser `confirm()` dialog.
+
+4. **Info Link URL Patterns:**
+   - Wikipedia: `/wiki/{Sci_Name}` with spaces → underscores
+   - AllAboutBirds: `/guide/{Com_Name}` with spaces → underscores
+   - eBird: `/species/{sci_name}` lowercase, no spaces
+
+5. **Component Architecture:**
+   - `StatsHeader.tsx` - Standalone component fetching its own stats
+   - `SearchFilters.tsx` - Controlled component with callbacks for filter changes
+   - `SpeciesMiniChart.tsx` - Modal with bar chart, configurable date range
+   - `BirdImage.tsx` - Async image loader with Wikipedia API and caching
+
+**Key Files Added/Modified:**
+- `internal/db/queries.sql` - Search, count, delete, history queries
+- `internal/api/detections.go` - Enhanced with search, filters, delete, history
+- `internal/api/stats.go` - Added `detections_last_hour`
+- `web/src/components/StatsHeader.tsx` - Summary statistics display
+- `web/src/components/SearchFilters.tsx` - Search bar and confidence dropdown
+- `web/src/components/SpeciesMiniChart.tsx` - Detection history bar chart modal
+- `web/src/components/BirdImage.tsx` - Wikipedia image fetcher with cache
+- `web/src/components/DetectionList.tsx` - Enhanced with images, links, delete, chart trigger
+- `web/src/pages/TodaysDetections.tsx` - Integrated all new features
+
+**API Endpoints Added:**
+```
+DELETE /api/detections/{date}/{time}/{species}  # Delete by composite key
+GET    /api/species/{name}/history?days=30      # Detection history for charts
+```
+
+**API Parameters Added:**
+```
+GET /api/detections?search=robin&min_confidence=0.7  # Text search + confidence filter
+GET /api/stats                                        # Now includes detections_last_hour
+```
+
+---
 
 **Go Endpoints Added:**
 ```

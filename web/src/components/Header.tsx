@@ -1,9 +1,21 @@
 import { useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 
-export function Header() {
+/**
+ * Navigation link type
+ */
+interface NavLink {
+  href: string;
+  label: string;
+}
+
+/**
+ * Header component with navigation.
+ */
+export function Header(): JSX.Element {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const navLinks = [
+  const navLinks: NavLink[] = [
     { href: '/app/', label: 'Overview' },
     { href: '/app/detections', label: 'Detections' },
     { href: '/app/stats', label: 'Stats' },
