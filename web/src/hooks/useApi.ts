@@ -15,6 +15,8 @@ import type {
   SystemStatus,
   SystemMemoryResponse,
   HealthResponse,
+  ListDatesResponse,
+  ListDatesParams,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -195,6 +197,19 @@ export async function fetchSpeciesHistory(name: string, params: SpeciesHistoryPa
 }
 
 // =============================================================================
+// Dates Endpoints (for History page)
+// =============================================================================
+
+/**
+ * Fetch dates with detections from the API.
+ * GET /api/dates
+ */
+export async function fetchDates(params: ListDatesParams = {}): Promise<ListDatesResponse> {
+  const query = buildQuery(params as Record<string, string | number | undefined>);
+  return apiFetch<ListDatesResponse>(`${API_BASE}/dates${query}`);
+}
+
+// =============================================================================
 // Stats Endpoints
 // =============================================================================
 
@@ -259,4 +274,6 @@ export type {
   SystemStatus,
   SystemMemoryResponse,
   HealthResponse,
+  ListDatesResponse,
+  ListDatesParams,
 };

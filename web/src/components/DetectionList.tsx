@@ -57,9 +57,24 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   const [showChart, setShowChart] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSpectrogram, setShowSpectrogram] = useState(false);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
 
   const confidencePercent = Math.round(detection.confidence * 100);
   const confidenceColor = getConfidenceColor(confidencePercent);
+
+  // Build species directory name (com_name with spaces as underscores)
+  const speciesDir = detection.com_name.replace(/ /g, '_');
+
+  // Extract just the date portion (YYYY-MM-DD) from ISO date string
+  const dateOnly = detection.date.split('T')[0];
+
+  // Build file paths for audio and spectrogram
+  // Structure: /By_Date/[date]/[species_dir]/[filename]
+  // URL-encode the filename to handle colons in timestamps (e.g., 09:25:45)
+  const encodedFileName = encodeURIComponent(detection.file_name);
+  const audioPath = `/By_Date/${dateOnly}/${speciesDir}/${encodedFileName}`;
+  const spectrogramPath = `/By_Date/${dateOnly}/${speciesDir}/${encodedFileName}.png`;
 
   // Build external info URLs
   const wikipediaUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(detection.sci_name.replace(/ /g, '_'))}`;
@@ -115,22 +130,56 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
 
             {/* Date, Time, Audio Link */}
             <div class="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap gap-x-2">
-              <span>{detection.date}</span>
+              <span>{dateOnly}</span>
               <span>-</span>
               <span>{detection.time}</span>
               {detection.file_name && (
                 <>
                   <span>-</span>
-                  <a
-                    href={`/By_Date/${detection.date}/${detection.file_name}`}
+                  <button
+                    onClick={() => setShowAudioPlayer(!showAudioPlayer)}
                     class="text-primary-600 hover:underline"
                     title="Play audio"
                   >
-                    Play
-                  </a>
+                    {showAudioPlayer ? 'Hide' : 'Play'}
+                  </button>
+                  <span>-</span>
+                  <button
+                    onClick={() => setShowSpectrogram(!showSpectrogram)}
+                    class="text-primary-600 hover:underline"
+                    title="Show spectrogram"
+                  >
+                    {showSpectrogram ? 'Hide' : 'Show'} Spectrogram
+                  </button>
                 </>
               )}
             </div>
+
+            {/* Audio Player */}
+            {showAudioPlayer && detection.file_name && (
+              <div class="mt-2">
+                <audio
+                  controls
+                  autoPlay
+                  class="w-full max-w-md"
+                  src={audioPath}
+                >
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+
+            {/* Spectrogram Image */}
+            {showSpectrogram && detection.file_name && (
+              <div class="mt-2">
+                <img
+                  src={spectrogramPath}
+                  alt={`Spectrogram for ${detection.com_name}`}
+                  class="max-w-full rounded border border-gray-200 dark:border-gray-700"
+                  loading="lazy"
+                />
+              </div>
+            )}
 
             {/* Info Links */}
             <div class="flex items-center mt-2 gap-2">
