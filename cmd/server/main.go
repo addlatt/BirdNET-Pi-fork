@@ -25,6 +25,7 @@ func main() {
 	mlServiceURL := getEnv("ML_SERVICE_URL", "http://127.0.0.1:8001")
 	scriptsDir := getEnv("SCRIPTS_DIR", "scripts")
 	dataDir := getEnv("DATA_DIR", "data")
+	birdsongsDir := getEnv("BIRDSONGS_DIR", expandHome("~/BirdSongs"))
 
 	// Initialize database (read-only)
 	database, err := db.New(dbPath)
@@ -57,7 +58,7 @@ func main() {
 	r.Use(corsMiddleware)
 
 	// Initialize API handlers
-	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, scriptsDir, dataDir)
+	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, scriptsDir, dataDir, birdsongsDir)
 
 	// Public API routes
 	r.Route("/api", func(r chi.Router) {
@@ -157,6 +158,17 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func expandHome(path string) string {
+	if len(path) > 1 && path[:2] == "~/" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return path
+		}
+		return home + path[1:]
+	}
+	return path
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

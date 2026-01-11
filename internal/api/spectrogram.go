@@ -35,8 +35,8 @@ type RecentDetectionsResponse struct {
 // Returns metadata about the current spectrogram image.
 func (h *Handlers) GetSpectrogramInfo(w http.ResponseWriter, r *http.Request) {
 	// Build the path to spectrogram.png
-	// In BirdNET-Pi, this is typically at ~/BirdSongs/Extracted/spectrogram.png
-	spectrogramPath := filepath.Join(h.dataDir, "extracted", "spectrogram.png")
+	// In BirdNET-Pi, this is at ~/BirdSongs/Extracted/spectrogram.png
+	spectrogramPath := filepath.Join(h.birdsongsDir, "Extracted", "spectrogram.png")
 
 	response := SpectrogramInfoResponse{
 		ImageURL:       "/api/spectrogram/image",
@@ -57,7 +57,7 @@ func (h *Handlers) GetSpectrogramInfo(w http.ResponseWriter, r *http.Request) {
 // GetSpectrogramImage handles GET /api/spectrogram/image requests.
 // Serves the spectrogram image file with cache control headers.
 func (h *Handlers) GetSpectrogramImage(w http.ResponseWriter, r *http.Request) {
-	spectrogramPath := filepath.Join(h.dataDir, "extracted", "spectrogram.png")
+	spectrogramPath := filepath.Join(h.birdsongsDir, "Extracted", "spectrogram.png")
 
 	// Check if file exists
 	info, err := os.Stat(spectrogramPath)
