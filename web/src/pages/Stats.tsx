@@ -149,31 +149,35 @@ export function Stats(): JSX.Element {
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hourly Distribution</h2>
             </div>
             <div class="p-4">
-              <div class="flex items-end h-40 space-x-1">
+              <div class="flex items-end h-40 gap-1">
                 {Array.from({ length: 24 }, (_, hour) => {
                   const data = stats.hourly_distribution!.find((h) => h.hour === hour);
                   const count = data?.detection_count || 0;
                   const maxCount = Math.max(...stats.hourly_distribution!.map((h) => h.detection_count));
-                  const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                  const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
 
                   return (
                     <div
                       key={hour}
-                      class="flex-1 flex flex-col items-center"
+                      class="flex-1 flex flex-col justify-end h-full"
                       title={`${hour}:00 - ${count} detections`}
                     >
                       <div
-                        class="w-full bg-primary-500 rounded-t"
-                        style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
+                        class="w-full bg-primary-500 rounded-t transition-all"
+                        style={{ height: `${Math.max(heightPercent, count > 0 ? 3 : 0)}%` }}
                       />
-                      {hour % 6 === 0 && (
-                        <span class="text-xs text-gray-500 mt-1">{hour}</span>
-                      )}
                     </div>
                   );
                 })}
               </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Hour of day</p>
+              <div class="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <span>0</span>
+                <span>6</span>
+                <span>12</span>
+                <span>18</span>
+                <span>24</span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Hour of day</p>
             </div>
           </div>
         )}
