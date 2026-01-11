@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -38,11 +39,23 @@ func (h *Handlers) GetSpectrogramInfo(w http.ResponseWriter, r *http.Request) {
 	// In BirdNET-Pi, this is at ~/BirdSongs/Extracted/spectrogram.png
 	spectrogramPath := filepath.Join(h.birdsongsDir, "Extracted", "spectrogram.png")
 
+	// Build livestream URL using request host (so browser can reach it)
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	host := r.Host
+	// Strip port if present and add Icecast port
+	if colonIdx := strings.LastIndex(host, ":"); colonIdx != -1 {
+		host = host[:colonIdx]
+	}
+	livestreamURL := scheme + "://" + host + ":8000/stream"
+
 	response := SpectrogramInfoResponse{
 		ImageURL:       "/api/spectrogram/image",
 		Available:      false,
-		LivestreamURL:  "http://localhost:8000/stream", // Default Icecast URL
-		RefreshSeconds: 3,                              // Default refresh interval
+		LivestreamURL:  livestreamURL,
+		RefreshSeconds: 3, // Default refresh interval
 	}
 
 	// Check if spectrogram file exists

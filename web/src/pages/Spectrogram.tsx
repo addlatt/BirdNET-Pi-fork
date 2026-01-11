@@ -119,7 +119,7 @@ export function Spectrogram(): JSX.Element {
     const analyser = analyserRef.current;
     if (!canvas || !analyser) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
