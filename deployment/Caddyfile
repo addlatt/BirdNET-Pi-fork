@@ -23,6 +23,10 @@ http:// {
 	# ==========================================================================
 	# NEW: Preact app - serve static files from web/dist
 	# ==========================================================================
+	# Redirect /app to /app/ for consistent routing
+	handle /app {
+		redir /app/ permanent
+	}
 	handle /app/* {
 		uri strip_prefix /app
 		root * /home/addlatt/BirdNET-Pi/web/dist
