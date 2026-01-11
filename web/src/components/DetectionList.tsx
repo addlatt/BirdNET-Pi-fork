@@ -65,9 +65,12 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   // Build species directory name (com_name with spaces as underscores)
   const speciesDir = detection.com_name.replace(/ /g, '_');
 
+  // Extract just the date portion (YYYY-MM-DD) from ISO date string
+  const dateOnly = detection.date.split('T')[0];
+
   // Build file paths for audio and spectrogram
   // Structure: /By_Date/[date]/[species_dir]/[filename]
-  const audioPath = `/By_Date/${detection.date}/${speciesDir}/${detection.file_name}`;
+  const audioPath = `/By_Date/${dateOnly}/${speciesDir}/${detection.file_name}`;
   const spectrogramPath = `${audioPath}.png`;
 
   // Build external info URLs
@@ -124,7 +127,7 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
 
             {/* Date, Time, Audio Link */}
             <div class="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap gap-x-2">
-              <span>{detection.date}</span>
+              <span>{dateOnly}</span>
               <span>-</span>
               <span>{detection.time}</span>
               {detection.file_name && (
