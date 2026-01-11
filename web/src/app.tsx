@@ -3,6 +3,7 @@ import type { JSX } from 'preact';
 import { Header } from './components/Header';
 import { Overview } from './pages/Overview';
 import { TodaysDetections } from './pages/TodaysDetections';
+import { History } from './pages/History';
 import { Stats } from './pages/Stats';
 
 /**
@@ -16,6 +17,7 @@ export function App(): JSX.Element {
         <Router>
           <Route path="/app/" component={Overview} />
           <Route path="/app/detections" component={TodaysDetections} />
+          <Route path="/app/history" component={History} />
           <Route path="/app/stats" component={Stats} />
           <Route default component={Overview} />
         </Router>

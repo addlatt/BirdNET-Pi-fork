@@ -67,6 +67,9 @@ func main() {
 		r.Get("/detections/{date}/{time}/{species}", handlers.GetDetection)
 		r.Delete("/detections/{date}/{time}/{species}", handlers.DeleteDetection)
 
+		// Dates (for history page date picker)
+		r.Get("/dates", handlers.ListDates)
+
 		// Species
 		r.Get("/species", handlers.ListSpecies)
 		r.Get("/species/{name}", handlers.GetSpeciesDetail)

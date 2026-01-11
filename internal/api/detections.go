@@ -378,3 +378,49 @@ func parseFloatParam(s string, defaultVal float64) float64 {
 	}
 	return v
 }
+
+// ListDatesResponse represents the list of dates with detections.
+type ListDatesResponse struct {
+	Dates []string `json:"dates"`
+	Total int      `json:"total"`
+}
+
+// ListDates handles GET /api/dates requests.
+// Returns a list of dates that have detections, for use in date pickers.
+// Query parameters:
+//   - limit: Maximum number of dates to return (default: 365, max: 1000)
+func (h *Handlers) ListDates(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Parse query parameters
+	limit := parseIntParam(r.URL.Query().Get("limit"), 365)
+	if limit > 1000 {
+		limit = 1000
+	}
+	if limit < 1 {
+		limit = 365
+	}
+
+	// Get dates with detections
+	dates, err := h.db.Queries.GetDetectionDates(ctx, db.GetDetectionDatesParams{
+		Limit:  int64(limit),
+		Offset: 0,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to fetch dates")
+		return
+	}
+
+	// Build response
+	response := ListDatesResponse{
+		Dates: dates,
+		Total: len(dates),
+	}
+
+	// Handle nil slice
+	if response.Dates == nil {
+		response.Dates = []string{}
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}

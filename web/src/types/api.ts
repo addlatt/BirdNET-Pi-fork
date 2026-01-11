@@ -248,6 +248,21 @@ export interface WSSubscription {
 }
 
 // =============================================================================
+// Dates Types (for History page)
+// =============================================================================
+
+/** Response from GET /api/dates */
+export interface ListDatesResponse {
+  dates: string[];
+  total: number;
+}
+
+/** Query parameters for GET /api/dates */
+export interface ListDatesParams {
+  limit?: number;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 
