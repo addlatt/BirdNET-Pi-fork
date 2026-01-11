@@ -17,6 +17,11 @@ import type {
   HealthResponse,
   ListDatesResponse,
   ListDatesParams,
+  SpeciesListsResponse,
+  SpeciesListType,
+  LabelsResponse,
+  SpeciesCountResponse,
+  DeleteSpeciesResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -196,6 +201,109 @@ export async function fetchSpeciesHistory(name: string, params: SpeciesHistoryPa
   return apiFetch<SpeciesHistoryResponse>(`${API_BASE}/species/${encodeURIComponent(name)}/history${query}`);
 }
 
+/**
+ * Fetch all species with last_seen date.
+ * GET /api/species/all
+ */
+export async function fetchAllSpecies(): Promise<ListSpeciesResponse> {
+  return apiFetch<ListSpeciesResponse>(`${API_BASE}/species/all`);
+}
+
+/**
+ * Get count of detections and files for a species before deletion.
+ * GET /api/species/{name}/count
+ */
+export async function fetchSpeciesCount(name: string): Promise<SpeciesCountResponse> {
+  return apiFetch<SpeciesCountResponse>(`${API_BASE}/species/${encodeURIComponent(name)}/count`);
+}
+
+/**
+ * Delete all detections and files for a species.
+ * DELETE /api/species/{name}/all
+ */
+export async function deleteAllSpeciesDetections(name: string): Promise<DeleteSpeciesResponse> {
+  const response = await fetch(
+    `${API_BASE}/species/${encodeURIComponent(name)}/all`,
+    { method: 'DELETE' }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json() as Promise<DeleteSpeciesResponse>;
+}
+
+// =============================================================================
+// Species Lists Endpoints (for Species Management)
+// =============================================================================
+
+/**
+ * Fetch all species lists (confirmed, excluded, whitelisted, include).
+ * GET /api/species-lists
+ */
+export async function fetchSpeciesLists(): Promise<SpeciesListsResponse> {
+  return apiFetch<SpeciesListsResponse>(`${API_BASE}/species-lists`);
+}
+
+/**
+ * Add a species to a list.
+ * POST /api/species-lists/{listType}/add
+ */
+export async function addToSpeciesList(listType: SpeciesListType, species: string): Promise<{ status: string }> {
+  const response = await fetch(`${API_BASE}/species-lists/${listType}/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ species }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Remove a species from a list.
+ * POST /api/species-lists/{listType}/remove
+ */
+export async function removeFromSpeciesList(listType: SpeciesListType, species: string): Promise<{ status: string }> {
+  const response = await fetch(`${API_BASE}/species-lists/${listType}/remove`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ species }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Replace an entire species list.
+ * PUT /api/species-lists/{listType}
+ */
+export async function updateSpeciesList(listType: SpeciesListType, species: string[]): Promise<{ status: string }> {
+  const response = await fetch(`${API_BASE}/species-lists/${listType}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ species }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Fetch all available species labels from labels.txt.
+ * GET /api/labels
+ */
+export async function fetchLabels(): Promise<LabelsResponse> {
+  return apiFetch<LabelsResponse>(`${API_BASE}/labels`);
+}
+
 // =============================================================================
 // Dates Endpoints (for History page)
 // =============================================================================
@@ -276,4 +384,9 @@ export type {
   HealthResponse,
   ListDatesResponse,
   ListDatesParams,
+  SpeciesListsResponse,
+  SpeciesListType,
+  LabelsResponse,
+  SpeciesCountResponse,
+  DeleteSpeciesResponse,
 };

@@ -642,7 +642,7 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 |------|------|------------|--------|-------|
 | 3.1 | Stats | Low | ✅ Complete | Read-only, species list with sorting, detail modal |
 | 3.2 | Today's Detections | Low | ✅ Complete | Search, filters, delete, info links, bird images, history chart |
-| 3.3 | History | Medium | | Date picker, pagination |
+| 3.3 | History | Medium | ✅ Complete | Date picker, pagination, reuses DetectionList |
 | 3.4 | Species List | Medium | | CRUD for include/exclude lists |
 | 4.1 | Spectrogram | Medium | | Image updates (Part 2: real-time WebSocket) |
 | 4.2 | Settings | High | | Form validation, service control |
@@ -791,6 +791,79 @@ GET    /api/species/{name}/history?days=30      # Detection history for charts
 ```
 GET /api/detections?search=robin&min_confidence=0.7  # Text search + confidence filter
 GET /api/stats                                        # Now includes detections_last_hour
+```
+
+---
+
+#### Phase 3.3 Learnings (History Page Migration)
+
+**Completed:** History page with date picker, date navigation, and full detection browsing for any historical date
+
+**Backend Changes:**
+
+1. **Existing Query Reuse** - The `GetDetectionDates` query already existed in `queries.sql` from earlier planning. Verified it returns dates sorted DESC (most recent first) with LIMIT/OFFSET for pagination.
+
+2. **Simple Dates Endpoint** - New `/api/dates?limit=365` endpoint returns just the list of dates with detections. Response format:
+   ```json
+   {"dates": ["2026-01-11", "2026-01-10", ...], "total": 45}
+   ```
+
+3. **Route Registration Pattern** - Added route alongside existing detection routes in `cmd/server/main.go`:
+   ```go
+   r.Get("/dates", handlers.ListDates)
+   ```
+
+**Frontend Changes:**
+
+1. **DatePicker Component Design** - Created `DatePicker.tsx` with:
+   - Native `<input type="date">` for cross-browser compatibility
+   - Previous/Next buttons that jump to dates with detections (not just ±1 day)
+   - "Today" quick button
+   - Quick access chips for 7 most recent dates
+   - Status indicator showing if selected date has detections
+   - Available dates passed as prop, converted to Set for O(1) lookup
+
+2. **Navigation Logic** - Previous/Next find closest dates with detections:
+   ```typescript
+   // availableDates sorted DESC, so index+1 is earlier, index-1 is later
+   const prevDate = availableDates[currentIndex + 1];  // Earlier date
+   const nextDate = availableDates[currentIndex - 1];  // Later date
+   ```
+
+3. **Component Reuse Strategy** - History page maximizes reuse:
+   - `DetectionList` - Full detection display (audio, spectrogram, images, delete, chart)
+   - `SearchFilters` - Search bar and confidence filter
+   - Only new component is `DatePicker`
+
+4. **Date Formatting** - Short format for chips, full format for header:
+   ```typescript
+   // Chip: "Jan 11"
+   date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+   // Header: "Saturday, January 11, 2026"
+   date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+   ```
+
+5. **State Reset on Date Change** - When date changes, reset page to 1:
+   ```typescript
+   const handleDateChange = useCallback((date: string) => {
+     setSelectedDate(date);
+     setPage(1);
+   }, []);
+   ```
+
+**Key Files Added/Modified:**
+- `internal/api/detections.go:382-426` - `ListDates` handler and `ListDatesResponse` type
+- `cmd/server/main.go:70-71` - Route registration for `/api/dates`
+- `web/src/types/api.ts` - `ListDatesResponse` and `ListDatesParams` types
+- `web/src/hooks/useApi.ts` - `fetchDates` function
+- `web/src/components/DatePicker.tsx` - New date picker component
+- `web/src/pages/History.tsx` - New history page
+- `web/src/components/Header.tsx` - Added "History" nav link, renamed "Detections" to "Today"
+- `web/src/app.tsx` - Added `/app/history` route
+
+**API Endpoint Added:**
+```
+GET /api/dates?limit=365  # List dates with detections (sorted DESC)
 ```
 
 ---

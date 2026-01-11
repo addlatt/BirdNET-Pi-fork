@@ -55,6 +55,20 @@ func (q *Queries) CountDetectionsByDateWithConfidence(ctx context.Context, arg C
 	return count, err
 }
 
+const countDetectionsBySpecies = `-- name: CountDetectionsBySpecies :one
+SELECT COUNT(*) as count
+FROM detections
+WHERE sci_name = ?
+`
+
+// Count detections for a specific species
+func (q *Queries) CountDetectionsBySpecies(ctx context.Context, sciName string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countDetectionsBySpecies, sciName)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countDetectionsLastHour = `-- name: CountDetectionsLastHour :one
 SELECT COUNT(*) as count
 FROM detections
@@ -134,6 +148,20 @@ func (q *Queries) CountSearchDetectionsExcludeByDate(ctx context.Context, arg Co
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const deleteAllDetectionsForSpecies = `-- name: DeleteAllDetectionsForSpecies :execresult
+
+DELETE FROM detections
+WHERE sci_name = ?
+`
+
+// =============================================================================
+// Phase 3.4: Species Management Queries
+// =============================================================================
+// Delete ALL detections for a species (destructive!)
+func (q *Queries) DeleteAllDetectionsForSpecies(ctx context.Context, sciName string) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteAllDetectionsForSpecies, sciName)
 }
 
 const deleteDetectionByCompositeKey = `-- name: DeleteDetectionByCompositeKey :exec
@@ -429,6 +457,42 @@ func (q *Queries) GetSpeciesDetectionHistory(ctx context.Context, arg GetSpecies
 	return items, nil
 }
 
+const getSpeciesFilePaths = `-- name: GetSpeciesFilePaths :many
+SELECT date, com_name, file_name
+FROM detections
+WHERE sci_name = ?
+`
+
+type GetSpeciesFilePathsRow struct {
+	Date     string `db:"date" json:"date"`
+	ComName  string `db:"com_name" json:"com_name"`
+	FileName string `db:"file_name" json:"file_name"`
+}
+
+// Get all file paths for a species (for file deletion)
+func (q *Queries) GetSpeciesFilePaths(ctx context.Context, sciName string) ([]GetSpeciesFilePathsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSpeciesFilePaths, sciName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpeciesFilePathsRow
+	for rows.Next() {
+		var i GetSpeciesFilePathsRow
+		if err := rows.Scan(&i.Date, &i.ComName, &i.FileName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSpeciesStats = `-- name: GetSpeciesStats :one
 SELECT
     sci_name,
@@ -573,6 +637,51 @@ func (q *Queries) GetTotalSpeciesCountToday(ctx context.Context) (int64, error) 
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const listAllSpeciesWithLastSeen = `-- name: ListAllSpeciesWithLastSeen :many
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY detection_count DESC
+`
+
+type ListAllSpeciesWithLastSeenRow struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	LastSeen       interface{} `db:"last_seen" json:"last_seen"`
+}
+
+// Get all species with detection count, max confidence, and last seen date
+func (q *Queries) ListAllSpeciesWithLastSeen(ctx context.Context) ([]ListAllSpeciesWithLastSeenRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAllSpeciesWithLastSeen)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllSpeciesWithLastSeenRow
+	for rows.Next() {
+		var i ListAllSpeciesWithLastSeenRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.MaxConfidence,
+			&i.LastSeen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listDetections = `-- name: ListDetections :many

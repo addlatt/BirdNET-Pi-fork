@@ -2,6 +2,9 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	db "github.com/birdnet-pi/birdnet/internal/db/generated"
 	"github.com/go-chi/chi/v5"
@@ -234,4 +237,175 @@ func sanitizePathComponent(s string) string {
 		}
 	}
 	return result
+}
+
+// DeleteSpeciesResponse represents the response for deleting a species.
+type DeleteSpeciesResponse struct {
+	DetectionsDeleted int64 `json:"detections_deleted"`
+	FilesDeleted      int   `json:"files_deleted"`
+}
+
+// CountSpeciesResponse represents the count of detections and files for a species.
+type CountSpeciesResponse struct {
+	DetectionCount int64 `json:"detection_count"`
+	FileCount      int   `json:"file_count"`
+}
+
+// GetSpeciesCount handles GET /api/species/{name}/count requests.
+// Returns the count of detections and files for a species before deletion.
+func (h *Handlers) GetSpeciesCount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	name := chi.URLParam(r, "name")
+
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "Species name is required")
+		return
+	}
+
+	// Get detection count
+	count, err := h.db.Queries.CountDetectionsBySpecies(ctx, name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to count detections")
+		return
+	}
+
+	// Get file paths to count files
+	files, err := h.db.Queries.GetSpeciesFilePaths(ctx, name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to get file paths")
+		return
+	}
+
+	// Count actual files (audio + spectrogram)
+	fileCount := len(files) * 2 // Each detection has an audio file and a spectrogram
+
+	response := CountSpeciesResponse{
+		DetectionCount: count,
+		FileCount:      fileCount,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// DeleteAllSpeciesDetections handles DELETE /api/species/{name}/all requests.
+// Deletes ALL detections and files for a species (destructive!).
+func (h *Handlers) DeleteAllSpeciesDetections(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	name := chi.URLParam(r, "name")
+
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "Species name is required")
+		return
+	}
+
+	// Get file paths before deleting from database
+	files, err := h.db.Queries.GetSpeciesFilePaths(ctx, name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to get file paths")
+		return
+	}
+
+	// Delete files from disk
+	filesDeleted := 0
+	dirsToClean := make(map[string]bool)
+
+	for _, file := range files {
+		// Extract date-only from the date field (format: 2026-01-11 or 2026-01-11T00:00:00Z)
+		dateOnly := file.Date
+		if idx := strings.Index(dateOnly, "T"); idx != -1 {
+			dateOnly = dateOnly[:idx]
+		}
+
+		// Build file paths
+		comNamePath := sanitizePathComponent(file.ComName)
+		basePath := filepath.Join(h.dataDir, "By_Date", dateOnly, comNamePath)
+		audioPath := filepath.Join(basePath, file.FileName)
+		spectrogramPath := audioPath + ".png"
+
+		// Track directory for cleanup
+		dirsToClean[basePath] = true
+
+		// Delete audio file
+		if err := os.Remove(audioPath); err == nil {
+			filesDeleted++
+		}
+
+		// Delete spectrogram
+		if err := os.Remove(spectrogramPath); err == nil {
+			filesDeleted++
+		}
+	}
+
+	// Try to clean up empty directories
+	for dir := range dirsToClean {
+		// Try to remove the species directory if empty
+		os.Remove(dir)
+		// Try to remove the date directory if empty
+		os.Remove(filepath.Dir(dir))
+	}
+
+	// Delete detections from database
+	result, err := h.db.Queries.DeleteAllDetectionsForSpecies(ctx, name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to delete detections from database")
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+
+	// Also remove from confirmed species list if present
+	confirmedPath := filepath.Join(h.scriptsDir, "confirmed_species_list.txt")
+	if species, err := readSpeciesListFile(confirmedPath); err == nil {
+		var newSpecies []string
+		for _, s := range species {
+			if s != name {
+				newSpecies = append(newSpecies, s)
+			}
+		}
+		if len(newSpecies) != len(species) {
+			writeSpeciesListFile(confirmedPath, newSpecies)
+		}
+	}
+
+	response := DeleteSpeciesResponse{
+		DetectionsDeleted: rowsAffected,
+		FilesDeleted:      filesDeleted,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// ListAllSpecies handles GET /api/species/all requests.
+// Returns all species with detection count, max confidence, and last seen date.
+func (h *Handlers) ListAllSpecies(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	rows, err := h.db.Queries.ListAllSpeciesWithLastSeen(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to fetch species")
+		return
+	}
+
+	var speciesList []SpeciesResponse
+	for _, row := range rows {
+		speciesList = append(speciesList, SpeciesResponse{
+			SciName:        row.SciName,
+			ComName:        row.ComName,
+			DetectionCount: row.DetectionCount,
+			MaxConfidence:  toFloat64(row.MaxConfidence),
+			LastSeen:       toString(row.LastSeen),
+		})
+	}
+
+	// Ensure we return empty array instead of null
+	if speciesList == nil {
+		speciesList = []SpeciesResponse{}
+	}
+
+	response := ListSpeciesResponse{
+		Species: speciesList,
+		Total:   len(speciesList),
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }
