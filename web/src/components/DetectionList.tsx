@@ -58,6 +58,7 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSpectrogram, setShowSpectrogram] = useState(false);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
 
   const confidencePercent = Math.round(detection.confidence * 100);
   const confidenceColor = getConfidenceColor(confidencePercent);
@@ -70,8 +71,10 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
 
   // Build file paths for audio and spectrogram
   // Structure: /By_Date/[date]/[species_dir]/[filename]
-  const audioPath = `/By_Date/${dateOnly}/${speciesDir}/${detection.file_name}`;
-  const spectrogramPath = `${audioPath}.png`;
+  // URL-encode the filename to handle colons in timestamps (e.g., 09:25:45)
+  const encodedFileName = encodeURIComponent(detection.file_name);
+  const audioPath = `/By_Date/${dateOnly}/${speciesDir}/${encodedFileName}`;
+  const spectrogramPath = `/By_Date/${dateOnly}/${speciesDir}/${encodedFileName}.png`;
 
   // Build external info URLs
   const wikipediaUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(detection.sci_name.replace(/ /g, '_'))}`;
@@ -133,13 +136,13 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               {detection.file_name && (
                 <>
                   <span>-</span>
-                  <a
-                    href={audioPath}
+                  <button
+                    onClick={() => setShowAudioPlayer(!showAudioPlayer)}
                     class="text-primary-600 hover:underline"
                     title="Play audio"
                   >
-                    Play
-                  </a>
+                    {showAudioPlayer ? 'Hide' : 'Play'}
+                  </button>
                   <span>-</span>
                   <button
                     onClick={() => setShowSpectrogram(!showSpectrogram)}
@@ -151,6 +154,20 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
                 </>
               )}
             </div>
+
+            {/* Audio Player */}
+            {showAudioPlayer && detection.file_name && (
+              <div class="mt-2">
+                <audio
+                  controls
+                  autoPlay
+                  class="w-full max-w-md"
+                  src={audioPath}
+                >
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
 
             {/* Spectrogram Image */}
             {showSpectrogram && detection.file_name && (
