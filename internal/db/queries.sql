@@ -1,36 +1,37 @@
--- name: GetDetection :one
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
-FROM detections
-WHERE id = ?
-LIMIT 1;
-
 -- name: GetDetectionByCompositeKey :one
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ? AND time = ? AND sci_name = ?
 LIMIT 1;
 
 -- name: ListDetections :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 ORDER BY date DESC, time DESC
 LIMIT ? OFFSET ?;
 
 -- name: ListDetectionsByDate :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
 ORDER BY time DESC;
 
+-- name: ListDetectionsByDatePaginated :many
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
+FROM detections
+WHERE date = ?
+ORDER BY time DESC
+LIMIT ? OFFSET ?;
+
 -- name: ListDetectionsByDateRange :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date >= ? AND date <= ?
 ORDER BY date DESC, time DESC
 LIMIT ? OFFSET ?;
 
 -- name: ListDetectionsBySpecies :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE sci_name = ? OR com_name = ?
 ORDER BY date DESC, time DESC
@@ -48,7 +49,7 @@ WHERE date = ?;
 -- name: CountDetectionsToday :one
 SELECT COUNT(*) as count
 FROM detections
-WHERE date = DATE('now');
+WHERE date = DATE('now', 'localtime');
 
 -- name: ListSpecies :many
 SELECT DISTINCT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence
@@ -59,7 +60,7 @@ ORDER BY detection_count DESC;
 -- name: ListSpeciesToday :many
 SELECT DISTINCT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence
 FROM detections
-WHERE date = DATE('now')
+WHERE date = DATE('now', 'localtime')
 GROUP BY sci_name, com_name
 ORDER BY detection_count DESC;
 
@@ -105,7 +106,7 @@ ORDER BY detection_count DESC
 LIMIT ?;
 
 -- name: GetRecentDetections :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 ORDER BY date DESC, time DESC
 LIMIT ?;
@@ -117,7 +118,7 @@ FROM detections;
 -- name: GetTotalSpeciesCountToday :one
 SELECT COUNT(DISTINCT sci_name) as count
 FROM detections
-WHERE date = DATE('now');
+WHERE date = DATE('now', 'localtime');
 
 -- name: GetDetectionDates :many
 SELECT DISTINCT date
@@ -126,7 +127,7 @@ ORDER BY date DESC
 LIMIT ? OFFSET ?;
 
 -- name: GetBestDetectionForSpecies :one
-SELECT id, date, time, sci_name, com_name, confidence, file_name
+SELECT date, time, sci_name, com_name, confidence, file_name
 FROM detections
 WHERE sci_name = ? OR com_name = ?
 ORDER BY confidence DESC
@@ -169,7 +170,7 @@ ORDER BY last_seen DESC;
 
 -- name: SearchDetectionsByDate :many
 -- Text search within a specific date, with optional confidence filter
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
   AND (com_name LIKE ? OR sci_name LIKE ? OR file_name LIKE ? OR time LIKE ?)
@@ -187,7 +188,7 @@ WHERE date = ?
 
 -- name: SearchDetectionsExcludeByDate :many
 -- Text search with NOT operator (exclude matches) within a specific date
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
   AND NOT (com_name LIKE ? OR sci_name LIKE ? OR file_name LIKE ? OR time LIKE ?)
@@ -205,7 +206,7 @@ WHERE date = ?
 
 -- name: ListDetectionsByDateWithConfidence :many
 -- List detections for a date with minimum confidence filter
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
   AND confidence >= ?
