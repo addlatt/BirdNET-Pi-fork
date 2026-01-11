@@ -89,6 +89,9 @@ func (h *Handlers) ListDetections(w http.ResponseWriter, r *http.Request) {
 	var total int64
 	var err error
 
+	// Convert minConfidence to sql.NullFloat64 for sqlc queries
+	minConfidenceSQL := sql.NullFloat64{Float64: minConfidence, Valid: true}
+
 	// Handle search queries (most specific case)
 	if date != "" && search != "" {
 		// Text search within a specific date
@@ -99,7 +102,7 @@ func (h *Handlers) ListDetections(w http.ResponseWriter, r *http.Request) {
 			SciName:    searchPattern,
 			FileName:   searchPattern,
 			Time:       searchPattern,
-			Confidence: minConfidence,
+			Confidence: minConfidenceSQL,
 			Limit:      limit,
 			Offset:     offset,
 		})
@@ -110,21 +113,21 @@ func (h *Handlers) ListDetections(w http.ResponseWriter, r *http.Request) {
 				SciName:    searchPattern,
 				FileName:   searchPattern,
 				Time:       searchPattern,
-				Confidence: minConfidence,
+				Confidence: minConfidenceSQL,
 			})
 		}
 	} else if date != "" && minConfidence > 0 {
 		// Date with confidence filter
 		detections, err = h.db.Queries.ListDetectionsByDateWithConfidence(ctx, db.ListDetectionsByDateWithConfidenceParams{
 			Date:       date,
-			Confidence: minConfidence,
+			Confidence: minConfidenceSQL,
 			Limit:      limit,
 			Offset:     offset,
 		})
 		if err == nil {
 			total, _ = h.db.Queries.CountDetectionsByDateWithConfidence(ctx, db.CountDetectionsByDateWithConfidenceParams{
 				Date:       date,
-				Confidence: minConfidence,
+				Confidence: minConfidenceSQL,
 			})
 		}
 	} else if date != "" {
@@ -336,7 +339,7 @@ func detectionToResponse(d db.Detection) DetectionResponse {
 		Time:       d.Time,
 		SciName:    d.SciName,
 		ComName:    d.ComName,
-		Confidence: d.Confidence,
+		Confidence: d.Confidence.Float64, // Extract float64 from sql.NullFloat64
 		FileName:   d.FileName,
 	}
 

@@ -43,8 +43,8 @@ WHERE date = ?
 `
 
 type CountDetectionsByDateWithConfidenceParams struct {
-	Date       string  `db:"date" json:"date"`
-	Confidence float64 `db:"confidence" json:"confidence"`
+	Date       string          `db:"date" json:"date"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
 }
 
 // Count detections for a date with minimum confidence filter
@@ -73,7 +73,7 @@ func (q *Queries) CountDetectionsLastHour(ctx context.Context) (int64, error) {
 const countDetectionsToday = `-- name: CountDetectionsToday :one
 SELECT COUNT(*) as count
 FROM detections
-WHERE date = DATE('now')
+WHERE date = DATE('now', 'localtime')
 `
 
 func (q *Queries) CountDetectionsToday(ctx context.Context) (int64, error) {
@@ -92,12 +92,12 @@ WHERE date = ?
 `
 
 type CountSearchDetectionsByDateParams struct {
-	Date       string  `db:"date" json:"date"`
-	ComName    string  `db:"com_name" json:"com_name"`
-	SciName    string  `db:"sci_name" json:"sci_name"`
-	FileName   string  `db:"file_name" json:"file_name"`
-	Time       string  `db:"time" json:"time"`
-	Confidence float64 `db:"confidence" json:"confidence"`
+	Date       string          `db:"date" json:"date"`
+	ComName    string          `db:"com_name" json:"com_name"`
+	SciName    string          `db:"sci_name" json:"sci_name"`
+	FileName   string          `db:"file_name" json:"file_name"`
+	Time       string          `db:"time" json:"time"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
 }
 
 // Count for search within a specific date
@@ -124,8 +124,8 @@ WHERE date = ?
 `
 
 type CountSearchDetectionsExcludeByDateParams struct {
-	Date       string  `db:"date" json:"date"`
-	Confidence float64 `db:"confidence" json:"confidence"`
+	Date       string          `db:"date" json:"date"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
 }
 
 // Count for NOT search within a specific date
@@ -154,7 +154,7 @@ func (q *Queries) DeleteDetectionByCompositeKey(ctx context.Context, arg DeleteD
 }
 
 const getBestDetectionForSpecies = `-- name: GetBestDetectionForSpecies :one
-SELECT id, date, time, sci_name, com_name, confidence, file_name
+SELECT date, time, sci_name, com_name, confidence, file_name
 FROM detections
 WHERE sci_name = ? OR com_name = ?
 ORDER BY confidence DESC
@@ -167,20 +167,18 @@ type GetBestDetectionForSpeciesParams struct {
 }
 
 type GetBestDetectionForSpeciesRow struct {
-	ID         int64   `db:"id" json:"id"`
-	Date       string  `db:"date" json:"date"`
-	Time       string  `db:"time" json:"time"`
-	SciName    string  `db:"sci_name" json:"sci_name"`
-	ComName    string  `db:"com_name" json:"com_name"`
-	Confidence float64 `db:"confidence" json:"confidence"`
-	FileName   string  `db:"file_name" json:"file_name"`
+	Date       string          `db:"date" json:"date"`
+	Time       string          `db:"time" json:"time"`
+	SciName    string          `db:"sci_name" json:"sci_name"`
+	ComName    string          `db:"com_name" json:"com_name"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
+	FileName   string          `db:"file_name" json:"file_name"`
 }
 
 func (q *Queries) GetBestDetectionForSpecies(ctx context.Context, arg GetBestDetectionForSpeciesParams) (GetBestDetectionForSpeciesRow, error) {
 	row := q.db.QueryRowContext(ctx, getBestDetectionForSpecies, arg.SciName, arg.ComName)
 	var i GetBestDetectionForSpeciesRow
 	err := row.Scan(
-		&i.ID,
 		&i.Date,
 		&i.Time,
 		&i.SciName,
@@ -238,37 +236,8 @@ func (q *Queries) GetDailyStats(ctx context.Context, date string) ([]GetDailySta
 	return items, nil
 }
 
-const getDetection = `-- name: GetDetection :one
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
-FROM detections
-WHERE id = ?
-LIMIT 1
-`
-
-func (q *Queries) GetDetection(ctx context.Context, id int64) (Detection, error) {
-	row := q.db.QueryRowContext(ctx, getDetection, id)
-	var i Detection
-	err := row.Scan(
-		&i.ID,
-		&i.Date,
-		&i.Time,
-		&i.SciName,
-		&i.ComName,
-		&i.Confidence,
-		&i.Lat,
-		&i.Lon,
-		&i.Cutoff,
-		&i.Week,
-		&i.Sens,
-		&i.Overlap,
-		&i.FileName,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const getDetectionByCompositeKey = `-- name: GetDetectionByCompositeKey :one
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ? AND time = ? AND sci_name = ?
 LIMIT 1
@@ -284,7 +253,6 @@ func (q *Queries) GetDetectionByCompositeKey(ctx context.Context, arg GetDetecti
 	row := q.db.QueryRowContext(ctx, getDetectionByCompositeKey, arg.Date, arg.Time, arg.SciName)
 	var i Detection
 	err := row.Scan(
-		&i.ID,
 		&i.Date,
 		&i.Time,
 		&i.SciName,
@@ -297,7 +265,6 @@ func (q *Queries) GetDetectionByCompositeKey(ctx context.Context, arg GetDetecti
 		&i.Sens,
 		&i.Overlap,
 		&i.FileName,
-		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -376,7 +343,7 @@ func (q *Queries) GetHourlyDistribution(ctx context.Context, date string) ([]Get
 }
 
 const getRecentDetections = `-- name: GetRecentDetections :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 ORDER BY date DESC, time DESC
 LIMIT ?
@@ -392,7 +359,6 @@ func (q *Queries) GetRecentDetections(ctx context.Context, limit int64) ([]Detec
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -405,7 +371,6 @@ func (q *Queries) GetRecentDetections(ctx context.Context, limit int64) ([]Detec
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -600,7 +565,7 @@ func (q *Queries) GetTotalSpeciesCount(ctx context.Context) (int64, error) {
 const getTotalSpeciesCountToday = `-- name: GetTotalSpeciesCountToday :one
 SELECT COUNT(DISTINCT sci_name) as count
 FROM detections
-WHERE date = DATE('now')
+WHERE date = DATE('now', 'localtime')
 `
 
 func (q *Queries) GetTotalSpeciesCountToday(ctx context.Context) (int64, error) {
@@ -611,7 +576,7 @@ func (q *Queries) GetTotalSpeciesCountToday(ctx context.Context) (int64, error) 
 }
 
 const listDetections = `-- name: ListDetections :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 ORDER BY date DESC, time DESC
 LIMIT ? OFFSET ?
@@ -632,7 +597,6 @@ func (q *Queries) ListDetections(ctx context.Context, arg ListDetectionsParams) 
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -645,7 +609,6 @@ func (q *Queries) ListDetections(ctx context.Context, arg ListDetectionsParams) 
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -661,7 +624,7 @@ func (q *Queries) ListDetections(ctx context.Context, arg ListDetectionsParams) 
 }
 
 const listDetectionsByDate = `-- name: ListDetectionsByDate :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
 ORDER BY time DESC
@@ -677,7 +640,6 @@ func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Dete
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -690,7 +652,56 @@ func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Dete
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDetectionsByDatePaginated = `-- name: ListDetectionsByDatePaginated :many
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
+FROM detections
+WHERE date = ?
+ORDER BY time DESC
+LIMIT ? OFFSET ?
+`
+
+type ListDetectionsByDatePaginatedParams struct {
+	Date   string `db:"date" json:"date"`
+	Limit  int64  `db:"limit" json:"limit"`
+	Offset int64  `db:"offset" json:"offset"`
+}
+
+func (q *Queries) ListDetectionsByDatePaginated(ctx context.Context, arg ListDetectionsByDatePaginatedParams) ([]Detection, error) {
+	rows, err := q.db.QueryContext(ctx, listDetectionsByDatePaginated, arg.Date, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Detection
+	for rows.Next() {
+		var i Detection
+		if err := rows.Scan(
+			&i.Date,
+			&i.Time,
+			&i.SciName,
+			&i.ComName,
+			&i.Confidence,
+			&i.Lat,
+			&i.Lon,
+			&i.Cutoff,
+			&i.Week,
+			&i.Sens,
+			&i.Overlap,
+			&i.FileName,
 		); err != nil {
 			return nil, err
 		}
@@ -706,7 +717,7 @@ func (q *Queries) ListDetectionsByDate(ctx context.Context, date string) ([]Dete
 }
 
 const listDetectionsByDateRange = `-- name: ListDetectionsByDateRange :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date >= ? AND date <= ?
 ORDER BY date DESC, time DESC
@@ -735,7 +746,6 @@ func (q *Queries) ListDetectionsByDateRange(ctx context.Context, arg ListDetecti
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -748,7 +758,6 @@ func (q *Queries) ListDetectionsByDateRange(ctx context.Context, arg ListDetecti
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -764,7 +773,7 @@ func (q *Queries) ListDetectionsByDateRange(ctx context.Context, arg ListDetecti
 }
 
 const listDetectionsByDateWithConfidence = `-- name: ListDetectionsByDateWithConfidence :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
   AND confidence >= ?
@@ -773,10 +782,10 @@ LIMIT ? OFFSET ?
 `
 
 type ListDetectionsByDateWithConfidenceParams struct {
-	Date       string  `db:"date" json:"date"`
-	Confidence float64 `db:"confidence" json:"confidence"`
-	Limit      int64   `db:"limit" json:"limit"`
-	Offset     int64   `db:"offset" json:"offset"`
+	Date       string          `db:"date" json:"date"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
+	Limit      int64           `db:"limit" json:"limit"`
+	Offset     int64           `db:"offset" json:"offset"`
 }
 
 // List detections for a date with minimum confidence filter
@@ -795,7 +804,6 @@ func (q *Queries) ListDetectionsByDateWithConfidence(ctx context.Context, arg Li
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -808,7 +816,6 @@ func (q *Queries) ListDetectionsByDateWithConfidence(ctx context.Context, arg Li
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -824,7 +831,7 @@ func (q *Queries) ListDetectionsByDateWithConfidence(ctx context.Context, arg Li
 }
 
 const listDetectionsBySpecies = `-- name: ListDetectionsBySpecies :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE sci_name = ? OR com_name = ?
 ORDER BY date DESC, time DESC
@@ -853,7 +860,6 @@ func (q *Queries) ListDetectionsBySpecies(ctx context.Context, arg ListDetection
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -866,7 +872,6 @@ func (q *Queries) ListDetectionsBySpecies(ctx context.Context, arg ListDetection
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1054,7 +1059,7 @@ func (q *Queries) ListSpeciesSortedByDate(ctx context.Context) ([]ListSpeciesSor
 const listSpeciesToday = `-- name: ListSpeciesToday :many
 SELECT DISTINCT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence
 FROM detections
-WHERE date = DATE('now')
+WHERE date = DATE('now', 'localtime')
 GROUP BY sci_name, com_name
 ORDER BY detection_count DESC
 `
@@ -1096,7 +1101,7 @@ func (q *Queries) ListSpeciesToday(ctx context.Context) ([]ListSpeciesTodayRow, 
 
 const searchDetectionsByDate = `-- name: SearchDetectionsByDate :many
 
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
   AND (com_name LIKE ? OR sci_name LIKE ? OR file_name LIKE ? OR time LIKE ?)
@@ -1106,14 +1111,14 @@ LIMIT ? OFFSET ?
 `
 
 type SearchDetectionsByDateParams struct {
-	Date       string  `db:"date" json:"date"`
-	ComName    string  `db:"com_name" json:"com_name"`
-	SciName    string  `db:"sci_name" json:"sci_name"`
-	FileName   string  `db:"file_name" json:"file_name"`
-	Time       string  `db:"time" json:"time"`
-	Confidence float64 `db:"confidence" json:"confidence"`
-	Limit      int64   `db:"limit" json:"limit"`
-	Offset     int64   `db:"offset" json:"offset"`
+	Date       string          `db:"date" json:"date"`
+	ComName    string          `db:"com_name" json:"com_name"`
+	SciName    string          `db:"sci_name" json:"sci_name"`
+	FileName   string          `db:"file_name" json:"file_name"`
+	Time       string          `db:"time" json:"time"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
+	Limit      int64           `db:"limit" json:"limit"`
+	Offset     int64           `db:"offset" json:"offset"`
 }
 
 // =============================================================================
@@ -1139,7 +1144,6 @@ func (q *Queries) SearchDetectionsByDate(ctx context.Context, arg SearchDetectio
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -1152,7 +1156,6 @@ func (q *Queries) SearchDetectionsByDate(ctx context.Context, arg SearchDetectio
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1168,7 +1171,7 @@ func (q *Queries) SearchDetectionsByDate(ctx context.Context, arg SearchDetectio
 }
 
 const searchDetectionsExcludeByDate = `-- name: SearchDetectionsExcludeByDate :many
-SELECT id, date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name, created_at
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
 WHERE date = ?
   AND NOT (com_name LIKE ? OR sci_name LIKE ? OR file_name LIKE ? OR time LIKE ?)
@@ -1178,10 +1181,10 @@ LIMIT ? OFFSET ?
 `
 
 type SearchDetectionsExcludeByDateParams struct {
-	Date       string  `db:"date" json:"date"`
-	Confidence float64 `db:"confidence" json:"confidence"`
-	Limit      int64   `db:"limit" json:"limit"`
-	Offset     int64   `db:"offset" json:"offset"`
+	Date       string          `db:"date" json:"date"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
+	Limit      int64           `db:"limit" json:"limit"`
+	Offset     int64           `db:"offset" json:"offset"`
 }
 
 // Text search with NOT operator (exclude matches) within a specific date
@@ -1200,7 +1203,6 @@ func (q *Queries) SearchDetectionsExcludeByDate(ctx context.Context, arg SearchD
 	for rows.Next() {
 		var i Detection
 		if err := rows.Scan(
-			&i.ID,
 			&i.Date,
 			&i.Time,
 			&i.SciName,
@@ -1213,7 +1215,6 @@ func (q *Queries) SearchDetectionsExcludeByDate(ctx context.Context, arg SearchD
 			&i.Sens,
 			&i.Overlap,
 			&i.FileName,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

@@ -9,12 +9,11 @@ import (
 )
 
 type Detection struct {
-	ID         int64           `db:"id" json:"id"`
 	Date       string          `db:"date" json:"date"`
 	Time       string          `db:"time" json:"time"`
 	SciName    string          `db:"sci_name" json:"sci_name"`
 	ComName    string          `db:"com_name" json:"com_name"`
-	Confidence float64         `db:"confidence" json:"confidence"`
+	Confidence sql.NullFloat64 `db:"confidence" json:"confidence"`
 	Lat        sql.NullFloat64 `db:"lat" json:"lat"`
 	Lon        sql.NullFloat64 `db:"lon" json:"lon"`
 	Cutoff     sql.NullFloat64 `db:"cutoff" json:"cutoff"`
@@ -22,5 +21,4 @@ type Detection struct {
 	Sens       sql.NullFloat64 `db:"sens" json:"sens"`
 	Overlap    sql.NullFloat64 `db:"overlap" json:"overlap"`
 	FileName   string          `db:"file_name" json:"file_name"`
-	CreatedAt  string          `db:"created_at" json:"created_at"`
 }

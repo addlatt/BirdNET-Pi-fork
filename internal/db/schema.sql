@@ -1,21 +1,20 @@
 -- BirdNET-Pi database schema
--- This schema is used by sqlc for type generation and golang-migrate for versioning
+-- This schema matches the actual Pi database structure
+-- Note: The Pi database uses capitalized column names but SQLite is case-insensitive
 
 CREATE TABLE IF NOT EXISTS detections (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     date DATE NOT NULL,
     time TIME NOT NULL,
     sci_name VARCHAR(100) NOT NULL,
     com_name VARCHAR(100) NOT NULL,
-    confidence REAL NOT NULL,
+    confidence REAL,
     lat REAL,
     lon REAL,
     cutoff REAL,
     week INTEGER,
     sens REAL,
     overlap REAL,
-    file_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    file_name VARCHAR(255) NOT NULL
 );
 
 -- Indexes for common queries
