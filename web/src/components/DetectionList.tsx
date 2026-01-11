@@ -57,9 +57,18 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   const [showChart, setShowChart] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSpectrogram, setShowSpectrogram] = useState(false);
 
   const confidencePercent = Math.round(detection.confidence * 100);
   const confidenceColor = getConfidenceColor(confidencePercent);
+
+  // Build species directory name (com_name with spaces as underscores)
+  const speciesDir = detection.com_name.replace(/ /g, '_');
+
+  // Build file paths for audio and spectrogram
+  // Structure: /By_Date/[date]/[species_dir]/[filename]
+  const audioPath = `/By_Date/${detection.date}/${speciesDir}/${detection.file_name}`;
+  const spectrogramPath = `${audioPath}.png`;
 
   // Build external info URLs
   const wikipediaUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(detection.sci_name.replace(/ /g, '_'))}`;
@@ -122,15 +131,35 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
                 <>
                   <span>-</span>
                   <a
-                    href={`/By_Date/${detection.date}/${detection.file_name}`}
+                    href={audioPath}
                     class="text-primary-600 hover:underline"
                     title="Play audio"
                   >
                     Play
                   </a>
+                  <span>-</span>
+                  <button
+                    onClick={() => setShowSpectrogram(!showSpectrogram)}
+                    class="text-primary-600 hover:underline"
+                    title="Show spectrogram"
+                  >
+                    {showSpectrogram ? 'Hide' : 'Show'} Spectrogram
+                  </button>
                 </>
               )}
             </div>
+
+            {/* Spectrogram Image */}
+            {showSpectrogram && detection.file_name && (
+              <div class="mt-2">
+                <img
+                  src={spectrogramPath}
+                  alt={`Spectrogram for ${detection.com_name}`}
+                  class="max-w-full rounded border border-gray-200 dark:border-gray-700"
+                  loading="lazy"
+                />
+              </div>
+            )}
 
             {/* Info Links */}
             <div class="flex items-center mt-2 gap-2">
