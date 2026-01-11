@@ -38,6 +38,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# FastAPI service for Go backend integration
+service = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.0.0",
+]
 # Full install including visualization and web dashboard
 full = [
     "tensorflow",
@@ -54,6 +60,11 @@ full = [
 dev = [
     "pytest>=7.1.0",
     "pytest-cov",
+    "httpx",  # Required for FastAPI TestClient
+]
+# All optional dependencies
+all = [
+    "birdnet-pi[service,full,dev]",
 ]
 
 [project.urls]
@@ -65,6 +76,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 birdnet = ["py.typed"]
+service = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

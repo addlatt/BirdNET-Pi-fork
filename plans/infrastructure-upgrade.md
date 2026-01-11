@@ -350,22 +350,25 @@ http:// {
 
 ---
 
-### Phase 2: Python FastAPI Service + Detection Flow (Week 2)
+### Phase 2: Python FastAPI Service + Detection Flow (Week 2) ✅ COMPLETE
 
 **Goal:** Python as full FastAPI service with extensible architecture, real-time detection updates flowing to browser.
 
+**Implementation Summary:**
+The FastAPI service was built with a clean router architecture under `src/service/`, with the ModelManager abstract base class providing lifecycle management (load/unload/memory tracking) that Part 2 models (VAD, LLM) will extend. Testing required careful mocking strategy—`sys.modules` patching was needed to avoid importing TensorFlow/TFLite in the test environment, and `requests.Session` had to be mocked at the class level since it's exposed as a property. The detection notification flow integrates cleanly: `reporting.py` calls the notifier after DB writes, which POSTs to Go's `/internal/detection`, triggering WebSocket broadcast to all connected frontends. The Overview page's real-time updates were already functional from Phase 1's WebSocket infrastructure.
+
 **Tasks:**
-- [ ] Create FastAPI application with router architecture
-- [ ] Implement ModelManager base class for model lifecycle
-- [ ] Create BirdNET model manager using ModelManager pattern
-- [ ] Migrate analysis daemon to use FastAPI service
-- [ ] Implement notifier module for Go communication
-- [ ] Add memory reporting to status endpoint
-- [ ] Create stub routers for Part 2 (VAD, LLM)
-- [ ] Implement internal endpoint in Go to receive notifications
-- [ ] Add `useWebSocket` hook to Preact with channel support
-- [ ] Update Overview page with real-time detection list
-- [ ] Set up systemd service
+- [x] Create FastAPI application with router architecture
+- [x] Implement ModelManager base class for model lifecycle
+- [x] Create BirdNET model manager using ModelManager pattern
+- [x] Migrate analysis daemon to use FastAPI service
+- [x] Implement notifier module for Go communication
+- [x] Add memory reporting to status endpoint
+- [x] Create stub routers for Part 2 (VAD, LLM)
+- [x] Implement internal endpoint in Go to receive notifications
+- [x] Add `useWebSocket` hook to Preact with channel support
+- [x] Update Overview page with real-time detection list
+- [x] Set up systemd service
 
 **Python Service Structure:**
 ```python
@@ -611,6 +614,21 @@ GET  /llm/status
 ```
 
 **Milestone:** Full FastAPI service with extensible architecture, real-time updates working.
+
+#### Post-Phase 2: Legacy Code Removal
+
+After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing uses only the new infrastructure:
+
+**Deleted:**
+- `scripts/runtime/birdnet_analysis.py` - legacy analysis daemon (replaced by `src/service/pipeline.py`)
+- `scripts/tools/weekly_report.sh` - depended entirely on PHP endpoint
+
+**Simplified:**
+- `deployment/birdnet-analysis.service` - now directly runs `python -m service.pipeline`
+- `scripts/tools/disk_check.sh` - removed PHP call, kept disk management logic
+
+**Graceful fallback retained:**
+- `src/birdnet/notifications.py` - image API has 2s timeout and silent failure (images optional)
 
 ---
 

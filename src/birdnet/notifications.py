@@ -101,11 +101,21 @@ def sendAppriseNotifications(
     if "$flickrimage" in body or "$image" in body:
         if com_name not in images:
             try:
+                # DEPRECATED: This calls legacy PHP endpoint via Caddy.
+                # When USE_NEW_PIPELINE=1, PHP may be disabled. Skip gracefully.
+                # Future: Move image API to Go server.
                 url = f"http://localhost/api/v1/image/{sci_name}"
-                resp = requests.get(url=url, timeout=10).json()
+                resp = requests.get(url=url, timeout=2).json()
                 images[com_name] = resp['data']['image_url']
-            except Exception as e:
-                print("IMAGE API ERROR:", e)
+            except requests.exceptions.ConnectionError:
+                # Expected when PHP is disabled (new pipeline mode)
+                pass
+            except requests.exceptions.Timeout:
+                # Server too slow, skip image
+                pass
+            except Exception:
+                # Other errors (JSON decode, missing key, etc.) - skip silently
+                pass
         image_url = images.get(com_name, "")
 
     if settings_dict.get('APPRISE_NOTIFY_EACH_DETECTION') == "1":

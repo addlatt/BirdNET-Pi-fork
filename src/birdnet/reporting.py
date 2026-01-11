@@ -97,9 +97,17 @@ def extract_detection(file: ParseFileName, detection: Detection) -> str:
     return new_file
 
 
-def write_to_db(file: ParseFileName, detection: Detection) -> None:
-    """Write a detection to the SQLite database."""
+def write_to_db(file: ParseFileName, detection: Detection, notify: bool = True) -> None:
+    """Write a detection to the SQLite database.
+
+    Args:
+        file: Parsed filename with metadata.
+        detection: Detection object to write.
+        notify: If True, notify Go server for WebSocket broadcast.
+    """
     conf = get_settings()
+    db_written = False
+
     # Connect to SQLite Database
     for attempt_number in range(3):
         try:
@@ -115,10 +123,51 @@ def write_to_db(file: ParseFileName, detection: Detection) -> None:
 
             con.commit()
             con.close()
+            db_written = True
             break
         except BaseException as e:
             log.warning("Database busy: %s", e)
             sleep(2)
+
+    # Notify Go server for real-time WebSocket broadcast
+    if db_written and notify:
+        notify_go_server(detection, conf)
+
+
+def notify_go_server(detection: Detection, conf: dict) -> bool:
+    """Notify Go server of a new detection for WebSocket broadcast.
+
+    This is a fire-and-forget notification. Failures are logged but non-fatal
+    since the detection is already saved in the database.
+
+    Args:
+        detection: Detection object to notify about.
+        conf: Configuration dictionary with lat/lon.
+
+    Returns:
+        True if notification succeeded, False otherwise.
+    """
+    try:
+        # Import here to avoid circular imports and allow optional dependency
+        from service.notifier import notify_detection
+        return notify_detection(
+            date=detection.date,
+            time=detection.time,
+            sci_name=detection.scientific_name,
+            com_name=detection.common_name,
+            confidence=detection.confidence,
+            file_name=os.path.basename(detection.file_name_extr) if detection.file_name_extr else "",
+            lat=float(conf.get('LATITUDE', 0)),
+            lon=float(conf.get('LONGITUDE', 0)),
+        )
+    except ImportError:
+        # Service module not available (running without FastAPI service)
+        log.debug("Go notification skipped: service module not available")
+        return False
+    except Exception as e:
+        # Non-fatal: detection is already in DB
+        log.warning("Go notification failed: %s", e)
+        return False
 
 
 def summary(file: ParseFileName, detection: Detection) -> str:

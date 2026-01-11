@@ -1,0 +1,66 @@
+# BirdNET-Pi Analysis Daemon
+# File watcher and analysis pipeline
+#
+# This service watches for new recordings and processes them through BirdNET.
+# It works alongside the ML service (birdnet-ml.service) or can be run
+# standalone using the existing analysis daemon.
+#
+# Installation:
+#   sudo cp birdnet-analysis.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable birdnet-analysis
+#   sudo systemctl start birdnet-analysis
+#
+# View logs:
+#   sudo journalctl -u birdnet-analysis -f
+
+[Unit]
+Description=BirdNET-Pi Analysis Daemon
+Documentation=https://github.com/Nachtzuster/BirdNET-Pi
+After=network.target birdnet-ml.service
+Wants=birdnet-ml.service
+
+[Service]
+Type=simple
+User=birdnet
+Group=birdnet
+
+# Working directory
+WorkingDirectory=/opt/birdnet
+
+# Run the analysis daemon (Go/FastAPI infrastructure)
+ExecStart=/opt/birdnet/venv/bin/python -m service.pipeline
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/birdnet/src
+Environment=BIRDNET_CONFIG=/etc/birdnet/birdnet.conf
+Environment=GO_SERVER_URL=http://127.0.0.1:8080
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Resource limits
+MemoryMax=2G
+CPUWeight=80
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+# Allow read/write to specific directories
+ReadWritePaths=/var/log/birdnet
+ReadWritePaths=/home/birdnet/BirdSongs
+
+# Standard output/error handling
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=birdnet-analysis
+
+[Install]
+WantedBy=multi-user.target
