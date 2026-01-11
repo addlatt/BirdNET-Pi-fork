@@ -1,55 +1,81 @@
 # BirdNET-Pi Caddy Configuration
 # This configuration serves both the legacy PHP application and the new Go API
+#
+# Paths are configured for typical BirdNET-Pi installation where:
+# - PHP app is at: /home/$USER/BirdNET-Pi/src/web/public
+# - Preact app is at: /home/$USER/BirdNET-Pi/web/dist
+# - Bird songs are at: /home/$USER/BirdSongs/Extracted
 
-{
-	# Global options
-	admin off
-	auto_https off
-}
+http:// {
+	# Static assets (legacy PHP assets)
+	handle /assets/* {
+		root * /home/addlatt/BirdNET-Pi/src/web/public
+		file_server
+	}
 
-:80 {
-	# Encode responses with gzip
-	encode gzip
-
-	# Go API endpoints - proxy to Go server
+	# ==========================================================================
+	# NEW: Go API endpoints - proxy to Go server on port 8080
+	# ==========================================================================
 	handle /api/* {
 		reverse_proxy localhost:8080
 	}
 
-	# Internal endpoints (Python ML service -> Go)
-	handle /internal/* {
-		reverse_proxy localhost:8080
-	}
-
-	# WebSocket endpoint
-	handle /ws {
-		reverse_proxy localhost:8080
-	}
-
-	# Preact app - serve static files
+	# ==========================================================================
+	# NEW: Preact app - serve static files from web/dist
+	# ==========================================================================
 	handle /app/* {
 		uri strip_prefix /app
-		root * /var/www/birdnet/web/dist
+		root * /home/addlatt/BirdNET-Pi/web/dist
 		file_server
 		try_files {path} /index.html
 	}
 
-	# Static assets (audio files, spectrograms, etc.)
-	handle /static/* {
-		root * /var/www/birdnet
-		file_server
-	}
-
-	# PHP application - legacy pages
-	handle {
-		root * /var/www/html
+	# Vendored tools (no auth)
+	handle /adminer/* {
+		root * /home/addlatt/BirdNET-Pi/src/web/vendor/adminer
 		php_fastcgi unix//run/php/php-fpm.sock
+	}
+	handle /filemanager/* {
+		root * /home/addlatt/BirdNET-Pi/src/web/vendor/filemanager
+		php_fastcgi unix//run/php/php-fpm.sock
+	}
+
+	# phpsysinfo (no auth)
+	handle /phpsysinfo/* {
+		root * /home/addlatt/phpsysinfo
+		php_fastcgi unix//run/php/php-fpm.sock
+	}
+
+	# Bird recordings (browse)
+	handle /By_Date/* {
+		root * /home/addlatt/BirdSongs/Extracted
+		file_server browse
+	}
+	handle /Charts/* {
+		root * /home/addlatt/BirdSongs/Extracted
+		file_server browse
+	}
+
+	# Live spectrogram image
+	handle /spectrogram.png {
+		root * /home/addlatt/BirdSongs/Extracted
 		file_server
 	}
 
-	# Logging
-	log {
-		output file /var/log/caddy/birdnet.log
-		format console
+	# Reverse proxies (legacy services)
+	handle /stream {
+		reverse_proxy localhost:8000
+	}
+	handle /terminal* {
+		reverse_proxy localhost:8888
+	}
+
+	# PHP front controller (default handler for legacy PHP app)
+	handle {
+		root * /home/addlatt/BirdNET-Pi/src/web/public
+		php_fastcgi unix//run/php/php-fpm.sock {
+			try_files {path} /index.php
+		}
+		file_server
 	}
 }
