@@ -290,3 +290,19 @@ WHERE d.date = DATE('now', 'localtime')
   )
 GROUP BY d.sci_name, d.com_name
 ORDER BY first_time ASC;
+
+-- =============================================================================
+-- Species Hourly Heatmap - For bird activity visualization
+-- =============================================================================
+
+-- name: GetSpeciesHourlyDistributionToday :many
+-- Gets detection counts per species per hour for today (for heatmap chart)
+SELECT
+    sci_name,
+    com_name,
+    CAST(strftime('%H', time) AS INTEGER) as hour,
+    COUNT(*) as detection_count
+FROM detections
+WHERE date = DATE('now', 'localtime')
+GROUP BY sci_name, com_name, hour
+ORDER BY com_name, hour;

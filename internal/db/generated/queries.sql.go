@@ -553,6 +553,58 @@ func (q *Queries) GetSpeciesFilePaths(ctx context.Context, sciName string) ([]Ge
 	return items, nil
 }
 
+const getSpeciesHourlyDistributionToday = `-- name: GetSpeciesHourlyDistributionToday :many
+
+SELECT
+    sci_name,
+    com_name,
+    CAST(strftime('%H', time) AS INTEGER) as hour,
+    COUNT(*) as detection_count
+FROM detections
+WHERE date = DATE('now', 'localtime')
+GROUP BY sci_name, com_name, hour
+ORDER BY com_name, hour
+`
+
+type GetSpeciesHourlyDistributionTodayRow struct {
+	SciName        string `db:"sci_name" json:"sci_name"`
+	ComName        string `db:"com_name" json:"com_name"`
+	Hour           int64  `db:"hour" json:"hour"`
+	DetectionCount int64  `db:"detection_count" json:"detection_count"`
+}
+
+// =============================================================================
+// Species Hourly Heatmap - For bird activity visualization
+// =============================================================================
+// Gets detection counts per species per hour for today (for heatmap chart)
+func (q *Queries) GetSpeciesHourlyDistributionToday(ctx context.Context) ([]GetSpeciesHourlyDistributionTodayRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSpeciesHourlyDistributionToday)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpeciesHourlyDistributionTodayRow
+	for rows.Next() {
+		var i GetSpeciesHourlyDistributionTodayRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.Hour,
+			&i.DetectionCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSpeciesStats = `-- name: GetSpeciesStats :one
 SELECT
     sci_name,

@@ -93,6 +93,9 @@ func main() {
 		// Stats
 		r.Get("/stats", handlers.GetStats)
 
+		// Heatmap
+		r.Get("/heatmap/today", handlers.GetHeatmapToday)
+
 		// Spectrogram
 		r.Get("/spectrogram/info", handlers.GetSpectrogramInfo)
 		r.Get("/spectrogram/image", handlers.GetSpectrogramImage)

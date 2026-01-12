@@ -162,6 +162,19 @@ export interface StatsParams {
 }
 
 // =============================================================================
+// Heatmap Types (internal/api/heatmap.go)
+// =============================================================================
+
+/** Response from GET /api/heatmap/today */
+export interface HeatmapResponse {
+  date: string;
+  species: string[];
+  hours: number[];
+  data: number[][];  // [species_index][hour] = count
+  total_detections: number;
+}
+
+// =============================================================================
 // System Types (internal/api/system.go)
 // =============================================================================
 

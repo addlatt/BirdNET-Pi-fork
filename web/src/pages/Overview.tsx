@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useCallback } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { fetchStats, fetchDetections } from '../hooks/useApi';
-import type { StatsResponse, Detection, DetectionNotification } from '../types/api';
+import { fetchStats, fetchDetections, fetchHeatmapToday } from '../hooks/useApi';
+import type { StatsResponse, Detection, DetectionNotification, HeatmapResponse } from '../types/api';
 import { DetectionList } from '../components/DetectionList';
 import { StatsCards } from '../components/StatsCards';
+import { BirdActivityHeatmap } from '../components/BirdActivityHeatmap';
 
 /**
  * Overview page component.
@@ -12,7 +13,9 @@ import { StatsCards } from '../components/StatsCards';
 export function Overview(): JSX.Element {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [recentDetections, setRecentDetections] = useState<Detection[]>([]);
+  const [heatmapData, setHeatmapData] = useState<HeatmapResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [heatmapLoading, setHeatmapLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // WebSocket connection
@@ -24,20 +27,67 @@ export function Overview(): JSX.Element {
     async function loadData() {
       try {
         setLoading(true);
-        const [statsData, detectionsData] = await Promise.all([
+        setHeatmapLoading(true);
+        const [statsData, detectionsData, heatmap] = await Promise.all([
           fetchStats({ include_top_species: 'true', top_limit: 5 }),
           fetchDetections({ per_page: 10 }),
+          fetchHeatmapToday(),
         ]);
         setStats(statsData);
         setRecentDetections(detectionsData.detections || []);
+        setHeatmapData(heatmap);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
+        setHeatmapLoading(false);
       }
     }
     loadData();
+  }, []);
+
+  // Update heatmap with new detection
+  const updateHeatmapWithDetection = useCallback((detection: DetectionNotification) => {
+    setHeatmapData((prev) => {
+      if (!prev) return prev;
+
+      // Extract hour from time (format: "HH:MM:SS")
+      const hour = parseInt(detection.time.split(':')[0], 10);
+      if (hour < 0 || hour > 23) return prev;
+
+      // Find species index
+      const speciesIdx = prev.species.indexOf(detection.com_name);
+
+      if (speciesIdx >= 0) {
+        // Species exists, increment count
+        const newData = prev.data.map((row, idx) => {
+          if (idx === speciesIdx) {
+            const newRow = [...row];
+            newRow[hour] = (newRow[hour] || 0) + 1;
+            return newRow;
+          }
+          return row;
+        });
+
+        return {
+          ...prev,
+          data: newData,
+          total_detections: prev.total_detections + 1,
+        };
+      } else {
+        // New species, add new row
+        const newRow = new Array(24).fill(0);
+        newRow[hour] = 1;
+
+        return {
+          ...prev,
+          species: [...prev.species, detection.com_name],
+          data: [...prev.data, newRow],
+          total_detections: prev.total_detections + 1,
+        };
+      }
+    });
   }, []);
 
   // Subscribe to real-time detection updates
@@ -64,10 +114,13 @@ export function Overview(): JSX.Element {
           detections_today: prev.detections_today + 1,
         };
       });
+
+      // Update heatmap in real-time
+      updateHeatmapWithDetection(payload);
     });
 
     return unsubscribe;
-  }, [subscribe]);
+  }, [subscribe, updateHeatmapWithDetection]);
 
   if (loading) {
     return (
@@ -103,6 +156,9 @@ export function Overview(): JSX.Element {
 
       {/* Stats Cards */}
       {stats && <StatsCards stats={stats} />}
+
+      {/* Bird Activity Heatmap */}
+      <BirdActivityHeatmap data={heatmapData} loading={heatmapLoading} />
 
       {/* Recent Detections */}
       <div class="card">

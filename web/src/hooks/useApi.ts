@@ -12,6 +12,7 @@ import type {
   SpeciesHistoryParams,
   StatsResponse,
   StatsParams,
+  HeatmapResponse,
   SystemStatus,
   SystemMemoryResponse,
   HealthResponse,
@@ -334,6 +335,18 @@ export async function fetchStats(params: StatsParams = {}): Promise<StatsRespons
 }
 
 // =============================================================================
+// Heatmap Endpoints
+// =============================================================================
+
+/**
+ * Fetch today's species-hourly heatmap data.
+ * GET /api/heatmap/today
+ */
+export async function fetchHeatmapToday(): Promise<HeatmapResponse> {
+  return apiFetch<HeatmapResponse>(`${API_BASE}/heatmap/today`);
+}
+
+// =============================================================================
 // System Endpoints
 // =============================================================================
 
@@ -415,6 +428,7 @@ export type {
   SpeciesHistoryParams,
   StatsResponse,
   StatsParams,
+  HeatmapResponse,
   SystemStatus,
   SystemMemoryResponse,
   HealthResponse,
