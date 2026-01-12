@@ -47,6 +47,7 @@ export function Spectrogram(): JSX.Element {
   const avgFpsRef = useRef<number>(60);
   const lastFrameTimeRef = useRef<number>(0);
   const audioInitializedRef = useRef(false);
+  const dataReceivedRef = useRef(false);
 
   // WebSocket connection
   const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
@@ -163,6 +164,15 @@ export function Spectrogram(): JSX.Element {
       // Get frequency data
       analyser.getByteFrequencyData(dataArray);
 
+      // Check if we have actual audio data (hide spinner immediately)
+      if (!dataReceivedRef.current) {
+        const hasData = dataArray.some(v => v > 0);
+        if (hasData) {
+          dataReceivedRef.current = true;
+          setStreamLoading(false);
+        }
+      }
+
       // Draw new frequency bars on right edge
       for (let i = 0; i < bufferLength; i++) {
         const rat = dataArray[i] / 255;
@@ -210,6 +220,7 @@ export function Spectrogram(): JSX.Element {
       audioRef.current.pause();
       setIsPlaying(false);
       setStreamLoading(false);
+      dataReceivedRef.current = false;
     } else {
       // Show loading indicator while stream connects
       setStreamLoading(true);
