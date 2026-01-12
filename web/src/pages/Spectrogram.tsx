@@ -29,6 +29,7 @@ export function Spectrogram(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [streamLoading, setStreamLoading] = useState(false);
   const [gain, setGain] = useState(100);
   const [compressionEnabled, setCompressionEnabled] = useState(false);
 
@@ -208,7 +209,11 @@ export function Spectrogram(): JSX.Element {
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
+      setStreamLoading(false);
     } else {
+      // Show loading indicator while stream connects
+      setStreamLoading(true);
+
       // Initialize audio on first play (required for user gesture)
       if (!audioInitializedRef.current) {
         initializeAudio();
@@ -217,10 +222,43 @@ export function Spectrogram(): JSX.Element {
       if (audioContextRef.current?.state === 'suspended') {
         await audioContextRef.current.resume();
       }
-      await audioRef.current.play();
-      setIsPlaying(true);
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.error('Failed to play audio:', err);
+        setStreamLoading(false);
+      }
     }
   }, [isPlaying, initializeAudio]);
+
+  // Listen for audio playing event to hide loading spinner
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handlePlaying = () => {
+      setStreamLoading(false);
+    };
+
+    const handleWaiting = () => {
+      if (isPlaying) setStreamLoading(true);
+    };
+
+    const handleError = () => {
+      setStreamLoading(false);
+    };
+
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('error', handleError);
+    };
+  }, [isPlaying]);
 
   // Handle gain change
   const handleGainChange = useCallback((e: Event) => {
@@ -385,7 +423,17 @@ export function Spectrogram(): JSX.Element {
 
           {/* Canvas container */}
           <div class="relative bg-gray-900" style={{ height: '60vh' }}>
-            {!isPlaying && (
+            {/* Loading spinner overlay */}
+            {streamLoading && (
+              <div class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
+                <div class="text-center">
+                  <div class="animate-spin rounded-full h-16 w-16 border-4 border-primary-600 border-t-transparent mx-auto mb-4"></div>
+                  <p class="text-gray-400 text-lg">Connecting to stream...</p>
+                </div>
+              </div>
+            )}
+            {/* Play prompt overlay */}
+            {!isPlaying && !streamLoading && (
               <div class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
                 <div class="text-center">
                   <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
