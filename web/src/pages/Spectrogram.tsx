@@ -32,6 +32,7 @@ export function Spectrogram(): JSX.Element {
   const [streamLoading, setStreamLoading] = useState(false);
   const [gain, setGain] = useState(100);
   const [compressionEnabled, setCompressionEnabled] = useState(false);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // Refs for audio and canvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -408,14 +409,25 @@ export function Spectrogram(): JSX.Element {
               )}
             </button>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 relative">
               <label class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
                 Gain:
-                <span
-                  class="inline-flex items-center justify-center w-4 h-4 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-help"
-                  title="Amplifies audio to hear distant or quiet bird calls. Higher values make faint sounds audible but may increase background noise."
-                >?</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTooltip(activeTooltip === 'gain' ? null : 'gain')}
+                  class="inline-flex items-center justify-center w-4 h-4 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                >?</button>
               </label>
+              {activeTooltip === 'gain' && (
+                <div class="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20 w-64">
+                  Amplifies audio to hear distant or quiet bird calls. Higher values make faint sounds audible but may increase background noise.
+                  <button
+                    type="button"
+                    onClick={() => setActiveTooltip(null)}
+                    class="block mt-1 text-gray-400 hover:text-white"
+                  >Dismiss</button>
+                </div>
+              )}
               <input
                 type="range"
                 min="0"
@@ -427,19 +439,32 @@ export function Spectrogram(): JSX.Element {
               <span class="text-sm text-gray-600 dark:text-gray-400 w-12">{gain}%</span>
             </div>
 
-            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                checked={compressionEnabled}
-                onChange={handleCompressionToggle}
-                disabled={!audioInitializedRef.current}
-              />
-              Compression
-              <span
-                class="inline-flex items-center justify-center w-4 h-4 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-help"
-                title="Evens out volume differences between loud and quiet sounds. Helps hear distant birds without nearby calls being too loud."
-              >?</span>
-            </label>
+            <div class="flex items-center gap-2 relative">
+              <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={compressionEnabled}
+                  onChange={handleCompressionToggle}
+                  disabled={!audioInitializedRef.current}
+                />
+                Compression
+                <button
+                  type="button"
+                  onClick={() => setActiveTooltip(activeTooltip === 'compression' ? null : 'compression')}
+                  class="inline-flex items-center justify-center w-4 h-4 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                >?</button>
+              </label>
+              {activeTooltip === 'compression' && (
+                <div class="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20 w-64">
+                  Evens out volume differences between loud and quiet sounds. Helps hear distant birds without nearby calls being too loud.
+                  <button
+                    type="button"
+                    onClick={() => setActiveTooltip(null)}
+                    class="block mt-1 text-gray-400 hover:text-white"
+                  >Dismiss</button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Canvas container */}
