@@ -641,7 +641,7 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 | Week | Page | Complexity | Status | Notes |
 |------|------|------------|--------|-------|
 | 3.1 | Stats | Low | ✅ Complete | Read-only, species list with sorting, detail modal |
-| 3.2 | Today's Detections | Low | ✅ Complete | Search, filters, delete, info links, bird images, history chart |
+| 3.2 | Today's Detections | Low | ✅ Complete | Search, filters, delete, info links, bird images, history chart |1
 | 3.3 | History | Medium | ✅ Complete | Date picker, pagination, reuses DetectionList |
 | 3.4 | Species Management | Medium | ✅ Complete | Species table, list editor, toggles, delete |
 | 4.1 | Spectrogram | Medium | | Image updates (Part 2: real-time WebSocket) |

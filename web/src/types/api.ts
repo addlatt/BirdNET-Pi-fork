@@ -129,6 +129,15 @@ export interface TopSpecies {
   detection_count: number;
 }
 
+/** New species detected today (first time ever) */
+export interface NewSpecies {
+  sci_name: string;
+  com_name: string;
+  first_time: string;
+  max_confidence: number;
+  detection_count: number;
+}
+
 /** Response from GET /api/stats */
 export interface StatsResponse {
   total_detections: number;
@@ -139,6 +148,7 @@ export interface StatsResponse {
   daily_stats?: DailyStat[];
   hourly_distribution?: HourlyStat[];
   top_species?: TopSpecies[];
+  new_species_today?: NewSpecies[];
 }
 
 /** Query parameters for GET /api/stats */
@@ -147,6 +157,7 @@ export interface StatsParams {
   include_daily?: 'true' | 'false';
   include_hourly?: 'true' | 'false';
   include_top_species?: 'true' | 'false';
+  include_new_species?: 'true' | 'false';
   top_limit?: number;
 }
 

@@ -9,14 +9,15 @@ import (
 
 // StatsResponse represents overall statistics.
 type StatsResponse struct {
-	TotalDetections      int64                `json:"total_detections"`
-	TotalSpecies         int64                `json:"total_species"`
-	DetectionsToday      int64                `json:"detections_today"`
-	DetectionsLastHour   int64                `json:"detections_last_hour"`
-	SpeciesToday         int64                `json:"species_today"`
-	DailyStats           []DailyStatResponse  `json:"daily_stats,omitempty"`
-	HourlyDistribution   []HourlyStatResponse `json:"hourly_distribution,omitempty"`
-	TopSpecies           []TopSpeciesResponse `json:"top_species,omitempty"`
+	TotalDetections      int64                 `json:"total_detections"`
+	TotalSpecies         int64                 `json:"total_species"`
+	DetectionsToday      int64                 `json:"detections_today"`
+	DetectionsLastHour   int64                 `json:"detections_last_hour"`
+	SpeciesToday         int64                 `json:"species_today"`
+	DailyStats           []DailyStatResponse   `json:"daily_stats,omitempty"`
+	HourlyDistribution   []HourlyStatResponse  `json:"hourly_distribution,omitempty"`
+	TopSpecies           []TopSpeciesResponse  `json:"top_species,omitempty"`
+	NewSpeciesToday      []NewSpeciesResponse  `json:"new_species_today,omitempty"`
 }
 
 // DailyStatResponse represents daily statistics.
@@ -38,6 +39,15 @@ type TopSpeciesResponse struct {
 	SciName        string `json:"sci_name"`
 	ComName        string `json:"com_name"`
 	DetectionCount int64  `json:"detection_count"`
+}
+
+// NewSpeciesResponse represents a species detected for the first time today.
+type NewSpeciesResponse struct {
+	SciName        string  `json:"sci_name"`
+	ComName        string  `json:"com_name"`
+	FirstTime      string  `json:"first_time"`
+	MaxConfidence  float64 `json:"max_confidence"`
+	DetectionCount int64   `json:"detection_count"`
 }
 
 // GetStats handles GET /api/stats requests.
@@ -132,6 +142,32 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 				response.TopSpecies = append(response.TopSpecies, TopSpeciesResponse{
 					SciName:        s.SciName,
 					ComName:        s.ComName,
+					DetectionCount: s.DetectionCount,
+				})
+			}
+		}
+	}
+
+	// Get new species today if requested
+	if r.URL.Query().Get("include_new_species") == "true" {
+		newSpecies, err := h.db.Queries.GetNewSpeciesToday(ctx)
+		if err == nil {
+			response.NewSpeciesToday = make([]NewSpeciesResponse, 0, len(newSpecies))
+			for _, s := range newSpecies {
+				// Convert interface{} types from aggregate functions
+				firstTime := ""
+				if t, ok := s.FirstTime.(string); ok {
+					firstTime = t
+				}
+				maxConfidence := 0.0
+				if c, ok := s.MaxConfidence.(float64); ok {
+					maxConfidence = c
+				}
+				response.NewSpeciesToday = append(response.NewSpeciesToday, NewSpeciesResponse{
+					SciName:        s.SciName,
+					ComName:        s.ComName,
+					FirstTime:      firstTime,
+					MaxConfidence:  maxConfidence,
 					DetectionCount: s.DetectionCount,
 				})
 			}

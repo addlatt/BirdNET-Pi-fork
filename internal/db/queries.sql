@@ -268,3 +268,25 @@ SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_c
 FROM detections
 GROUP BY sci_name, com_name
 ORDER BY detection_count DESC;
+
+-- =============================================================================
+-- New Species Today - Species detected today that have never been seen before
+-- =============================================================================
+
+-- name: GetNewSpeciesToday :many
+-- Get species detected today that have never been detected before today
+SELECT
+    d.sci_name,
+    d.com_name,
+    MIN(d.time) as first_time,
+    MAX(d.confidence) as max_confidence,
+    COUNT(*) as detection_count
+FROM detections d
+WHERE d.date = DATE('now', 'localtime')
+  AND d.sci_name NOT IN (
+    SELECT DISTINCT sci_name
+    FROM detections
+    WHERE date < DATE('now', 'localtime')
+  )
+GROUP BY d.sci_name, d.com_name
+ORDER BY first_time ASC;

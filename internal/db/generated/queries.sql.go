@@ -370,6 +370,66 @@ func (q *Queries) GetHourlyDistribution(ctx context.Context, date string) ([]Get
 	return items, nil
 }
 
+const getNewSpeciesToday = `-- name: GetNewSpeciesToday :many
+
+SELECT
+    d.sci_name,
+    d.com_name,
+    MIN(d.time) as first_time,
+    MAX(d.confidence) as max_confidence,
+    COUNT(*) as detection_count
+FROM detections d
+WHERE d.date = DATE('now', 'localtime')
+  AND d.sci_name NOT IN (
+    SELECT DISTINCT sci_name
+    FROM detections
+    WHERE date < DATE('now', 'localtime')
+  )
+GROUP BY d.sci_name, d.com_name
+ORDER BY first_time ASC
+`
+
+type GetNewSpeciesTodayRow struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	FirstTime      interface{} `db:"first_time" json:"first_time"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+}
+
+// =============================================================================
+// New Species Today - Species detected today that have never been seen before
+// =============================================================================
+// Get species detected today that have never been detected before today
+func (q *Queries) GetNewSpeciesToday(ctx context.Context) ([]GetNewSpeciesTodayRow, error) {
+	rows, err := q.db.QueryContext(ctx, getNewSpeciesToday)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetNewSpeciesTodayRow
+	for rows.Next() {
+		var i GetNewSpeciesTodayRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.FirstTime,
+			&i.MaxConfidence,
+			&i.DetectionCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRecentDetections = `-- name: GetRecentDetections :many
 SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
 FROM detections
