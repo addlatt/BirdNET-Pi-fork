@@ -409,7 +409,13 @@ export function Spectrogram(): JSX.Element {
             </button>
 
             <div class="flex items-center gap-2">
-              <label class="text-sm text-gray-600 dark:text-gray-400">Gain:</label>
+              <label class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                Gain:
+                <span
+                  class="inline-flex items-center justify-center w-4 h-4 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-help"
+                  title="Amplifies audio to hear distant or quiet bird calls. Higher values make faint sounds audible but may increase background noise."
+                >?</span>
+              </label>
               <input
                 type="range"
                 min="0"
@@ -429,6 +435,10 @@ export function Spectrogram(): JSX.Element {
                 disabled={!audioInitializedRef.current}
               />
               Compression
+              <span
+                class="inline-flex items-center justify-center w-4 h-4 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-help"
+                title="Evens out volume differences between loud and quiet sounds. Helps hear distant birds without nearby calls being too loud."
+              >?</span>
             </label>
           </div>
 
