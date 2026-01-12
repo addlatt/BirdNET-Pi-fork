@@ -62,10 +62,12 @@ export function Spectrogram(): JSX.Element {
         fetchSpectrogramInfo(),
         fetchRecentDetections({ limit: 10 }),
       ]);
+      console.log('Detections response:', detectionsData);
       setInfo(infoData);
       setRecentDetections(detectionsData.detections || []);
       setError(null);
     } catch (err) {
+      console.error('Failed to load spectrogram data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
