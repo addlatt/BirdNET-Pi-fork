@@ -13,8 +13,12 @@ import { SearchFilters } from '../components/SearchFilters';
 export function History(): JSX.Element {
   // Date state
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default to today
-    return new Date().toISOString().split('T')[0];
+    // Default to today in local timezone
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [datesLoading, setDatesLoading] = useState(true);

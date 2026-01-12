@@ -31,8 +31,9 @@ export function DatePicker({
   // Check if selected date has detections
   const hasDetections = availableDateSet.has(selectedDate);
 
-  // Get today's date
-  const today = new Date().toISOString().split('T')[0];
+  // Get today's date in local timezone
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   // Find previous and next dates with detections
   const { prevDate, nextDate } = useMemo(() => {
