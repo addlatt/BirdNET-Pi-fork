@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -39,17 +38,8 @@ func (h *Handlers) GetSpectrogramInfo(w http.ResponseWriter, r *http.Request) {
 	// In BirdNET-Pi, this is at ~/BirdSongs/Extracted/spectrogram.png
 	spectrogramPath := filepath.Join(h.birdsongsDir, "Extracted", "spectrogram.png")
 
-	// Build livestream URL using request host (so browser can reach it)
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	host := r.Host
-	// Strip port if present and add Icecast port
-	if colonIdx := strings.LastIndex(host, ":"); colonIdx != -1 {
-		host = host[:colonIdx]
-	}
-	livestreamURL := scheme + "://" + host + ":8000/stream"
+	// Use the proxied stream URL (Icecast binds to localhost only)
+	livestreamURL := "/api/stream"
 
 	response := SpectrogramInfoResponse{
 		ImageURL:       "/api/spectrogram/image",
@@ -87,6 +77,43 @@ func (h *Handlers) GetSpectrogramImage(w http.ResponseWriter, r *http.Request) {
 
 	// Serve the file
 	http.ServeFile(w, r, spectrogramPath)
+}
+
+// ProxyLivestream handles GET /api/stream requests.
+// Proxies the Icecast audio stream to clients (since Icecast binds to localhost).
+func (h *Handlers) ProxyLivestream(w http.ResponseWriter, r *http.Request) {
+	// Connect to local Icecast
+	resp, err := http.Get("http://127.0.0.1:8000/stream")
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "Failed to connect to audio stream")
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy headers
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.Header().Set("Cache-Control", "no-cache, no-store")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Stream the audio
+	w.WriteHeader(resp.StatusCode)
+
+	// Use a buffer for efficient copying
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return // Client disconnected
+			}
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+		if err != nil {
+			return
+		}
+	}
 }
 
 // GetRecentDetections handles GET /api/spectrogram/detections requests.

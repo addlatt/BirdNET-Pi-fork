@@ -97,6 +97,7 @@ func main() {
 		r.Get("/spectrogram/info", handlers.GetSpectrogramInfo)
 		r.Get("/spectrogram/image", handlers.GetSpectrogramImage)
 		r.Get("/spectrogram/detections", handlers.GetRecentDetections)
+		r.Get("/stream", handlers.ProxyLivestream)
 
 		// System
 		r.Get("/system/status", handlers.SystemStatus)
