@@ -82,6 +82,13 @@ func (h *Handlers) GetSpectrogramImage(w http.ResponseWriter, r *http.Request) {
 // ProxyLivestream handles GET /api/stream requests.
 // Proxies the Icecast audio stream to clients (since Icecast binds to localhost).
 func (h *Handlers) ProxyLivestream(w http.ResponseWriter, r *http.Request) {
+	// Disable write timeout for streaming (Go 1.20+)
+	rc := http.NewResponseController(w)
+	if err := rc.SetWriteDeadline(time.Time{}); err != nil {
+		// If we can't disable the deadline, log but continue anyway
+		// (will timeout after server's WriteTimeout)
+	}
+
 	// Connect to local Icecast
 	resp, err := http.Get("http://127.0.0.1:8000/stream")
 	if err != nil {
@@ -97,6 +104,11 @@ func (h *Handlers) ProxyLivestream(w http.ResponseWriter, r *http.Request) {
 
 	// Stream the audio
 	w.WriteHeader(resp.StatusCode)
+
+	// Flush initial headers
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
 
 	// Use a buffer for efficient copying
 	buf := make([]byte, 32*1024)
