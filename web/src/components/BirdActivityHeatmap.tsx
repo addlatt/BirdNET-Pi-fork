@@ -18,6 +18,12 @@ import {
 // Set the SciChart community license (free with watermark)
 SciChartSurface.setRuntimeLicenseKey('');
 
+// Configure SciChart to load WASM from CDN (avoids local file serving issues)
+SciChartSurface.configure({
+  wasmUrl: 'https://cdn.jsdelivr.net/npm/scichart@4.0.923/_wasm/scichart2d.wasm',
+  dataUrl: 'https://cdn.jsdelivr.net/npm/scichart@4.0.923/_wasm/scichart2d.data',
+});
+
 interface BirdActivityHeatmapProps {
   data: HeatmapResponse | null;
   loading?: boolean;
