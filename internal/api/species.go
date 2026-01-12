@@ -196,7 +196,10 @@ func (h *Handlers) GetSpeciesDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get species stats
-	stats, err := h.db.Queries.GetSpeciesStats(ctx, name)
+	stats, err := h.db.Queries.GetSpeciesStats(ctx, db.GetSpeciesStatsParams{
+		SciName: name,
+		ComName: name,
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch species stats")
 		return

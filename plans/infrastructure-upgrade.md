@@ -644,7 +644,7 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 | 3.2 | Today's Detections | Low | ✅ Complete | Search, filters, delete, info links, bird images, history chart |1
 | 3.3 | History | Medium | ✅ Complete | Date picker, pagination, reuses DetectionList |
 | 3.4 | Species Management | Medium | ✅ Complete | Species table, list editor, toggles, delete |
-| 4.1 | Spectrogram | Medium | | Image updates (Part 2: real-time WebSocket) |
+| 4.1 | Spectrogram | Medium | ✅ Complete | Image updates (Part 2: real-time WebSocket) |
 | 4.2 | Settings | High | | Form validation, service control |
 | 4.3 | Advanced Settings | High | | Schema validation, multiple sections |
 | 4.4 | Play/Audio | Medium | | Audio player, file browser |

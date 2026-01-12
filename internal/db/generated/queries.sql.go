@@ -615,9 +615,14 @@ SELECT
     MIN(date) as first_detection,
     MAX(date) as last_detection
 FROM detections
-WHERE sci_name = ?
+WHERE sci_name = ? OR com_name = ?
 GROUP BY sci_name, com_name
 `
+
+type GetSpeciesStatsParams struct {
+	SciName string `db:"sci_name" json:"sci_name"`
+	ComName string `db:"com_name" json:"com_name"`
+}
 
 type GetSpeciesStatsRow struct {
 	SciName         string          `db:"sci_name" json:"sci_name"`
@@ -629,8 +634,8 @@ type GetSpeciesStatsRow struct {
 	LastDetection   interface{}     `db:"last_detection" json:"last_detection"`
 }
 
-func (q *Queries) GetSpeciesStats(ctx context.Context, sciName string) (GetSpeciesStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getSpeciesStats, sciName)
+func (q *Queries) GetSpeciesStats(ctx context.Context, arg GetSpeciesStatsParams) (GetSpeciesStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getSpeciesStats, arg.SciName, arg.ComName)
 	var i GetSpeciesStatsRow
 	err := row.Scan(
 		&i.SciName,

@@ -74,7 +74,7 @@ SELECT
     MIN(date) as first_detection,
     MAX(date) as last_detection
 FROM detections
-WHERE sci_name = ?
+WHERE sci_name = ? OR com_name = ?
 GROUP BY sci_name, com_name;
 
 -- name: GetDailyStats :many
