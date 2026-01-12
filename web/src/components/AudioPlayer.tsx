@@ -29,6 +29,22 @@ export function AudioPlayer({ audioUrl, spectrogramUrl }: AudioPlayerProps): JSX
     setError(null);
   }, [audioUrl]);
 
+  // Smooth progress updates using requestAnimationFrame
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    let animationId: number;
+    const updateProgress = () => {
+      if (audioRef.current) {
+        setCurrentTime(audioRef.current.currentTime);
+      }
+      animationId = requestAnimationFrame(updateProgress);
+    };
+    animationId = requestAnimationFrame(updateProgress);
+
+    return () => cancelAnimationFrame(animationId);
+  }, [isPlaying]);
+
   const handlePlay = () => {
     if (audioRef.current) {
       audioRef.current.play().catch((err) => {
@@ -148,7 +164,7 @@ export function AudioPlayer({ audioUrl, spectrogramUrl }: AudioPlayerProps): JSX
               onClick={handleSeek}
             >
               <div
-                class="h-full bg-primary-600 rounded-full transition-all"
+                class="h-full bg-primary-600 rounded-full"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
