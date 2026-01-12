@@ -121,6 +121,14 @@ func main() {
 		r.Handle("/app/*", http.StripPrefix("/app", fileServer))
 	}
 
+	// Static file server for bird recordings and spectrograms
+	extractedDir := birdsongsDir + "/Extracted"
+	if _, err := os.Stat(extractedDir); err == nil {
+		birdFileServer := http.FileServer(http.Dir(extractedDir))
+		r.Handle("/By_Date/*", http.StripPrefix("", birdFileServer))
+		r.Handle("/Charts/*", http.StripPrefix("", birdFileServer))
+	}
+
 	// Create server
 	server := &http.Server{
 		Addr:         ":" + port,
