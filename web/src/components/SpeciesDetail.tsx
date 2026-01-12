@@ -129,10 +129,10 @@ export function SpeciesDetail({ speciesName, onClose }: SpeciesDetailProps): JSX
 
               {/* Audio player with spectrogram */}
               <div>
-                <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">Best Recording</div>
                 <AudioPlayer
                   audioUrl={detail.audio_url}
                   spectrogramUrl={detail.spectrogram_url}
+                  title={`Best Recording - ${detail.best_date} ${detail.best_time}`}
                 />
               </div>
 
