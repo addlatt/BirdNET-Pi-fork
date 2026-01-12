@@ -206,8 +206,13 @@ func (h *Handlers) GetSpeciesDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build audio URL path
+	// Extract just the date portion (YYYY-MM-DD) from the full timestamp
+	dateOnly := best.Date
+	if idx := strings.Index(best.Date, "T"); idx > 0 {
+		dateOnly = best.Date[:idx]
+	}
 	comNamePath := sanitizePathComponent(best.ComName)
-	audioURL := "/By_Date/" + best.Date + "/" + comNamePath + "/" + best.FileName
+	audioURL := "/By_Date/" + dateOnly + "/" + comNamePath + "/" + best.FileName
 	spectrogramURL := audioURL + ".png"
 
 	response := SpeciesDetailResponse{
@@ -215,7 +220,7 @@ func (h *Handlers) GetSpeciesDetail(w http.ResponseWriter, r *http.Request) {
 		ComName:        best.ComName,
 		DetectionCount: stats.TotalDetections,
 		MaxConfidence:  toFloat64(stats.MaxConfidence),
-		BestDate:       best.Date,
+		BestDate:       dateOnly,
 		BestTime:       best.Time,
 		BestFileName:   best.FileName,
 		AudioURL:       audioURL,
