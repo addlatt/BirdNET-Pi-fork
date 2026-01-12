@@ -13,6 +13,7 @@ import {
   ECoordinateMode,
   EHorizontalAnchorPoint,
   EVerticalAnchorPoint,
+  NumericLabelProvider,
 } from 'scichart';
 
 // Set the SciChart community license (free with watermark)
@@ -79,38 +80,44 @@ export function BirdActivityHeatmap({
         sciChartSurfaceRef.current = sciChartSurface;
 
         // Configure X-axis (Hours 0-23)
+        class HourLabelProvider extends NumericLabelProvider {
+          formatLabel(dataValue: number): string {
+            const hour = Math.round(dataValue);
+            if (hour < 0 || hour > 23) return '';
+            if (hour === 0) return '12a';
+            if (hour === 12) return '12p';
+            return hour < 12 ? `${hour}a` : `${hour - 12}p`;
+          }
+        }
+
         const xAxis = new NumericAxis(wasmContext, {
           axisTitle: 'Hour of Day',
           axisTitleStyle: { fontSize: 12, color: '#666' },
           labelStyle: { fontSize: 10, color: '#666' },
           visibleRange: new NumberRange(-0.5, 23.5),
-          labelProvider: {
-            formatLabel: (dataValue: number) => {
-              const hour = Math.round(dataValue);
-              if (hour === 0) return '12a';
-              if (hour === 12) return '12p';
-              return hour < 12 ? `${hour}a` : `${hour - 12}p`;
-            },
-          },
+          labelProvider: new HourLabelProvider(),
         });
         sciChartSurface.xAxes.add(xAxis);
 
         // Configure Y-axis (Species)
+        const speciesList = data.species;
+        class SpeciesLabelProvider extends NumericLabelProvider {
+          formatLabel(dataValue: number): string {
+            const idx = Math.round(dataValue);
+            if (idx >= 0 && idx < speciesList.length) {
+              const name = speciesList[idx];
+              return name.length > 15 ? name.substring(0, 15) + '...' : name;
+            }
+            return '';
+          }
+        }
+
         const yAxis = new NumericAxis(wasmContext, {
           axisAlignment: EAxisAlignment.Left,
           axisTitleStyle: { fontSize: 12, color: '#666' },
           labelStyle: { fontSize: 10, color: '#666' },
           visibleRange: new NumberRange(-0.5, data.species.length - 0.5),
-          labelProvider: {
-            formatLabel: (dataValue: number) => {
-              const idx = Math.round(dataValue);
-              if (idx >= 0 && idx < data.species.length) {
-                const name = data.species[idx];
-                return name.length > 15 ? name.substring(0, 15) + '...' : name;
-              }
-              return '';
-            },
-          },
+          labelProvider: new SpeciesLabelProvider(),
         });
         sciChartSurface.yAxes.add(yAxis);
 
