@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import type { JSX } from 'preact';
+import { Spectrogram } from './Spectrogram';
 
 /**
  * AudioPlayer props
@@ -14,35 +15,14 @@ interface AudioPlayerProps {
 }
 
 /**
- * Generate time axis labels based on duration.
- */
-function generateTimeLabels(duration: number): string[] {
-  if (duration <= 0) return [];
-
-  // For short clips (< 10s), show every second
-  // For longer clips, show fewer labels
-  const interval = duration <= 10 ? 1 : Math.ceil(duration / 6);
-  const labels: string[] = [];
-
-  for (let t = 0; t <= duration; t += interval) {
-    const secs = Math.floor(t);
-    labels.push(`${secs}s`);
-  }
-
-  return labels;
-}
-
-/**
  * AudioPlayer component with spectrogram display and time axis.
  */
 export function AudioPlayer({ audioUrl, spectrogramUrl, title }: AudioPlayerProps): JSX.Element {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const spectrogramRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     // Reset state when audio changes
@@ -50,7 +30,6 @@ export function AudioPlayer({ audioUrl, spectrogramUrl, title }: AudioPlayerProp
     setCurrentTime(0);
     setDuration(0);
     setError(null);
-    setImageLoaded(false);
   }, [audioUrl]);
 
   // Smooth progress updates using requestAnimationFrame
@@ -108,6 +87,10 @@ export function AudioPlayer({ audioUrl, spectrogramUrl, title }: AudioPlayerProp
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percentage = x / rect.width;
+    seekToPercentage(percentage);
+  };
+
+  const seekToPercentage = (percentage: number) => {
     const newTime = percentage * duration;
     if (audioRef.current) {
       audioRef.current.currentTime = newTime;
@@ -123,61 +106,19 @@ export function AudioPlayer({ audioUrl, spectrogramUrl, title }: AudioPlayerProp
   };
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const timeLabels = generateTimeLabels(duration);
 
   return (
     <div class="bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-      {/* Title */}
-      {title && (
-        <div class="px-3 pt-2 pb-1">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</h3>
-        </div>
-      )}
-
-      {/* Spectrogram with time axis */}
+      {/* Spectrogram with axes and color legend */}
       {spectrogramUrl && (
-        <div class="px-3">
-          {/* Spectrogram image with progress overlay */}
-          <div
-            ref={spectrogramRef}
-            class="relative cursor-pointer"
-            onClick={handleSeek}
-          >
-            <img
-              src={spectrogramUrl}
-              alt="Spectrogram"
-              class="w-full h-auto block"
-              onLoad={() => setImageLoaded(true)}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-                setImageLoaded(false);
-              }}
-            />
-            {/* Progress overlay - perfectly aligned with raw spectrogram */}
-            {duration > 0 && imageLoaded && (
-              <>
-                {/* Playback progress fill */}
-                <div
-                  class="absolute top-0 left-0 h-full bg-primary-500/20 pointer-events-none"
-                  style={{ width: `${progressPercentage}%` }}
-                />
-                {/* Playhead line */}
-                <div
-                  class="absolute top-0 h-full w-0.5 bg-primary-600 pointer-events-none"
-                  style={{ left: `${progressPercentage}%` }}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Time axis labels */}
-          {duration > 0 && imageLoaded && (
-            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1 px-0.5">
-              {timeLabels.map((label, i) => (
-                <span key={i}>{label}</span>
-              ))}
-            </div>
-          )}
+        <div class="px-3 pt-2">
+          <Spectrogram
+            src={spectrogramUrl}
+            duration={duration}
+            title={title}
+            onClick={seekToPercentage}
+            progressPercent={progressPercentage}
+          />
         </div>
       )}
 

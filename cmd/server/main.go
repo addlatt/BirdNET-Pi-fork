@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/birdnet-pi/birdnet/internal/api"
+	"github.com/birdnet-pi/birdnet/internal/config"
 	"github.com/birdnet-pi/birdnet/internal/db"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
@@ -26,6 +27,14 @@ func main() {
 	scriptsDir := getEnv("SCRIPTS_DIR", "scripts")
 	dataDir := getEnv("DATA_DIR", "data")
 	birdsongsDir := getEnv("BIRDSONGS_DIR", expandHome("~/BirdSongs"))
+	configPath := getEnv("CONFIG_PATH", config.DefaultConfigPath)
+	homeDir := getEnv("HOME", expandHome("~"))
+
+	// Initialize configuration manager
+	configMgr := config.NewManager(configPath, homeDir)
+	if err := configMgr.Load(); err != nil {
+		log.Printf("Warning: Failed to load configuration: %v (settings API may not work)", err)
+	}
 
 	// Initialize database (read-only)
 	database, err := db.New(dbPath)
@@ -58,7 +67,7 @@ func main() {
 	r.Use(corsMiddleware)
 
 	// Initialize API handlers
-	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, scriptsDir, dataDir, birdsongsDir)
+	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, configMgr, scriptsDir, dataDir, birdsongsDir)
 
 	// Public API routes
 	r.Route("/api", func(r chi.Router) {
@@ -105,6 +114,16 @@ func main() {
 		// System
 		r.Get("/system/status", handlers.SystemStatus)
 		r.Get("/system/memory", handlers.SystemMemory)
+
+		// Settings
+		r.Get("/settings", handlers.GetSettings)
+		r.Put("/settings", handlers.UpdateSettings)
+		r.Get("/settings/schema", handlers.GetSettingsSchema)
+
+		// Services
+		r.Get("/services", handlers.ListServices)
+		r.Post("/services/restart-all", handlers.RestartAllServices)
+		r.Post("/services/{name}/{action}", handlers.ServiceAction)
 	})
 
 	// Internal routes (Python → Go)

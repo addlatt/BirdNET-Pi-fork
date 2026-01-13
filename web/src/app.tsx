@@ -7,6 +7,9 @@ import { History } from './pages/History';
 import { Stats } from './pages/Stats';
 import { SpeciesManagement } from './pages/SpeciesManagement';
 import { Spectrogram } from './pages/Spectrogram';
+import { Settings } from './pages/Settings';
+import { AdvancedSettings } from './pages/AdvancedSettings';
+import { ServiceControls } from './components/ServiceControls';
 
 /**
  * Main application component with routing.
@@ -23,6 +26,9 @@ export function App(): JSX.Element {
           <Route path="/app/stats" component={Stats} />
           <Route path="/app/species" component={SpeciesManagement} />
           <Route path="/app/live" component={Spectrogram} />
+          <Route path="/app/settings" component={Settings} />
+          <Route path="/app/advanced-settings" component={AdvancedSettings} />
+          <Route path="/app/services" component={ServiceControls} />
           <Route default component={Overview} />
         </Router>
       </main>

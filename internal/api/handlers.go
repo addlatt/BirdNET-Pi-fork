@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/birdnet-pi/birdnet/internal/config"
 	"github.com/birdnet-pi/birdnet/internal/db"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
@@ -13,18 +14,20 @@ type Handlers struct {
 	hub          *ws.Hub
 	monitor      *monitor.MemoryMonitor
 	mlClient     *mlclient.Client
+	configMgr    *config.Manager
 	scriptsDir   string
 	dataDir      string
 	birdsongsDir string
 }
 
 // NewHandlers creates a new Handlers instance with all dependencies.
-func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClient *mlclient.Client, scriptsDir, dataDir, birdsongsDir string) *Handlers {
+func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClient *mlclient.Client, configMgr *config.Manager, scriptsDir, dataDir, birdsongsDir string) *Handlers {
 	return &Handlers{
 		db:           db,
 		hub:          hub,
 		monitor:      monitor,
 		mlClient:     mlClient,
+		configMgr:    configMgr,
 		scriptsDir:   scriptsDir,
 		dataDir:      dataDir,
 		birdsongsDir: birdsongsDir,
