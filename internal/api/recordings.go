@@ -106,9 +106,14 @@ func (h *Handlers) ListRecordingDates(w http.ResponseWriter, r *http.Request) {
 	validDates := make([]string, 0, len(dates))
 	extractedDir := filepath.Join(h.birdsongsDir, "Extracted", "By_Date")
 	for _, date := range dates {
-		datePath := filepath.Join(extractedDir, date)
+		// Extract date portion (handle "2026-01-13T00:00:00Z" -> "2026-01-13")
+		dateStr := date
+		if idx := strings.Index(dateStr, "T"); idx > 0 {
+			dateStr = dateStr[:idx]
+		}
+		datePath := filepath.Join(extractedDir, dateStr)
 		if info, err := os.Stat(datePath); err == nil && info.IsDir() {
-			validDates = append(validDates, date)
+			validDates = append(validDates, dateStr)
 		}
 	}
 
