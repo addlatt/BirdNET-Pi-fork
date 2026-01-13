@@ -4,7 +4,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { fetchStats, fetchDetections, fetchHeatmapToday } from '../hooks/useApi';
 import type { StatsResponse, Detection, DetectionNotification, HeatmapResponse } from '../types/api';
 import { DetectionList } from '../components/DetectionList';
-import { StatsCards } from '../components/StatsCards';
+import { OverviewStatsCards } from '../components/OverviewStatsCards';
 import { BirdActivityHeatmap } from '../components/BirdActivityHeatmap';
 
 /**
@@ -155,7 +155,7 @@ export function Overview(): JSX.Element {
       </div>
 
       {/* Stats Cards */}
-      {stats && <StatsCards stats={stats} />}
+      {stats && <OverviewStatsCards stats={stats} />}
 
       {/* Bird Activity Heatmap */}
       <BirdActivityHeatmap data={heatmapData} loading={heatmapLoading} />
