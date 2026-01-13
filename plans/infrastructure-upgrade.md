@@ -647,7 +647,7 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 | 4.1 | Spectrogram | Medium | ✅ Complete | Image updates (Part 2: real-time WebSocket) |
 | 4.2 | Settings | High | ✅ Complete | Form validation, schema-driven, service control |
 | 4.3 | Advanced Settings | High | ✅ Complete | Schema validation, INI parser, multiple sections |
-| 4.4 | Play/Audio | Medium | | Audio player, file browser |
+| 4.4 | Play/Audio | Medium | ✅ Complete | Audio player with Web Audio API, recordings browser |
 
 **Tasks per page:**
 - [ ] Create Go API endpoints for page data
@@ -1132,6 +1132,75 @@ GET  /api/settings/schema       # Get validation schema for form generation
 GET  /api/services              # List service statuses
 POST /api/services/restart-all  # Restart all managed services
 POST /api/services/{name}/{action}  # start/stop/restart/enable/disable
+```
+
+---
+
+#### Phase 4.4 Learnings (Play/Audio Page Migration)
+
+**Completed:** Full recordings browser with navigation hierarchy, enhanced audio player with Web Audio API, and file management actions (delete, change ID, lock, shift)
+
+**Backend Changes:**
+
+1. **Recordings API** - Created `internal/api/recordings.go` with comprehensive file management:
+   - `ListRecordingDates` - Dates with recordings on disk
+   - `ListRecordingSpecies` - Species list with sorting (alphabetical, occurrences, confidence, date)
+   - `ListRecordingsByDate` - Species detected on a specific date
+   - `ListRecordingsBySpecies` - Audio files for a species with pagination
+   - `DeleteRecording` - Delete audio file and database record
+   - `ChangeRecordingIdentification` - Move file to different species folder, update database
+   - `ToggleRecordingLock` - Add/remove from `disk_check_exclude.txt` exclusion list
+   - `ToggleRecordingShift` - Create/remove frequency-shifted audio version
+
+2. **SQLite DATE Format Issue** - go-sqlite3 returns DATE columns as ISO timestamps (`2026-01-13T00:00:00Z`). Fixed by extracting date portion:
+   ```go
+   dateStr := d.Date
+   if idx := strings.Index(dateStr, "T"); idx > 0 {
+       dateStr = dateStr[:idx]
+   }
+   ```
+
+3. **File Path Construction** - Audio files stored at `~/BirdSongs/Extracted/By_Date/{date}/{Species_Name}/{filename}.mp3` with corresponding `.png` spectrogram.
+
+**Frontend Changes:**
+
+1. **EnhancedAudioPlayer Component** (`web/src/components/EnhancedAudioPlayer.tsx`):
+   - Web Audio API integration with AudioContext, GainNode, BiquadFilter
+   - Gain control: Off, 6dB, 12dB, 18dB, 24dB, 30dB
+   - Highpass filter: Off, 250Hz, 500Hz, 1000Hz, 1500Hz
+   - Lowpass filter: Off, 2000Hz, 4000Hz, 8000Hz
+   - LocalStorage persistence for audio preferences
+   - Spectrogram image with progress overlay and playhead
+   - Menu dropdown with Info, Download, and action buttons
+
+2. **Recordings Page** (`web/src/pages/Recordings.tsx`):
+   - Navigation hierarchy: Choose view → By Species/By Date → Species/Date list → Audio files
+   - Sort controls for species list and file list
+   - "Locked only" filter for protected files
+   - Modal for changing species identification with searchable labels
+   - Pagination for large file lists
+
+3. **Header Navigation** - Added "Play" link to main navigation bar
+
+**Key Files Added:**
+- `internal/api/recordings.go` - 9 API handlers for recordings management
+- `internal/db/queries.sql` - Added ListDetectionsBySpecies, ListDetectionsBySpeciesAndDate queries
+- `web/src/components/EnhancedAudioPlayer.tsx` - Advanced audio player with Web Audio API
+- `web/src/pages/Recordings.tsx` - Recordings browser page
+- `web/src/types/api.ts` - RecordingFile, ListRecordingFilesResponse, etc.
+- `web/src/hooks/useApi.ts` - fetchRecordingDates, fetchRecordingsBySpecies, etc.
+
+**API Endpoints Added:**
+```
+GET  /api/recordings/dates                              # Dates with recordings
+GET  /api/recordings/species?sort=occurrences           # Species with recording counts
+GET  /api/recordings/by-date/{date}                     # Species for a date
+GET  /api/recordings/by-species/{name}?date=&sort=&only_locked=&page=&limit=
+POST /api/recordings/{date}/{species}/{filename}/delete
+POST /api/recordings/{date}/{species}/{filename}/change  # Body: {new_species: string}
+POST /api/recordings/{date}/{species}/{filename}/lock    # Toggle exclusion list
+POST /api/recordings/{date}/{species}/{filename}/shift   # Toggle frequency shift
+GET  /api/recordings/exclusions                          # List locked files
 ```
 
 ---
