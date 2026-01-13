@@ -3,6 +3,7 @@ package api
 import (
 	"bufio"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -329,6 +330,21 @@ func (h *Handlers) ListRecordingsBySpecies(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch recordings")
 		return
+	}
+
+	// Debug logging
+	log.Printf("ListRecordingsBySpecies: name=%q, found %d detections, birdsongsDir=%q", name, len(detections), h.birdsongsDir)
+	if len(detections) > 0 {
+		d := detections[0]
+		comNameDir := strings.ReplaceAll(d.ComName, " ", "_")
+		comNameDir = strings.ReplaceAll(comNameDir, "'", "")
+		audioPath := filepath.Join(h.birdsongsDir, "Extracted", "By_Date", d.Date, comNameDir, d.FileName)
+		log.Printf("  First detection: date=%q, file=%q, audioPath=%q", d.Date, d.FileName, audioPath)
+		if _, err := os.Stat(audioPath); err != nil {
+			log.Printf("  File stat error: %v", err)
+		} else {
+			log.Printf("  File exists!")
+		}
 	}
 
 	// Load exclusion list
