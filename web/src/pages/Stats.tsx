@@ -231,16 +231,16 @@ export function Stats(): JSX.Element {
               {/* Period labels with color indicators */}
               <div class="flex text-xs text-gray-500 dark:text-gray-400 mb-1">
                 <span class="flex-1 text-center flex items-center justify-center gap-1">
-                  <span class="w-2 h-2 rounded-sm bg-gray-400"></span>Night
+                  <span class="w-2 h-2 rounded-sm bg-indigo-400"></span>Night
                 </span>
                 <span class="flex-1 text-center flex items-center justify-center gap-1">
                   <span class="w-2 h-2 rounded-sm bg-orange-400"></span>Dawn
                 </span>
                 <span class="flex-1 text-center flex items-center justify-center gap-1">
-                  <span class="w-2 h-2 rounded-sm bg-primary-500"></span>Morning
+                  <span class="w-2 h-2 rounded-sm bg-emerald-500"></span>Morning
                 </span>
                 <span class="flex-1 text-center flex items-center justify-center gap-1">
-                  <span class="w-2 h-2 rounded-sm bg-primary-400"></span>Afternoon
+                  <span class="w-2 h-2 rounded-sm bg-sky-400"></span>Afternoon
                 </span>
                 <span class="flex-1 text-center flex items-center justify-center gap-1">
                   <span class="w-2 h-2 rounded-sm bg-purple-400"></span>Evening
@@ -434,10 +434,10 @@ function formatHour(hour: number): string {
  * Get color class for hour based on time period.
  */
 function getHourColor(hour: number): string {
-  if (hour >= 0 && hour < 5) return 'bg-gray-400';      // Night
+  if (hour >= 0 && hour < 5) return 'bg-indigo-400';    // Night
   if (hour >= 5 && hour < 8) return 'bg-orange-400';    // Dawn (prime bird time!)
-  if (hour >= 8 && hour < 12) return 'bg-primary-500';  // Morning
-  if (hour >= 12 && hour < 17) return 'bg-primary-400'; // Afternoon
+  if (hour >= 8 && hour < 12) return 'bg-emerald-500';  // Morning
+  if (hour >= 12 && hour < 17) return 'bg-sky-400';     // Afternoon
   return 'bg-purple-400';                               // Evening
 }
 
