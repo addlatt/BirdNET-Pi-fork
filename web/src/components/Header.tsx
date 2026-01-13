@@ -22,6 +22,7 @@ export function Header(): JSX.Element {
     { href: '/app/live', label: 'Live' },
     { href: '/app/detections', label: 'Today' },
     { href: '/app/history', label: 'History' },
+    { href: '/app/recordings', label: 'Play' },
     { href: '/app/stats', label: 'Stats' },
     { href: '/app/species', label: 'Species' },
   ];

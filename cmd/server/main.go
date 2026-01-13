@@ -124,6 +124,17 @@ func main() {
 		r.Get("/services", handlers.ListServices)
 		r.Post("/services/restart-all", handlers.RestartAllServices)
 		r.Post("/services/{name}/{action}", handlers.ServiceAction)
+
+		// Recordings (Play/Audio page)
+		r.Get("/recordings/dates", handlers.ListRecordingDates)
+		r.Get("/recordings/species", handlers.ListRecordingSpecies)
+		r.Get("/recordings/by-date/{date}", handlers.ListRecordingsByDate)
+		r.Get("/recordings/by-species/{name}", handlers.ListRecordingsBySpecies)
+		r.Post("/recordings/{date}/{species}/{filename}/delete", handlers.DeleteRecording)
+		r.Post("/recordings/{date}/{species}/{filename}/change", handlers.ChangeRecordingIdentification)
+		r.Post("/recordings/{date}/{species}/{filename}/lock", handlers.ToggleRecordingLock)
+		r.Post("/recordings/{date}/{species}/{filename}/shift", handlers.ToggleRecordingShift)
+		r.Get("/recordings/exclusions", handlers.GetExclusionList)
 	})
 
 	// Internal routes (Python → Go)

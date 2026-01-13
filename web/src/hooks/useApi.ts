@@ -26,6 +26,17 @@ import type {
   SpectrogramInfoResponse,
   RecentDetection,
   RecentDetectionsResponse,
+  // Recordings types
+  ListRecordingDatesResponse,
+  RecordingSpecies,
+  ListRecordingSpeciesResponse,
+  ListRecordingSpeciesParams,
+  RecordingFile,
+  ListRecordingFilesResponse,
+  ListRecordingFilesParams,
+  ToggleLockResponse,
+  ToggleShiftResponse,
+  ExclusionListResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -412,6 +423,121 @@ export async function fetchRecentDetections(params: RecentDetectionsParams = {})
 }
 
 // =============================================================================
+// Recordings Endpoints
+// =============================================================================
+
+/**
+ * Fetch recording dates from the API.
+ * GET /api/recordings/dates
+ */
+export async function fetchRecordingDates(limit?: number): Promise<ListRecordingDatesResponse> {
+  const query = limit ? `?limit=${limit}` : '';
+  return apiFetch<ListRecordingDatesResponse>(`${API_BASE}/recordings/dates${query}`);
+}
+
+/**
+ * Fetch recording species list from the API.
+ * GET /api/recordings/species
+ */
+export async function fetchRecordingSpecies(params: ListRecordingSpeciesParams = {}): Promise<ListRecordingSpeciesResponse> {
+  const query = buildQuery(params as Record<string, string | undefined>);
+  return apiFetch<ListRecordingSpeciesResponse>(`${API_BASE}/recordings/species${query}`);
+}
+
+/**
+ * Fetch species for a specific date.
+ * GET /api/recordings/by-date/{date}
+ */
+export async function fetchRecordingsByDate(date: string): Promise<ListRecordingSpeciesResponse> {
+  return apiFetch<ListRecordingSpeciesResponse>(`${API_BASE}/recordings/by-date/${encodeURIComponent(date)}`);
+}
+
+/**
+ * Fetch recording files for a specific species.
+ * GET /api/recordings/by-species/{name}
+ */
+export async function fetchRecordingsBySpecies(name: string, params: ListRecordingFilesParams = {}): Promise<ListRecordingFilesResponse> {
+  const query = buildQuery(params as Record<string, string | number | boolean | undefined>);
+  return apiFetch<ListRecordingFilesResponse>(`${API_BASE}/recordings/by-species/${encodeURIComponent(name)}${query}`);
+}
+
+/**
+ * Delete a recording.
+ * POST /api/recordings/{date}/{species}/{filename}/delete
+ */
+export async function deleteRecording(date: string, species: string, filename: string): Promise<{ status: string }> {
+  const response = await fetch(
+    `${API_BASE}/recordings/${encodeURIComponent(date)}/${encodeURIComponent(species)}/${encodeURIComponent(filename)}/delete`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Change the identification of a recording.
+ * POST /api/recordings/{date}/{species}/{filename}/change
+ */
+export async function changeRecordingIdentification(date: string, species: string, filename: string, newSpecies: string): Promise<{ status: string }> {
+  const response = await fetch(
+    `${API_BASE}/recordings/${encodeURIComponent(date)}/${encodeURIComponent(species)}/${encodeURIComponent(filename)}/change`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_species: newSpecies }),
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Toggle the purge lock on a recording.
+ * POST /api/recordings/{date}/{species}/{filename}/lock
+ */
+export async function toggleRecordingLock(date: string, species: string, filename: string): Promise<ToggleLockResponse> {
+  const response = await fetch(
+    `${API_BASE}/recordings/${encodeURIComponent(date)}/${encodeURIComponent(species)}/${encodeURIComponent(filename)}/lock`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Toggle the frequency shift on a recording.
+ * POST /api/recordings/{date}/{species}/{filename}/shift
+ */
+export async function toggleRecordingShift(date: string, species: string, filename: string): Promise<ToggleShiftResponse> {
+  const response = await fetch(
+    `${API_BASE}/recordings/${encodeURIComponent(date)}/${encodeURIComponent(species)}/${encodeURIComponent(filename)}/shift`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Fetch the exclusion list.
+ * GET /api/recordings/exclusions
+ */
+export async function fetchExclusionList(): Promise<ExclusionListResponse> {
+  return apiFetch<ExclusionListResponse>(`${API_BASE}/recordings/exclusions`);
+}
+
+// =============================================================================
 // Re-export types for convenience
 // =============================================================================
 
@@ -442,4 +568,15 @@ export type {
   SpectrogramInfoResponse,
   RecentDetection,
   RecentDetectionsResponse,
+  // Recordings types
+  ListRecordingDatesResponse,
+  RecordingSpecies,
+  ListRecordingSpeciesResponse,
+  ListRecordingSpeciesParams,
+  RecordingFile,
+  ListRecordingFilesResponse,
+  ListRecordingFilesParams,
+  ToggleLockResponse,
+  ToggleShiftResponse,
+  ExclusionListResponse,
 };

@@ -181,6 +181,17 @@ func (q *Queries) DeleteDetectionByCompositeKey(ctx context.Context, arg DeleteD
 	return err
 }
 
+const deleteDetectionByFileName = `-- name: DeleteDetectionByFileName :exec
+DELETE FROM detections
+WHERE file_name = ?
+`
+
+// Delete a detection by filename
+func (q *Queries) DeleteDetectionByFileName(ctx context.Context, fileName string) error {
+	_, err := q.db.ExecContext(ctx, deleteDetectionByFileName, fileName)
+	return err
+}
+
 const getBestDetectionForSpecies = `-- name: GetBestDetectionForSpecies :one
 SELECT date, time, sci_name, com_name, confidence, file_name
 FROM detections
@@ -1112,6 +1123,65 @@ func (q *Queries) ListDetectionsBySpecies(ctx context.Context, arg ListDetection
 	return items, nil
 }
 
+const listDetectionsBySpeciesAndDate = `-- name: ListDetectionsBySpeciesAndDate :many
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
+FROM detections
+WHERE (sci_name = ? OR com_name = ?) AND date = ?
+ORDER BY time DESC
+LIMIT ? OFFSET ?
+`
+
+type ListDetectionsBySpeciesAndDateParams struct {
+	SciName string `db:"sci_name" json:"sci_name"`
+	ComName string `db:"com_name" json:"com_name"`
+	Date    string `db:"date" json:"date"`
+	Limit   int64  `db:"limit" json:"limit"`
+	Offset  int64  `db:"offset" json:"offset"`
+}
+
+// List detections for a species on a specific date
+func (q *Queries) ListDetectionsBySpeciesAndDate(ctx context.Context, arg ListDetectionsBySpeciesAndDateParams) ([]Detection, error) {
+	rows, err := q.db.QueryContext(ctx, listDetectionsBySpeciesAndDate,
+		arg.SciName,
+		arg.ComName,
+		arg.Date,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Detection
+	for rows.Next() {
+		var i Detection
+		if err := rows.Scan(
+			&i.Date,
+			&i.Time,
+			&i.SciName,
+			&i.ComName,
+			&i.Confidence,
+			&i.Lat,
+			&i.Lon,
+			&i.Cutoff,
+			&i.Week,
+			&i.Sens,
+			&i.Overlap,
+			&i.FileName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSpecies = `-- name: ListSpecies :many
 SELECT DISTINCT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence
 FROM detections
@@ -1311,6 +1381,236 @@ func (q *Queries) ListSpeciesToday(ctx context.Context) ([]ListSpeciesTodayRow, 
 			&i.ComName,
 			&i.DetectionCount,
 			&i.MaxConfidence,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSpeciesWithStats = `-- name: ListSpeciesWithStats :many
+
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY com_name ASC
+`
+
+type ListSpeciesWithStatsRow struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	LastSeen       interface{} `db:"last_seen" json:"last_seen"`
+}
+
+// =============================================================================
+// Phase 4.4: Recordings Browser Queries
+// =============================================================================
+// List all species with stats (sorted alphabetically)
+func (q *Queries) ListSpeciesWithStats(ctx context.Context) ([]ListSpeciesWithStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSpeciesWithStats)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSpeciesWithStatsRow
+	for rows.Next() {
+		var i ListSpeciesWithStatsRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.MaxConfidence,
+			&i.LastSeen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSpeciesWithStatsByConfidence = `-- name: ListSpeciesWithStatsByConfidence :many
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY max_confidence DESC
+`
+
+type ListSpeciesWithStatsByConfidenceRow struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	LastSeen       interface{} `db:"last_seen" json:"last_seen"`
+}
+
+// List all species with stats (sorted by confidence)
+func (q *Queries) ListSpeciesWithStatsByConfidence(ctx context.Context) ([]ListSpeciesWithStatsByConfidenceRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSpeciesWithStatsByConfidence)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSpeciesWithStatsByConfidenceRow
+	for rows.Next() {
+		var i ListSpeciesWithStatsByConfidenceRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.MaxConfidence,
+			&i.LastSeen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSpeciesWithStatsByDate = `-- name: ListSpeciesWithStatsByDate :many
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, date as last_seen
+FROM detections
+WHERE date = ?
+GROUP BY sci_name, com_name
+ORDER BY detection_count DESC
+`
+
+type ListSpeciesWithStatsByDateRow struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	LastSeen       string      `db:"last_seen" json:"last_seen"`
+}
+
+// List species with stats for a specific date (sorted by occurrences)
+func (q *Queries) ListSpeciesWithStatsByDate(ctx context.Context, date string) ([]ListSpeciesWithStatsByDateRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSpeciesWithStatsByDate, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSpeciesWithStatsByDateRow
+	for rows.Next() {
+		var i ListSpeciesWithStatsByDateRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.MaxConfidence,
+			&i.LastSeen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSpeciesWithStatsByDate2 = `-- name: ListSpeciesWithStatsByDate2 :many
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY last_seen DESC
+`
+
+type ListSpeciesWithStatsByDate2Row struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	LastSeen       interface{} `db:"last_seen" json:"last_seen"`
+}
+
+// List all species with stats (sorted by last seen date)
+func (q *Queries) ListSpeciesWithStatsByDate2(ctx context.Context) ([]ListSpeciesWithStatsByDate2Row, error) {
+	rows, err := q.db.QueryContext(ctx, listSpeciesWithStatsByDate2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSpeciesWithStatsByDate2Row
+	for rows.Next() {
+		var i ListSpeciesWithStatsByDate2Row
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.MaxConfidence,
+			&i.LastSeen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSpeciesWithStatsByOccurrences = `-- name: ListSpeciesWithStatsByOccurrences :many
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY detection_count DESC
+`
+
+type ListSpeciesWithStatsByOccurrencesRow struct {
+	SciName        string      `db:"sci_name" json:"sci_name"`
+	ComName        string      `db:"com_name" json:"com_name"`
+	DetectionCount int64       `db:"detection_count" json:"detection_count"`
+	MaxConfidence  interface{} `db:"max_confidence" json:"max_confidence"`
+	LastSeen       interface{} `db:"last_seen" json:"last_seen"`
+}
+
+// List all species with stats (sorted by occurrences)
+func (q *Queries) ListSpeciesWithStatsByOccurrences(ctx context.Context) ([]ListSpeciesWithStatsByOccurrencesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSpeciesWithStatsByOccurrences)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSpeciesWithStatsByOccurrencesRow
+	for rows.Next() {
+		var i ListSpeciesWithStatsByOccurrencesRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.MaxConfidence,
+			&i.LastSeen,
 		); err != nil {
 			return nil, err
 		}

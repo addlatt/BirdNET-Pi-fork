@@ -645,8 +645,8 @@ After validating Phase 2, the legacy pipeline was deleted to ensure Pi testing u
 | 3.3 | History | Medium | ✅ Complete | Date picker, pagination, reuses DetectionList |
 | 3.4 | Species Management | Medium | ✅ Complete | Species table, list editor, toggles, delete |
 | 4.1 | Spectrogram | Medium | ✅ Complete | Image updates (Part 2: real-time WebSocket) |
-| 4.2 | Settings | High | | Form validation, service control |
-| 4.3 | Advanced Settings | High | | Schema validation, multiple sections |
+| 4.2 | Settings | High | ✅ Complete | Form validation, schema-driven, service control |
+| 4.3 | Advanced Settings | High | ✅ Complete | Schema validation, INI parser, multiple sections |
 | 4.4 | Play/Audio | Medium | | Audio player, file browser |
 
 **Tasks per page:**
@@ -1031,6 +1031,108 @@ GET  /api/spectrogram/detections  # Recent detections for sidebar feed
 
 **Part 2 Preparation:**
 The WebSocket infrastructure already supports typed messages for future real-time spectrogram streaming (Web Audio API visualization). The `spectrogram_frame` message type is defined in `types/api.ts`.
+
+---
+
+#### Phase 4.2 & 4.3 Learnings (Settings & Advanced Settings Migration)
+
+**Completed:** Full settings system with Go config package, API endpoints, and Preact pages mirroring PHP config.php, advanced.php, and service_controls.php
+
+**Backend Changes:**
+
+1. **Config Package Architecture** - Created `internal/config/` package with 4 files:
+   - `types.go` - Config struct with 60+ fields matching all PHP parameters
+   - `ini.go` - INI file parser/writer using regex replacement (mirrors PHP's `preg_replace`)
+   - `schema.go` - JSON Schema validation rules from existing `birdnet.schema.json`
+   - `config.go` - Config loader with defaults, Manager struct for operations
+
+2. **INI File Handling** - PHP used regex replacement to preserve comments in config files. Go implementation mirrors this:
+   ```go
+   pattern := regexp.MustCompile(`(?m)^` + key + `=.*$`)
+   content = pattern.ReplaceAllString(content, key+"="+value)
+   ```
+
+3. **Service Restart Logic** - Tracks which config changes require service restarts:
+   ```go
+   var configFieldToService = map[string]string{
+       "RECORDING_LENGTH": "birdnet-recording",
+       "RTSP_STREAM":      "birdnet-recording",
+       "ICE_PWD":          "icecast2",
+       // ... 15+ mappings
+   }
+   ```
+
+4. **Systemd Service Control** - 8 managed services with status checking:
+   ```go
+   var managedServices = []string{
+       "birdnet-recording", "birdnet-analysis", "birdnet-stats",
+       "icecast2", "birdnet-server", "caddy", "php-fpm", "avahi-daemon",
+   }
+   ```
+
+5. **Stall Detection** - Recording backlog check to detect stalled services:
+   ```go
+   func getRecordingBacklog() int {
+       // Count WAV files in StreamData older than 2 minutes
+   }
+   ```
+
+**Frontend Changes:**
+
+1. **Form Input Components** (`web/src/components/settings/FormInputs.tsx`):
+   - TextInput, NumberInput, SliderInput, SelectInput
+   - TextAreaInput, ToggleInput, CheckboxInput
+   - FormSection, SaveButton, AlertMessage
+   - All with consistent Tailwind styling and dark mode support
+
+2. **useSettings Hook** - Comprehensive state management:
+   ```typescript
+   const { config, loading, saving, error, validationErrors,
+           restartedServices, refresh, save, clearErrors } = useSettings();
+   ```
+
+3. **useServices Hook** - Service management with polling:
+   ```typescript
+   const { services, actionLoading, performAction, restartAll } = useServices(true, 10000);
+   ```
+
+4. **Settings Page Structure**:
+   - Basic Settings (`/app/settings`): Location, Model, Analysis, Recording, Integrations, Notifications, Display
+   - Advanced Settings (`/app/advanced-settings`): Privacy, Disk, Hardware, Passwords, URLs, Frequency Shifting, Time, Logging
+   - Service Controls (`/app/services`): Status badges, action buttons, restart all
+
+5. **Header Navigation** - Settings dropdown with gear icon:
+   ```typescript
+   const settingsLinks = [
+     { href: '/app/settings', label: 'Settings' },
+     { href: '/app/advanced-settings', label: 'Advanced' },
+     { href: '/app/services', label: 'Services' },
+   ];
+   ```
+
+**Key Files Added:**
+- `internal/config/types.go` - Config struct with 60+ fields
+- `internal/config/ini.go` - INI parser/writer with regex replacement
+- `internal/config/schema.go` - JSON Schema validation
+- `internal/config/config.go` - Manager and loader
+- `internal/api/settings.go` - GET/PUT settings, schema endpoint
+- `internal/api/services.go` - Service control endpoints
+- `web/src/types/settings.ts` - TypeScript types matching Go structs
+- `web/src/hooks/useSettings.ts` - Settings and services hooks
+- `web/src/components/settings/FormInputs.tsx` - Reusable form components
+- `web/src/pages/Settings.tsx` - Basic settings page
+- `web/src/pages/AdvancedSettings.tsx` - Advanced settings page
+- `web/src/components/ServiceControls.tsx` - Service management component
+
+**API Endpoints Added:**
+```
+GET  /api/settings              # Get all configuration
+PUT  /api/settings              # Update configuration (partial updates supported)
+GET  /api/settings/schema       # Get validation schema for form generation
+GET  /api/services              # List service statuses
+POST /api/services/restart-all  # Restart all managed services
+POST /api/services/{name}/{action}  # start/stop/restart/enable/disable
+```
 
 ---
 

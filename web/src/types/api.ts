@@ -376,3 +376,90 @@ export function isApiError(response: unknown): response is ApiError {
     typeof (response as ApiError).error === 'string'
   );
 }
+
+// =============================================================================
+// Recordings Types (internal/api/recordings.go)
+// =============================================================================
+
+/** Response from GET /api/recordings/dates */
+export interface ListRecordingDatesResponse {
+  dates: string[];
+  total: number;
+}
+
+/** Recording species with stats */
+export interface RecordingSpecies {
+  sci_name: string;
+  com_name: string;
+  detection_count: number;
+  max_confidence: number;
+  last_seen?: string;
+}
+
+/** Response from GET /api/recordings/species */
+export interface ListRecordingSpeciesResponse {
+  species: RecordingSpecies[];
+  total: number;
+}
+
+/** Query parameters for GET /api/recordings/species */
+export interface ListRecordingSpeciesParams {
+  sort?: 'alphabetical' | 'occurrences' | 'confidence' | 'date';
+  date?: string;
+}
+
+/** Single recording file with metadata */
+export interface RecordingFile {
+  date: string;
+  time: string;
+  sci_name: string;
+  com_name: string;
+  confidence: number;
+  file_name: string;
+  audio_url: string;
+  spectrogram_url: string;
+  is_locked: boolean;
+  is_shifted: boolean;
+  shifted_url?: string;
+}
+
+/** Response from GET /api/recordings/by-species/{name} */
+export interface ListRecordingFilesResponse {
+  files: RecordingFile[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** Query parameters for GET /api/recordings/by-species/{name} */
+export interface ListRecordingFilesParams {
+  date?: string;
+  sort?: 'date' | 'confidence';
+  only_locked?: boolean;
+  limit?: number;
+  page?: number;
+}
+
+/** Request body for POST /api/recordings/{date}/{species}/{filename}/change */
+export interface ChangeIdentificationRequest {
+  new_species: string;
+}
+
+/** Response from toggle lock */
+export interface ToggleLockResponse {
+  status: string;
+  is_locked: boolean;
+}
+
+/** Response from toggle shift */
+export interface ToggleShiftResponse {
+  status: string;
+  is_shifted: boolean;
+  shifted_url?: string;
+}
+
+/** Response from GET /api/recordings/exclusions */
+export interface ExclusionListResponse {
+  exclusions: string[];
+  total: number;
+}
