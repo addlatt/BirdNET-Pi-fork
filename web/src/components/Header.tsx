@@ -20,8 +20,7 @@ export function Header(): JSX.Element {
   const navLinks: NavLink[] = [
     { href: '/app/', label: 'Overview' },
     { href: '/app/live', label: 'Live' },
-    { href: '/app/detections', label: 'Today' },
-    { href: '/app/history', label: 'History' },
+    { href: '/app/detections', label: 'Detections' },
     { href: '/app/recordings', label: 'Play' },
     { href: '/app/stats', label: 'Stats' },
     { href: '/app/species', label: 'Species' },
