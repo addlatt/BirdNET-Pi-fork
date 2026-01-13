@@ -4,6 +4,7 @@ import type { Detection } from '../types/api';
 import { deleteDetection } from '../hooks/useApi';
 import { SpeciesMiniChart } from './SpeciesMiniChart';
 import { BirdImage } from './BirdImage';
+import { Spectrogram } from './Spectrogram';
 
 /**
  * DetectionList props
@@ -169,14 +170,14 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               </div>
             )}
 
-            {/* Spectrogram Image */}
+            {/* Spectrogram with axes */}
             {showSpectrogram && detection.file_name && (
-              <div class="mt-2">
-                <img
+              <div class="mt-2 max-w-lg">
+                <Spectrogram
                   src={spectrogramPath}
-                  alt={`Spectrogram for ${detection.com_name}`}
-                  class="max-w-full rounded border border-gray-200 dark:border-gray-700"
-                  loading="lazy"
+                  duration={3}
+                  showLegend={true}
+                  showAxes={true}
                 />
               </div>
             )}
