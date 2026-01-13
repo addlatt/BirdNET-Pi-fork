@@ -228,13 +228,23 @@ export function Stats(): JSX.Element {
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hourly Distribution</h2>
             </div>
             <div class="p-4">
-              {/* Period labels */}
-              <div class="flex text-xs text-gray-400 dark:text-gray-500 mb-1">
-                <span class="flex-1 text-center">Night</span>
-                <span class="flex-1 text-center">Dawn</span>
-                <span class="flex-1 text-center">Morning</span>
-                <span class="flex-1 text-center">Afternoon</span>
-                <span class="flex-1 text-center">Evening</span>
+              {/* Period labels with color indicators */}
+              <div class="flex text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <span class="flex-1 text-center flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-sm bg-gray-400"></span>Night
+                </span>
+                <span class="flex-1 text-center flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-sm bg-orange-400"></span>Dawn
+                </span>
+                <span class="flex-1 text-center flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-sm bg-primary-500"></span>Morning
+                </span>
+                <span class="flex-1 text-center flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-sm bg-primary-400"></span>Afternoon
+                </span>
+                <span class="flex-1 text-center flex items-center justify-center gap-1">
+                  <span class="w-2 h-2 rounded-sm bg-purple-400"></span>Evening
+                </span>
               </div>
               {/* Chart */}
               <div class="flex items-end h-32 gap-0.5">
@@ -243,7 +253,6 @@ export function Stats(): JSX.Element {
                   const count = data?.detection_count || 0;
                   const maxCount = Math.max(...stats.hourly_distribution!.map((h) => h.detection_count));
                   const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                  const isPeak = peakHour && hour === peakHour.hour;
                   const periodColor = getHourColor(hour);
 
                   return (
@@ -253,7 +262,7 @@ export function Stats(): JSX.Element {
                       title={`${formatHour(hour)}: ${count} detections`}
                     >
                       <div
-                        class={`w-full rounded-t transition-all ${isPeak ? 'bg-amber-500' : periodColor}`}
+                        class={`w-full rounded-t transition-all ${periodColor}`}
                         style={{ height: `${Math.max(heightPercent, count > 0 ? 4 : 0)}%` }}
                       />
                     </div>
