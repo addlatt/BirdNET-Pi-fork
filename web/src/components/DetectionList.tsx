@@ -4,7 +4,7 @@ import type { Detection } from '../types/api';
 import { deleteDetection } from '../hooks/useApi';
 import { SpeciesMiniChart } from './SpeciesMiniChart';
 import { BirdImage } from './BirdImage';
-import { Spectrogram } from './Spectrogram';
+import { AudioPlayer } from './AudioPlayer';
 
 /**
  * DetectionList props
@@ -58,8 +58,7 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   const [showChart, setShowChart] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showSpectrogram, setShowSpectrogram] = useState(false);
-  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
 
   const confidencePercent = Math.round(detection.confidence * 100);
   const confidenceColor = getConfidenceColor(confidencePercent);
@@ -129,7 +128,7 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               </span>
             </div>
 
-            {/* Date, Time, Audio Link */}
+            {/* Date, Time, Spectrogram Toggle */}
             <div class="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap gap-x-2">
               <span>{dateOnly}</span>
               <span>-</span>
@@ -138,46 +137,22 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
                 <>
                   <span>-</span>
                   <button
-                    onClick={() => setShowAudioPlayer(!showAudioPlayer)}
+                    onClick={() => setShowPlayer(!showPlayer)}
                     class="text-primary-600 hover:underline"
-                    title="Play audio"
+                    title="Show spectrogram and audio player"
                   >
-                    {showAudioPlayer ? 'Hide' : 'Play'}
-                  </button>
-                  <span>-</span>
-                  <button
-                    onClick={() => setShowSpectrogram(!showSpectrogram)}
-                    class="text-primary-600 hover:underline"
-                    title="Show spectrogram"
-                  >
-                    {showSpectrogram ? 'Hide' : 'Show'} Spectrogram
+                    {showPlayer ? 'Hide' : 'Show'} Spectrogram
                   </button>
                 </>
               )}
             </div>
 
-            {/* Audio Player */}
-            {showAudioPlayer && detection.file_name && (
-              <div class="mt-2">
-                <audio
-                  controls
-                  autoPlay
-                  class="w-full max-w-md"
-                  src={audioPath}
-                >
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            )}
-
-            {/* Spectrogram with axes */}
-            {showSpectrogram && detection.file_name && (
+            {/* Audio Player with Spectrogram */}
+            {showPlayer && detection.file_name && (
               <div class="mt-2 max-w-lg">
-                <Spectrogram
-                  src={spectrogramPath}
-                  duration={3}
-                  showLegend={true}
-                  showAxes={true}
+                <AudioPlayer
+                  audioUrl={audioPath}
+                  spectrogramUrl={spectrogramPath}
                 />
               </div>
             )}
