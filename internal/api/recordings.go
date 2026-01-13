@@ -3,7 +3,6 @@ package api
 import (
 	"bufio"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -332,21 +331,6 @@ func (h *Handlers) ListRecordingsBySpecies(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Debug logging
-	log.Printf("ListRecordingsBySpecies: name=%q, found %d detections, birdsongsDir=%q", name, len(detections), h.birdsongsDir)
-	if len(detections) > 0 {
-		d := detections[0]
-		comNameDir := strings.ReplaceAll(d.ComName, " ", "_")
-		comNameDir = strings.ReplaceAll(comNameDir, "'", "")
-		audioPath := filepath.Join(h.birdsongsDir, "Extracted", "By_Date", d.Date, comNameDir, d.FileName)
-		log.Printf("  First detection: date=%q, file=%q, audioPath=%q", d.Date, d.FileName, audioPath)
-		if _, err := os.Stat(audioPath); err != nil {
-			log.Printf("  File stat error: %v", err)
-		} else {
-			log.Printf("  File exists!")
-		}
-	}
-
 	// Load exclusion list
 	exclusions := h.loadExclusionList()
 
@@ -359,14 +343,20 @@ func (h *Handlers) ListRecordingsBySpecies(w http.ResponseWriter, r *http.Reques
 		comNameDir := strings.ReplaceAll(d.ComName, " ", "_")
 		comNameDir = strings.ReplaceAll(comNameDir, "'", "")
 
+		// Extract date portion (handle "2026-01-13T00:00:00Z" -> "2026-01-13")
+		dateStr := d.Date
+		if idx := strings.Index(dateStr, "T"); idx > 0 {
+			dateStr = dateStr[:idx]
+		}
+
 		// Check if audio file exists on disk
-		audioPath := filepath.Join(extractedDir, d.Date, comNameDir, d.FileName)
+		audioPath := filepath.Join(extractedDir, dateStr, comNameDir, d.FileName)
 		if _, err := os.Stat(audioPath); os.IsNotExist(err) {
 			continue // Skip if file doesn't exist
 		}
 
 		// Build file path for exclusion check
-		filePath := d.Date + "/" + comNameDir + "/" + d.FileName
+		filePath := dateStr + "/" + comNameDir + "/" + d.FileName
 		isLocked := exclusions[filePath]
 
 		if onlyLocked && !isLocked {
@@ -374,19 +364,19 @@ func (h *Handlers) ListRecordingsBySpecies(w http.ResponseWriter, r *http.Reques
 		}
 
 		// Check if shifted version exists
-		shiftedPath := filepath.Join(shiftedDir, d.Date, comNameDir, d.FileName)
+		shiftedPath := filepath.Join(shiftedDir, dateStr, comNameDir, d.FileName)
 		isShifted := fileExists(shiftedPath)
 
 		// Build URLs
-		audioURL := "/By_Date/" + d.Date + "/" + comNameDir + "/" + url.PathEscape(d.FileName)
+		audioURL := "/By_Date/" + dateStr + "/" + comNameDir + "/" + url.PathEscape(d.FileName)
 		spectroURL := audioURL + ".png"
 		shiftedURL := ""
 		if isShifted {
-			shiftedURL = "/By_Date/shifted/" + d.Date + "/" + comNameDir + "/" + url.PathEscape(d.FileName)
+			shiftedURL = "/By_Date/shifted/" + dateStr + "/" + comNameDir + "/" + url.PathEscape(d.FileName)
 		}
 
 		files = append(files, RecordingFile{
-			Date:         d.Date,
+			Date:         dateStr,
 			Time:         d.Time,
 			SciName:      d.SciName,
 			ComName:      d.ComName,
