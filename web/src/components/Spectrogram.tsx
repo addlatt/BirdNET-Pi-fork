@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import type { JSX } from 'preact';
 
 /**
@@ -21,6 +21,8 @@ export interface SpectrogramProps {
   showLegend?: boolean;
   /** Show axes (default: true) */
   showAxes?: boolean;
+  /** Allow fullscreen toggle (default: true) */
+  allowFullscreen?: boolean;
   /** Additional CSS class for the container */
   class?: string;
 }
@@ -78,13 +80,82 @@ export function Spectrogram({
   maxFreqKHz = 12,
   showLegend = true,
   showAxes = true,
+  allowFullscreen = true,
   class: className,
 }: SpectrogramProps): JSX.Element {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const timeLabels = generateTimeLabels(duration);
   const freqLabels = generateFreqLabels(maxFreqKHz);
+
+  // Check if Fullscreen API is supported
+  const fullscreenSupported = typeof document !== 'undefined' &&
+    (document.fullscreenEnabled ||
+     (document as any).webkitFullscreenEnabled ||
+     (document as any).mozFullScreenEnabled ||
+     (document as any).msFullscreenEnabled);
+
+  // Toggle fullscreen mode
+  const toggleFullscreen = useCallback(async () => {
+    if (!containerRef.current || !fullscreenSupported) return;
+
+    try {
+      if (!isFullscreen) {
+        // Enter fullscreen
+        const elem = containerRef.current as any;
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          await elem.webkitRequestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+          await elem.mozRequestFullScreen();
+        } else if (elem.msRequestFullscreen) {
+          await elem.msRequestFullscreen();
+        }
+      } else {
+        // Exit fullscreen
+        const doc = document as any;
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        } else if (doc.mozCancelFullScreen) {
+          await doc.mozCancelFullScreen();
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.error('Fullscreen toggle failed:', err);
+    }
+  }, [isFullscreen, fullscreenSupported]);
+
+  // Listen for fullscreen changes (including ESC key)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as any;
+      const fullscreenElement = doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement;
+      setIsFullscreen(fullscreenElement === containerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
 
   const handleClick = (e: JSX.TargetedMouseEvent<HTMLDivElement>) => {
     if (!onClick || !imageLoaded) return;
@@ -96,32 +167,36 @@ export function Spectrogram({
   };
 
   const hasProgress = typeof progressPercent === 'number' && progressPercent >= 0;
+  const showFullscreenButton = allowFullscreen && fullscreenSupported && imageLoaded;
 
   return (
-    <div class={`spectrogram-container ${className || ''}`}>
+    <div
+      ref={containerRef}
+      class={`spectrogram-container ${className || ''} ${isFullscreen ? 'fixed inset-0 z-50 bg-gray-900 flex flex-col justify-center p-4' : ''}`}
+    >
       {/* Title */}
       {title && (
-        <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <div class={`text-sm font-medium mb-1 ${isFullscreen ? 'text-gray-200' : 'text-gray-700 dark:text-gray-300'}`}>
           {title}
         </div>
       )}
 
-      <div class="flex">
+      <div class={`flex ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
         {/* Y-axis (Frequency) */}
         {showAxes && imageLoaded && (
-          <div class="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-1 py-0.5" style={{ minWidth: '24px' }}>
+          <div class={`flex flex-col justify-between text-xs pr-1 py-0.5 ${isFullscreen ? 'text-gray-300 text-sm pr-2' : 'text-gray-500 dark:text-gray-400'}`} style={{ minWidth: isFullscreen ? '32px' : '24px' }}>
             {freqLabels.slice().reverse().map((label, i) => (
               <span key={i} class="text-right leading-none">{label.label}</span>
             ))}
           </div>
         )}
 
-        <div class="flex-1 flex flex-col">
+        <div class={`flex-1 flex flex-col ${isFullscreen ? 'min-h-0' : ''}`}>
           {/* Main spectrogram area */}
-          <div class="flex">
+          <div class={`flex ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
             {/* Spectrogram image with overlays */}
             <div
-              class={`relative flex-1 ${onClick ? 'cursor-pointer' : ''}`}
+              class={`relative flex-1 ${onClick ? 'cursor-pointer' : ''} ${isFullscreen ? 'min-h-0' : ''}`}
               onClick={handleClick}
             >
               {/* The raw spectrogram image */}
@@ -129,7 +204,7 @@ export function Spectrogram({
                 <img
                   src={src}
                   alt="Spectrogram"
-                  class="w-full h-auto block rounded"
+                  class={`w-full block rounded ${isFullscreen ? 'h-full object-contain' : 'h-auto'}`}
                   onLoad={() => setImageLoaded(true)}
                   onError={() => {
                     setImageError(true);
@@ -159,20 +234,46 @@ export function Spectrogram({
                   />
                 </>
               )}
+
+              {/* Fullscreen toggle button */}
+              {showFullscreenButton && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  class={`absolute top-2 right-2 p-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-colors ${isFullscreen ? 'top-4 right-4 p-2' : ''}`}
+                  title={isFullscreen ? 'Exit fullscreen (ESC)' : 'View fullscreen'}
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                >
+                  {isFullscreen ? (
+                    // Collapse/minimize icon
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    // Expand/fullscreen icon
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Color legend (dBFS scale) */}
             {showLegend && imageLoaded && (
-              <div class="flex flex-col ml-2" style={{ minWidth: '32px' }}>
+              <div class={`flex flex-col ${isFullscreen ? 'ml-4' : 'ml-2'}`} style={{ minWidth: isFullscreen ? '48px' : '32px' }}>
                 <div
                   class="flex-1 rounded"
                   style={{
                     background: DBFS_GRADIENT,
-                    minHeight: '60px',
-                    width: '12px',
+                    minHeight: isFullscreen ? '100px' : '60px',
+                    width: isFullscreen ? '16px' : '12px',
                   }}
                 />
-                <div class="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ height: '100%' }}>
+                <div class={`flex flex-col justify-between text-xs mt-0.5 ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`} style={{ height: '100%' }}>
                   <span class="leading-none">0</span>
                   <span class="leading-none">dB</span>
                 </div>
@@ -182,7 +283,7 @@ export function Spectrogram({
 
           {/* X-axis (Time) */}
           {showAxes && imageLoaded && duration > 0 && (
-            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1 px-0.5">
+            <div class={`flex justify-between text-xs mt-1 px-0.5 ${isFullscreen ? 'text-gray-300 text-sm mt-2' : 'text-gray-500 dark:text-gray-400'}`}>
               {timeLabels.map((label, i) => (
                 <span key={i}>{label.label}</span>
               ))}
@@ -193,9 +294,9 @@ export function Spectrogram({
 
       {/* Axis labels */}
       {showAxes && imageLoaded && (
-        <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-0.5 ml-6">
+        <div class={`flex justify-between text-xs mt-0.5 ${isFullscreen ? 'text-gray-400 ml-8 mt-2' : 'text-gray-400 dark:text-gray-500 ml-6'}`}>
           <span>Time (seconds)</span>
-          <span class="mr-8">Freq (kHz)</span>
+          <span class={isFullscreen ? 'mr-12' : 'mr-8'}>Freq (kHz)</span>
         </div>
       )}
     </div>
