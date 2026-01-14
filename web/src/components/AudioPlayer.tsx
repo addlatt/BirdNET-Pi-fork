@@ -183,7 +183,7 @@ export function AudioPlayer({ audioUrl, spectrogramUrl, title, allowFullscreen =
     >
       {/* Spectrogram with axes and color legend */}
       {spectrogramUrl && (
-        <div class={`relative ${isFullscreen ? 'flex-1 min-h-0 p-4' : 'px-3 pt-2'}`}>
+        <div class={`relative ${isFullscreen ? 'flex-1 min-h-0 p-4 overflow-hidden' : 'px-3 pt-2'}`}>
           <Spectrogram
             src={spectrogramUrl}
             duration={duration}
@@ -191,7 +191,7 @@ export function AudioPlayer({ audioUrl, spectrogramUrl, title, allowFullscreen =
             onClick={seekToPercentage}
             progressPercent={progressPercentage}
             allowFullscreen={false}
-            class={isFullscreen ? 'h-full' : ''}
+            class={isFullscreen ? 'h-full max-h-full overflow-hidden' : ''}
           />
           {/* Fullscreen toggle button */}
           {showFullscreenButton && (

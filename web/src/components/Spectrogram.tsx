@@ -169,10 +169,13 @@ export function Spectrogram({
   const hasProgress = typeof progressPercent === 'number' && progressPercent >= 0;
   const showFullscreenButton = allowFullscreen && fullscreenSupported && imageLoaded;
 
+  // Check if parent passed height constraints via className
+  const hasHeightConstraint = className?.includes('h-full') || className?.includes('max-h');
+
   return (
     <div
       ref={containerRef}
-      class={`spectrogram-container ${className || ''} ${isFullscreen ? 'fixed inset-0 z-50 bg-gray-900 flex flex-col justify-center p-4' : ''}`}
+      class={`spectrogram-container ${className || ''} ${isFullscreen ? 'fixed inset-0 z-50 bg-gray-900 flex flex-col justify-center p-4' : ''} ${hasHeightConstraint && !isFullscreen ? 'flex flex-col' : ''}`}
     >
       {/* Title */}
       {title && (
@@ -181,7 +184,7 @@ export function Spectrogram({
         </div>
       )}
 
-      <div class={`flex ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
+      <div class={`flex ${isFullscreen || hasHeightConstraint ? 'flex-1 min-h-0' : ''}`}>
         {/* Y-axis (Frequency) */}
         {showAxes && imageLoaded && (
           <div class={`flex flex-col justify-between text-xs pr-1 py-0.5 ${isFullscreen ? 'text-gray-300 text-sm pr-2' : 'text-gray-500 dark:text-gray-400'}`} style={{ minWidth: isFullscreen ? '32px' : '24px' }}>
@@ -191,12 +194,12 @@ export function Spectrogram({
           </div>
         )}
 
-        <div class={`flex-1 flex flex-col ${isFullscreen ? 'min-h-0' : ''}`}>
+        <div class={`flex-1 flex flex-col ${isFullscreen || hasHeightConstraint ? 'min-h-0' : ''}`}>
           {/* Main spectrogram area */}
-          <div class={`flex ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
+          <div class={`flex ${isFullscreen || hasHeightConstraint ? 'flex-1 min-h-0' : ''}`}>
             {/* Spectrogram image with overlays */}
             <div
-              class={`relative flex-1 ${onClick ? 'cursor-pointer' : ''} ${isFullscreen ? 'min-h-0' : ''}`}
+              class={`relative flex-1 ${onClick ? 'cursor-pointer' : ''} ${isFullscreen || hasHeightConstraint ? 'min-h-0' : ''}`}
               onClick={handleClick}
             >
               {/* The raw spectrogram image */}
@@ -204,7 +207,7 @@ export function Spectrogram({
                 <img
                   src={src}
                   alt="Spectrogram"
-                  class={`w-full block rounded ${isFullscreen ? 'h-full object-contain' : 'h-auto'}`}
+                  class={`w-full block rounded ${isFullscreen || hasHeightConstraint ? 'h-full object-contain' : 'h-auto'}`}
                   onLoad={() => setImageLoaded(true)}
                   onError={() => {
                     setImageError(true);
