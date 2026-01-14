@@ -196,7 +196,7 @@ export function Spectrogram({
 
         <div class={`flex-1 flex flex-col ${isFullscreen || hasHeightConstraint ? 'min-h-0' : ''}`}>
           {/* Main spectrogram area */}
-          <div class={`flex ${isFullscreen || hasHeightConstraint ? 'flex-1 min-h-0' : ''}`}>
+          <div class={`flex items-stretch ${isFullscreen || hasHeightConstraint ? 'flex-1 min-h-0' : ''}`}>
             {/* Spectrogram image with overlays */}
             <div
               class={`relative flex-1 ${onClick ? 'cursor-pointer' : ''} ${isFullscreen || hasHeightConstraint ? 'min-h-0' : ''}`}
@@ -267,16 +267,17 @@ export function Spectrogram({
 
             {/* Color legend (dBFS scale) */}
             {showLegend && imageLoaded && (
-              <div class={`flex flex-col ${isFullscreen ? 'ml-4' : 'ml-2'}`} style={{ minWidth: isFullscreen ? '48px' : '32px' }}>
+              <div class={`flex ${isFullscreen ? 'ml-4' : 'ml-2'}`}>
+                {/* Gradient bar - stretches to match image height */}
                 <div
-                  class="flex-1 rounded"
+                  class="rounded self-stretch"
                   style={{
                     background: DBFS_GRADIENT,
-                    minHeight: isFullscreen ? '100px' : '60px',
                     width: isFullscreen ? '16px' : '12px',
                   }}
                 />
-                <div class={`flex flex-col justify-between text-xs mt-0.5 ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`} style={{ height: '100%' }}>
+                {/* dB labels positioned at top and bottom */}
+                <div class={`flex flex-col justify-between text-xs ml-1 py-0.5 ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
                   <span class="leading-none">0</span>
                   <span class="leading-none">dB</span>
                 </div>
