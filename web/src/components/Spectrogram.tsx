@@ -185,9 +185,21 @@ export function Spectrogram({
       )}
 
       <div class={`flex ${isFullscreen || hasHeightConstraint ? 'flex-1 min-h-0' : ''}`}>
-        {/* Y-axis (Frequency) */}
+        {/* Y-axis label (rotated) */}
         {showAxes && imageLoaded && (
-          <div class={`flex flex-col justify-between text-xs pr-1 py-0.5 ${isFullscreen ? 'text-gray-300 text-sm pr-2' : 'text-gray-500 dark:text-gray-400'}`} style={{ minWidth: isFullscreen ? '32px' : '24px' }}>
+          <div class={`flex items-center ${isFullscreen ? 'mr-1' : ''}`}>
+            <span
+              class={`text-xs whitespace-nowrap ${isFullscreen ? 'text-gray-400' : 'text-gray-400 dark:text-gray-500'}`}
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              Freq (kHz)
+            </span>
+          </div>
+        )}
+
+        {/* Y-axis numbers (Frequency) */}
+        {showAxes && imageLoaded && (
+          <div class={`flex flex-col justify-between text-xs pr-1 py-0.5 ${isFullscreen ? 'text-gray-300 text-sm pr-2' : 'text-gray-500 dark:text-gray-400'}`} style={{ minWidth: isFullscreen ? '28px' : '20px' }}>
             {freqLabels.slice().reverse().map((label, i) => (
               <span key={i} class="text-right leading-none">{label.label}</span>
             ))}
@@ -267,19 +279,22 @@ export function Spectrogram({
 
             {/* Color legend (dBFS scale) */}
             {showLegend && imageLoaded && (
-              <div class={`flex ${isFullscreen ? 'ml-4' : 'ml-2'}`}>
-                {/* Gradient bar - stretches to match image height */}
-                <div
-                  class="rounded self-stretch"
-                  style={{
-                    background: DBFS_GRADIENT,
-                    width: isFullscreen ? '16px' : '12px',
-                  }}
-                />
-                {/* dB labels positioned at top and bottom */}
-                <div class={`flex flex-col justify-between text-xs ml-1 py-0.5 ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
-                  <span class="leading-none">0</span>
-                  <span class="leading-none">dB</span>
+              <div class={`flex flex-col items-center ${isFullscreen ? 'ml-4' : 'ml-2'}`}>
+                <span class={`text-xs mb-0.5 ${isFullscreen ? 'text-gray-400' : 'text-gray-400 dark:text-gray-500'}`}>dBFS</span>
+                <div class="flex flex-1">
+                  {/* Gradient bar - stretches to match image height */}
+                  <div
+                    class="rounded self-stretch"
+                    style={{
+                      background: DBFS_GRADIENT,
+                      width: isFullscreen ? '16px' : '12px',
+                    }}
+                  />
+                  {/* dB labels positioned at top and bottom */}
+                  <div class={`flex flex-col justify-between text-xs ml-1 py-0.5 ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <span class="leading-none">0</span>
+                    <span class="leading-none">-80</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -296,11 +311,10 @@ export function Spectrogram({
         </div>
       </div>
 
-      {/* Axis labels */}
+      {/* X-axis label */}
       {showAxes && imageLoaded && (
-        <div class={`flex justify-between text-xs mt-0.5 ${isFullscreen ? 'text-gray-400 ml-8 mt-2' : 'text-gray-400 dark:text-gray-500 ml-6'}`}>
+        <div class={`text-xs text-center mt-0.5 ${isFullscreen ? 'text-gray-400 mt-2' : 'text-gray-400 dark:text-gray-500'}`}>
           <span>Time (seconds)</span>
-          <span class={isFullscreen ? 'mr-12' : 'mr-8'}>Freq (kHz)</span>
         </div>
       )}
     </div>
