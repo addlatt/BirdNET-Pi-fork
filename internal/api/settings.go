@@ -137,8 +137,8 @@ func (h *Handlers) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	// Build validation map from update for schema validation
 	validationMap := buildValidationMap(&update)
 
-	// Validate against schema
-	validationErrors := h.configMgr.Validate(validationMap)
+	// Validate against schema (use ValidateUpdate for partial updates, not Validate)
+	validationErrors := h.configMgr.ValidateUpdate(validationMap)
 
 	// Combine all errors
 	allErrors := append(specialErrors, validationErrors...)

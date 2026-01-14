@@ -519,7 +519,8 @@ func (s *Schema) Validate(key string, value interface{}) *ValidationError {
 	return nil
 }
 
-// ValidateAll validates all fields in a map of values.
+// ValidateAll validates all fields in a map of values, including required field checks.
+// Use this for validating a complete configuration (e.g., initial setup).
 func (s *Schema) ValidateAll(values map[string]interface{}) []ValidationError {
 	var errors []ValidationError
 
@@ -534,6 +535,22 @@ func (s *Schema) ValidateAll(values map[string]interface{}) []ValidationError {
 	}
 
 	// Validate each field
+	for key, value := range values {
+		if err := s.Validate(key, value); err != nil {
+			errors = append(errors, *err)
+		}
+	}
+
+	return errors
+}
+
+// ValidateUpdate validates only the fields present in a map of values.
+// Unlike ValidateAll, this does NOT check for required fields - use this for partial updates
+// where we only want to validate the fields being changed.
+func (s *Schema) ValidateUpdate(values map[string]interface{}) []ValidationError {
+	var errors []ValidationError
+
+	// Only validate the fields that are being updated
 	for key, value := range values {
 		if err := s.Validate(key, value); err != nil {
 			errors = append(errors, *err)

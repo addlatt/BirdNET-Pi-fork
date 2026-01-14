@@ -123,9 +123,16 @@ func (m *Manager) Update(update *ConfigUpdate) (changed []string, servicesToRest
 	return changed, servicesToRestart, nil
 }
 
-// Validate validates a map of configuration values.
+// Validate validates a map of configuration values, including required field checks.
+// Use this for validating a complete configuration (e.g., initial setup).
 func (m *Manager) Validate(values map[string]interface{}) []ValidationError {
 	return m.schema.ValidateAll(values)
+}
+
+// ValidateUpdate validates only the fields present in the map.
+// Use this for partial updates where we only want to validate changed fields.
+func (m *Manager) ValidateUpdate(values map[string]interface{}) []ValidationError {
+	return m.schema.ValidateUpdate(values)
 }
 
 // GetAppriseConfig reads the Apprise notification configuration.
