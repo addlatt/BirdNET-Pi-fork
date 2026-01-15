@@ -80,11 +80,21 @@ export function Spectrogram(): JSX.Element {
   }, [loadData]);
 
   // Initialize Web Audio API
-  const initializeAudio = useCallback(() => {
+  const initializeAudio = useCallback(async () => {
     if (!audioRef.current || audioInitializedRef.current) return;
 
     try {
-      const audioContext = new AudioContext();
+      // Create AudioContext - on iOS this may be suspended until user gesture
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      console.log('AudioContext created, state:', audioContext.state);
+
+      // On iOS/mobile, AudioContext starts suspended - resume it
+      if (audioContext.state === 'suspended') {
+        console.log('Resuming suspended AudioContext...');
+        await audioContext.resume();
+        console.log('AudioContext resumed, state:', audioContext.state);
+      }
+
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
 
@@ -111,10 +121,13 @@ export function Spectrogram(): JSX.Element {
       sourceRef.current = source;
       audioInitializedRef.current = true;
 
+      console.log('Audio pipeline initialized successfully');
+
       // Start the visualization loop
       startVisualization();
     } catch (err) {
       console.error('Failed to initialize audio:', err);
+      setError(`Audio initialization failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, [gain]);
 
@@ -243,25 +256,43 @@ export function Spectrogram(): JSX.Element {
       try {
         // Initialize audio on first play (required for user gesture)
         if (!audioInitializedRef.current) {
-          initializeAudio();
+          await initializeAudio();
         }
 
         // Resume audio context if suspended (critical for mobile)
         if (audioContextRef.current?.state === 'suspended') {
-          console.log('Resuming suspended AudioContext...');
+          console.log('Resuming suspended AudioContext in toggleAudio...');
           await audioContextRef.current.resume();
+          console.log('AudioContext state after resume:', audioContextRef.current.state);
         }
 
         // Force reload the audio source to ensure fresh connection
+        console.log('Loading audio stream from:', audioRef.current.src);
         audioRef.current.load();
 
+        console.log('Attempting to play...');
         await audioRef.current.play();
+        console.log('Play started, audio paused:', audioRef.current.paused);
         setIsPlaying(true);
 
         // Clear timeout once playing starts successfully
         audioRef.current.addEventListener('playing', () => {
+          console.log('Playing event fired - clearing timeout');
           clearTimeout(connectionTimeout);
         }, { once: true });
+
+        // Fallback: if audio is playing but analyser isn't receiving data,
+        // still consider it successful after a few seconds
+        setTimeout(() => {
+          if (audioRef.current && !audioRef.current.paused && audioRef.current.currentTime > 0) {
+            console.log('Audio is playing (currentTime:', audioRef.current.currentTime, ')');
+            if (!dataReceivedRef.current) {
+              console.log('No analyser data but audio is playing - hiding spinner');
+              setStreamLoading(false);
+              clearTimeout(connectionTimeout);
+            }
+          }
+        }, 3000);
 
       } catch (err) {
         clearTimeout(connectionTimeout);
