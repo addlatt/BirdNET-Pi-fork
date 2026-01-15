@@ -33,6 +33,8 @@ export function Spectrogram(): JSX.Element {
   const [gain, setGain] = useState(100);
   const [compressionEnabled, setCompressionEnabled] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [useStaticSpectrogram, setUseStaticSpectrogram] = useState(false);
+  const [staticImageKey, setStaticImageKey] = useState(0);
 
   // Refs for audio and canvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -326,7 +328,7 @@ export function Spectrogram(): JSX.Element {
         }, { once: true });
 
         // Fallback: if audio is playing but analyser isn't receiving data,
-        // still consider it successful after a few seconds
+        // switch to static spectrogram mode after a few seconds
         setTimeout(() => {
           if (audioRef.current && !audioRef.current.paused && audioRef.current.currentTime > 0) {
             console.log('Audio is playing (currentTime:', audioRef.current.currentTime, ')');
@@ -341,8 +343,9 @@ export function Spectrogram(): JSX.Element {
               console.log('Analyser data check - has data:', hasData, 'sample values:', testArray.slice(0, 10));
 
               if (!hasData) {
-                console.warn('Audio playing but analyser receiving no data - likely CORS restriction on mobile');
-                // Audio is playing but we can't visualize - this is OK, just no spectrogram
+                console.warn('Audio playing but analyser receiving no data - switching to static spectrogram');
+                // Fall back to static spectrogram image which is generated server-side
+                setUseStaticSpectrogram(true);
               }
             }
           }
@@ -506,6 +509,24 @@ export function Spectrogram(): JSX.Element {
     };
   }, []);
 
+  // Refresh static spectrogram image periodically when in static mode
+  useEffect(() => {
+    if (!useStaticSpectrogram || !isPlaying) return;
+
+    const refreshInterval = setInterval(() => {
+      setStaticImageKey(k => k + 1);
+    }, (info?.refresh_seconds || 3) * 1000);
+
+    return () => clearInterval(refreshInterval);
+  }, [useStaticSpectrogram, isPlaying, info?.refresh_seconds]);
+
+  // Reset static mode when stopping
+  useEffect(() => {
+    if (!isPlaying) {
+      setUseStaticSpectrogram(false);
+    }
+  }, [isPlaying]);
+
   // Format confidence as percentage
   const formatConfidence = (confidence: number): string => {
     return `${Math.round(confidence * 100)}%`;
@@ -663,9 +684,24 @@ export function Spectrogram(): JSX.Element {
                 </div>
               </div>
             )}
+            {/* Show static spectrogram image when Web Audio can't analyze (mobile CORS) */}
+            {useStaticSpectrogram && isPlaying && (
+              <>
+                <img
+                  key={staticImageKey}
+                  src={`/spectrogram.png?t=${staticImageKey}`}
+                  alt="Live spectrogram"
+                  class="w-full h-full object-contain"
+                />
+                <div class="absolute bottom-2 left-2 px-2 py-1 bg-black/60 rounded text-xs text-gray-300">
+                  Static mode (refreshes every {info?.refresh_seconds || 3}s)
+                </div>
+              </>
+            )}
+            {/* Canvas for Web Audio visualization (hidden when using static fallback) */}
             <canvas
               ref={canvasRef}
-              class="w-full h-full"
+              class={`w-full h-full ${useStaticSpectrogram ? 'hidden' : ''}`}
             />
           </div>
 
