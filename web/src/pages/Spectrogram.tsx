@@ -227,21 +227,55 @@ export function Spectrogram(): JSX.Element {
     } else {
       // Show loading indicator while stream connects
       setStreamLoading(true);
+      setError(null);
 
-      // Initialize audio on first play (required for user gesture)
-      if (!audioInitializedRef.current) {
-        initializeAudio();
-      }
-      // Resume audio context if suspended
-      if (audioContextRef.current?.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
+      // Set a timeout to prevent infinite loading on mobile
+      const connectionTimeout = setTimeout(() => {
+        if (!dataReceivedRef.current && audioRef.current) {
+          console.warn('Stream connection timed out');
+          audioRef.current.pause();
+          setStreamLoading(false);
+          setIsPlaying(false);
+          setError('Stream connection timed out. Check if the livestream service is running.');
+        }
+      }, 15000); // 15 second timeout
+
       try {
+        // Initialize audio on first play (required for user gesture)
+        if (!audioInitializedRef.current) {
+          initializeAudio();
+        }
+
+        // Resume audio context if suspended (critical for mobile)
+        if (audioContextRef.current?.state === 'suspended') {
+          console.log('Resuming suspended AudioContext...');
+          await audioContextRef.current.resume();
+        }
+
+        // Force reload the audio source to ensure fresh connection
+        audioRef.current.load();
+
         await audioRef.current.play();
         setIsPlaying(true);
+
+        // Clear timeout once playing starts successfully
+        audioRef.current.addEventListener('playing', () => {
+          clearTimeout(connectionTimeout);
+        }, { once: true });
+
       } catch (err) {
+        clearTimeout(connectionTimeout);
         console.error('Failed to play audio:', err);
         setStreamLoading(false);
+        // Provide helpful error message for mobile users
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        if (errorMsg.includes('NotAllowedError') || errorMsg.includes('user gesture')) {
+          setError('Please tap the play button to start audio (browser requires user interaction)');
+        } else if (errorMsg.includes('NotSupportedError')) {
+          setError('Audio format not supported on this device');
+        } else {
+          setError(`Failed to play: ${errorMsg}`);
+        }
       }
     }
   }, [isPlaying, initializeAudio]);
@@ -252,25 +286,58 @@ export function Spectrogram(): JSX.Element {
     if (!audio) return;
 
     const handlePlaying = () => {
+      console.log('Audio playing event fired');
       setStreamLoading(false);
+      setError(null);
     };
 
     const handleWaiting = () => {
+      console.log('Audio waiting/buffering...');
       if (isPlaying) setStreamLoading(true);
     };
 
-    const handleError = () => {
+    const handleError = (e: Event) => {
+      const audioEl = e.target as HTMLAudioElement;
+      const mediaError = audioEl.error;
+      console.error('Audio error:', mediaError);
       setStreamLoading(false);
+      setIsPlaying(false);
+
+      // Provide specific error messages
+      if (mediaError) {
+        switch (mediaError.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            setError('Stream playback was aborted');
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            setError('Network error - check your connection or if the stream is available');
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            setError('Audio decode error - format may not be supported on this device');
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            setError('Stream format not supported. The livestream service may not be running.');
+            break;
+          default:
+            setError(`Audio error: ${mediaError.message || 'Unknown error'}`);
+        }
+      }
+    };
+
+    const handleStalled = () => {
+      console.log('Audio stalled - stream may be unavailable');
     };
 
     audio.addEventListener('playing', handlePlaying);
     audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('error', handleError);
+    audio.addEventListener('stalled', handleStalled);
 
     return () => {
       audio.removeEventListener('playing', handlePlaying);
       audio.removeEventListener('waiting', handleWaiting);
       audio.removeEventListener('error', handleError);
+      audio.removeEventListener('stalled', handleStalled);
     };
   }, [isPlaying]);
 
@@ -394,18 +461,18 @@ export function Spectrogram(): JSX.Element {
         {/* Spectrogram Canvas */}
         <div class="lg:col-span-3 card overflow-hidden">
           {/* Controls bar */}
-          <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-4">
+          <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-3 sm:gap-4">
             <button
               onClick={toggleAudio}
-              class="flex items-center justify-center w-10 h-10 rounded-full bg-primary-600 hover:bg-primary-700 text-white transition-colors"
+              class="flex items-center justify-center w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-primary-600 hover:bg-primary-700 text-white transition-colors touch-manipulation"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                 </svg>
               ) : (
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -470,25 +537,44 @@ export function Spectrogram(): JSX.Element {
           </div>
 
           {/* Canvas container */}
-          <div class="relative bg-gray-900" style={{ height: '60vh' }}>
+          <div class="relative bg-gray-900" style={{ height: '60vh', minHeight: '300px' }}>
             {/* Loading spinner overlay */}
             {streamLoading && (
               <div class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
-                <div class="text-center">
-                  <div class="animate-spin rounded-full h-16 w-16 border-4 border-primary-600 border-t-transparent mx-auto mb-4"></div>
-                  <p class="text-gray-400 text-lg">Connecting to stream...</p>
+                <div class="text-center px-4">
+                  <div class="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-primary-600 border-t-transparent mx-auto mb-4"></div>
+                  <p class="text-gray-400 text-base sm:text-lg">Connecting to stream...</p>
+                  <p class="text-gray-500 text-sm mt-2">This may take a few seconds</p>
+                </div>
+              </div>
+            )}
+            {/* Error overlay */}
+            {error && !streamLoading && !isPlaying && (
+              <div class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
+                <div class="text-center px-4 max-w-md">
+                  <svg class="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p class="text-red-400 text-base sm:text-lg mb-2">Stream Error</p>
+                  <p class="text-gray-400 text-sm">{error}</p>
+                  <button
+                    onClick={() => { setError(null); toggleAudio(); }}
+                    class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors touch-manipulation"
+                  >
+                    Try Again
+                  </button>
                 </div>
               </div>
             )}
             {/* Play prompt overlay */}
-            {!isPlaying && !streamLoading && (
+            {!isPlaying && !streamLoading && !error && (
               <div class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
-                <div class="text-center">
-                  <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="text-center px-4">
+                  <svg class="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p class="text-gray-400 text-lg">Click play to start live spectrogram</p>
+                  <p class="text-gray-400 text-base sm:text-lg">Tap play to start live spectrogram</p>
                 </div>
               </div>
             )}
