@@ -124,7 +124,9 @@ export function Spectrogram(): JSX.Element {
       console.log('Audio pipeline initialized successfully');
 
       // Start the visualization loop
+      console.log('Starting visualization loop...');
       startVisualization();
+      console.log('Visualization loop started');
     } catch (err) {
       console.error('Failed to initialize audio:', err);
       setError(`Audio initialization failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -135,31 +137,70 @@ export function Spectrogram(): JSX.Element {
   const startVisualization = useCallback(() => {
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
-    if (!canvas || !analyser) return;
+    if (!canvas || !analyser) {
+      console.warn('startVisualization: canvas or analyser not ready', { canvas: !!canvas, analyser: !!analyser });
+      return;
+    }
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
+    if (!ctx) {
+      console.warn('startVisualization: could not get canvas context');
+      return;
+    }
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
     const bufferLength = dataArray.length;
 
-    // Set canvas size
+    // Track current dimensions (updated on resize)
+    let W = 0;
+    let H = 0;
+    let h = 0;
+
+    // Set canvas size - use display dimensions directly for scrolling spectrogram
+    // (devicePixelRatio scaling conflicts with getImageData/putImageData scrolling)
     const resize = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      const rect = canvas.getBoundingClientRect();
+
+      // Skip if container has no size yet
+      if (rect.width === 0 || rect.height === 0) {
+        console.log('Canvas container has no size yet, skipping resize');
+        return;
+      }
+
+      // Set canvas size to match display size
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      // Update cached dimensions
+      W = rect.width;
+      H = rect.height;
+      h = H / bufferLength + 0.9;
+
+      console.log('Canvas resized:', { W, H, bufferLength, h });
+
       // Fill with dark background
       ctx.fillStyle = 'hsl(280, 100%, 10%)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, W, H);
     };
     resize();
     window.addEventListener('resize', resize);
 
-    const W = canvas.width;
-    const H = canvas.height;
-    const h = H / bufferLength + 0.9;
-    const x = W - 1;
-
+    let frameCount = 0;
     const loop = (time: number) => {
+      // Skip if canvas has no size yet
+      if (W === 0 || H === 0) {
+        resize(); // Try to get size
+        animationRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
+      frameCount++;
+      // Log first few frames to confirm loop is running
+      if (frameCount <= 5) {
+        console.log(`Visualization frame ${frameCount}: canvas=${W}x${H}`);
+      }
+
+      const x = W - 1;
       // Calculate FPS
       if (lastFrameTimeRef.current) {
         const fps = Math.round(1000 / (time - lastFrameTimeRef.current));
@@ -184,8 +225,11 @@ export function Spectrogram(): JSX.Element {
       if (!dataReceivedRef.current) {
         const hasData = dataArray.some(v => v > 0);
         if (hasData) {
+          console.log('First frequency data received! Sample values:', dataArray.slice(0, 10));
           dataReceivedRef.current = true;
           setStreamLoading(false);
+        } else if (frameCount <= 5) {
+          console.log('No frequency data yet, sample values:', dataArray.slice(0, 10));
         }
       }
 
@@ -286,10 +330,20 @@ export function Spectrogram(): JSX.Element {
         setTimeout(() => {
           if (audioRef.current && !audioRef.current.paused && audioRef.current.currentTime > 0) {
             console.log('Audio is playing (currentTime:', audioRef.current.currentTime, ')');
-            if (!dataReceivedRef.current) {
-              console.log('No analyser data but audio is playing - hiding spinner');
-              setStreamLoading(false);
-              clearTimeout(connectionTimeout);
+            clearTimeout(connectionTimeout);
+            setStreamLoading(false);
+
+            if (!dataReceivedRef.current && analyserRef.current) {
+              // Check if analyser is actually getting data
+              const testArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+              analyserRef.current.getByteFrequencyData(testArray);
+              const hasData = testArray.some(v => v > 0);
+              console.log('Analyser data check - has data:', hasData, 'sample values:', testArray.slice(0, 10));
+
+              if (!hasData) {
+                console.warn('Audio playing but analyser receiving no data - likely CORS restriction on mobile');
+                // Audio is playing but we can't visualize - this is OK, just no spectrogram
+              }
             }
           }
         }, 3000);
