@@ -179,7 +179,7 @@ export function SpeciesTable({
     );
   };
 
-  // Toggle icon component
+  // Toggle icon component - larger touch target on mobile (44px), smaller on desktop
   const ToggleIcon = ({
     isActive,
     onClick,
@@ -193,17 +193,19 @@ export function SpeciesTable({
   }) => {
     if (isLoading) {
       return (
-        <div class="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-primary-500" />
+        <div class="w-11 h-11 sm:w-4 sm:h-4 flex items-center justify-center">
+          <div class="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-primary-500" />
+        </div>
       );
     }
     return (
       <button
         onClick={onClick}
         title={title}
-        class="w-4 h-4 flex items-center justify-center transition-colors"
+        class="w-11 h-11 sm:w-6 sm:h-6 flex items-center justify-center transition-colors touch-manipulation"
       >
         {isActive ? (
-          <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="w-5 h-5 sm:w-4 sm:h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
             <path
               fill-rule="evenodd"
               d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -211,7 +213,7 @@ export function SpeciesTable({
             />
           </svg>
         ) : (
-          <span class="w-3 h-3 border border-gray-400 rounded-full hover:border-gray-600 dark:border-gray-500 dark:hover:border-gray-300" />
+          <span class="w-4 h-4 sm:w-3 sm:h-3 border border-gray-400 rounded-full hover:border-gray-600 dark:border-gray-500 dark:hover:border-gray-300" />
         )}
       </button>
     );
@@ -241,54 +243,59 @@ export function SpeciesTable({
           <thead class="bg-gray-50 dark:bg-gray-800">
             <tr>
               <th
-                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => handleSort('com_name')}
               >
-                Common Name
+                <span class="hidden sm:inline">Common </span>Name
                 <SortIndicator column="com_name" />
               </th>
               <th
-                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => handleSort('sci_name')}
               >
                 Scientific Name
                 <SortIndicator column="sci_name" />
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th class="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Stats
               </th>
               <th
-                class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="px-2 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => handleSort('detection_count')}
               >
-                Count
+                <span class="sm:hidden">#</span>
+                <span class="hidden sm:inline">Count</span>
                 <SortIndicator column="detection_count" />
               </th>
               <th
-                class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="px-2 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => handleSort('max_confidence')}
               >
-                Max Conf
+                <span class="sm:hidden">Conf</span>
+                <span class="hidden sm:inline">Max Conf</span>
                 <SortIndicator column="max_confidence" />
               </th>
               <th
-                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => handleSort('last_seen')}
               >
                 Last Seen
                 <SortIndicator column="last_seen" />
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Confirmed
+              <th class="hidden sm:table-cell px-2 sm:px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <span class="hidden md:inline">Confirmed</span>
+                <span class="md:hidden" title="Confirmed">✓</span>
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Excluded
+              <th class="hidden sm:table-cell px-2 sm:px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <span class="hidden md:inline">Excluded</span>
+                <span class="md:hidden" title="Excluded">✗</span>
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Whitelisted
+              <th class="hidden sm:table-cell px-2 sm:px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <span class="hidden md:inline">Whitelisted</span>
+                <span class="md:hidden" title="Whitelisted">★</span>
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Delete
+              <th class="px-2 sm:px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <span class="sr-only">Delete</span>
               </th>
             </tr>
           </thead>
@@ -308,24 +315,31 @@ export function SpeciesTable({
 
                 return (
                   <tr key={s.sci_name} class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td class="px-4 py-3 whitespace-nowrap">
+                    {/* Common Name - always visible */}
+                    <td class="px-2 sm:px-4 py-3 whitespace-nowrap">
                       <a
                         href={`/app/detections?species=${encodeURIComponent(s.sci_name)}`}
                         class="text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
                       >
                         {s.com_name}
                       </a>
+                      {/* Show scientific name below on mobile */}
+                      <div class="md:hidden text-xs text-gray-500 dark:text-gray-400 italic truncate max-w-[150px]">
+                        {s.sci_name}
+                      </div>
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 italic">
+                    {/* Scientific Name - hidden on mobile */}
+                    <td class="hidden md:table-cell px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 italic">
                       {s.sci_name}
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                    {/* Stats/Chart - hidden on mobile/tablet */}
+                    <td class="hidden lg:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-center">
                       <button
                         onClick={() => setChartSpecies({ sciName: s.sci_name, comName: s.com_name })}
-                        class="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                        class="w-11 h-11 sm:w-auto sm:h-auto p-0 sm:p-0 flex items-center justify-center text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors touch-manipulation"
                         title="View detection history"
                       >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
@@ -335,16 +349,20 @@ export function SpeciesTable({
                         </svg>
                       </button>
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                    {/* Count - always visible */}
+                    <td class="px-2 sm:px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                       {s.detection_count}
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                      {(s.max_confidence * 100).toFixed(1)}%
+                    {/* Max Confidence - always visible */}
+                    <td class="px-2 sm:px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                      {(s.max_confidence * 100).toFixed(0)}%
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {/* Last Seen - hidden on mobile/tablet */}
+                    <td class="hidden lg:table-cell px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {s.last_seen || '-'}
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                    {/* Confirmed - hidden on mobile */}
+                    <td class="hidden sm:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-center">
                       <ToggleIcon
                         isActive={isConfirmed}
                         onClick={() => onToggleList('confirmed', s.sci_name, isConfirmed ? 'remove' : 'add')}
@@ -352,7 +370,8 @@ export function SpeciesTable({
                         title={isConfirmed ? 'Remove from confirmed' : 'Add to confirmed'}
                       />
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                    {/* Excluded - hidden on mobile */}
+                    <td class="hidden sm:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-center">
                       <ToggleIcon
                         isActive={isExcluded}
                         onClick={() => onToggleList('excluded', s.sci_name, isExcluded ? 'remove' : 'add')}
@@ -360,7 +379,8 @@ export function SpeciesTable({
                         title={isExcluded ? 'Remove from excluded' : 'Add to excluded'}
                       />
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                    {/* Whitelisted - hidden on mobile */}
+                    <td class="hidden sm:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-center">
                       <ToggleIcon
                         isActive={isWhitelisted}
                         onClick={() => onToggleList('whitelisted', s.sci_name, isWhitelisted ? 'remove' : 'add')}
@@ -368,13 +388,14 @@ export function SpeciesTable({
                         title={isWhitelisted ? 'Remove from whitelist' : 'Add to whitelist'}
                       />
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                    {/* Delete - always visible */}
+                    <td class="px-2 sm:px-4 py-3 whitespace-nowrap text-center">
                       <button
                         onClick={() => onDeleteSpecies(s.sci_name, s.com_name)}
-                        class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                        class="w-11 h-11 sm:w-auto sm:h-auto flex items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors touch-manipulation"
                         title="Delete all detections for this species"
                       >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             stroke-linecap="round"
                             stroke-linejoin="round"

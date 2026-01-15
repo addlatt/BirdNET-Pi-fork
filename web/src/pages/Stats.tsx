@@ -117,18 +117,18 @@ export function Stats(): JSX.Element {
 
   return (
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Statistics</h1>
+      <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Statistics</h1>
         <select
-          class="input w-40"
+          class="input w-32 sm:w-40 text-sm sm:text-base"
           value={days}
           onChange={(e) => setDays(parseInt((e.target as HTMLSelectElement).value, 10))}
         >
-          <option value={1}>Last 1 day</option>
-          <option value={7}>Last 7 days</option>
-          <option value={14}>Last 14 days</option>
-          <option value={30}>Last 30 days</option>
-          <option value={90}>Last 90 days</option>
+          <option value={1}>1 day</option>
+          <option value={7}>7 days</option>
+          <option value={14}>14 days</option>
+          <option value={30}>30 days</option>
+          <option value={90}>90 days</option>
         </select>
       </div>
 
@@ -144,7 +144,7 @@ export function Stats(): JSX.Element {
       {stats && <StatsCards stats={stats} />}
 
       {/* Activity Patterns + Top Species Row */}
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Activity Patterns */}
         {activityPatterns && (
           <div class="card">
@@ -221,7 +221,7 @@ export function Stats(): JSX.Element {
       </div>
 
       {/* Hourly Distribution + Daily Stats Row */}
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Hourly Distribution with Labels */}
         {stats?.hourly_distribution && stats.hourly_distribution.length > 0 && (
           <div class="card">
@@ -322,13 +322,13 @@ export function Stats(): JSX.Element {
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">All Species</h2>
               <span class="text-sm text-gray-500 dark:text-gray-400">{species.length} species</span>
             </div>
-            {/* Sort buttons */}
+            {/* Sort buttons - larger touch targets on mobile */}
             <div class="flex gap-1">
               {SORT_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setSortBy(option.value)}
-                  class={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  class={`px-3 py-2 sm:py-1.5 text-sm rounded-md transition-colors touch-manipulation ${
                     sortBy === option.value
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -350,26 +350,32 @@ export function Stats(): JSX.Element {
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-gray-500 dark:text-gray-400">
-                  <th class="pb-2">Common Name</th>
-                  <th class="pb-2">Scientific Name</th>
-                  <th class="pb-2 text-right">Detections</th>
-                  <th class="pb-2 text-right">Max Conf</th>
-                  {sortBy === 'date' && <th class="pb-2 text-right">Last Seen</th>}
+                  <th class="pb-2">Name</th>
+                  <th class="hidden sm:table-cell pb-2">Scientific Name</th>
+                  <th class="pb-2 text-right">#</th>
+                  <th class="pb-2 text-right">Conf</th>
+                  {sortBy === 'date' && <th class="hidden sm:table-cell pb-2 text-right">Last Seen</th>}
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {species.map((s) => (
                   <tr
                     key={s.sci_name}
-                    class="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                    class="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors touch-manipulation"
                     onClick={() => setSelectedSpecies(s.com_name)}
                   >
-                    <td class="py-2 font-medium">{s.com_name}</td>
-                    <td class="py-2 italic text-gray-500 dark:text-gray-400">{s.sci_name}</td>
-                    <td class="py-2 text-right">{s.detection_count}</td>
-                    <td class="py-2 text-right">{Math.round(s.max_confidence * 100)}%</td>
+                    <td class="py-2.5 sm:py-2 font-medium">
+                      {s.com_name}
+                      {/* Show sci name below on mobile */}
+                      <div class="sm:hidden text-xs text-gray-500 dark:text-gray-400 italic truncate max-w-[180px]">
+                        {s.sci_name}
+                      </div>
+                    </td>
+                    <td class="hidden sm:table-cell py-2 italic text-gray-500 dark:text-gray-400">{s.sci_name}</td>
+                    <td class="py-2.5 sm:py-2 text-right">{s.detection_count}</td>
+                    <td class="py-2.5 sm:py-2 text-right">{Math.round(s.max_confidence * 100)}%</td>
                     {sortBy === 'date' && (
-                      <td class="py-2 text-right">{s.last_seen || '-'}</td>
+                      <td class="hidden sm:table-cell py-2 text-right">{s.last_seen || '-'}</td>
                     )}
                   </tr>
                 ))}

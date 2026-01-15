@@ -166,6 +166,19 @@ export function Spectrogram({
     onClick(Math.max(0, Math.min(1, percentage)));
   };
 
+  // Touch support for seeking
+  const handleTouch = (e: JSX.TargetedTouchEvent<HTMLDivElement>) => {
+    if (!onClick || !imageLoaded) return;
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const percentage = x / rect.width;
+    onClick(Math.max(0, Math.min(1, percentage)));
+  };
+
   const hasProgress = typeof progressPercent === 'number' && progressPercent >= 0;
   const showFullscreenButton = allowFullscreen && fullscreenSupported && imageLoaded;
 
@@ -211,8 +224,9 @@ export function Spectrogram({
           <div class={`flex items-stretch ${isFullscreen || hasHeightConstraint ? 'flex-1 min-h-0' : ''}`}>
             {/* Spectrogram image with overlays */}
             <div
-              class={`relative flex-1 ${onClick ? 'cursor-pointer' : ''} ${isFullscreen || hasHeightConstraint ? 'min-h-0' : ''}`}
+              class={`relative flex-1 ${onClick ? 'cursor-pointer touch-manipulation' : ''} ${isFullscreen || hasHeightConstraint ? 'min-h-0' : ''}`}
               onClick={handleClick}
+              onTouchStart={handleTouch}
             >
               {/* The raw spectrogram image */}
               {!imageError ? (
@@ -250,7 +264,7 @@ export function Spectrogram({
                 </>
               )}
 
-              {/* Fullscreen toggle button */}
+              {/* Fullscreen toggle button - larger touch target on mobile */}
               {showFullscreenButton && (
                 <button
                   type="button"
@@ -258,18 +272,18 @@ export function Spectrogram({
                     e.stopPropagation();
                     toggleFullscreen();
                   }}
-                  class={`absolute top-2 right-2 p-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-colors ${isFullscreen ? 'top-4 right-4 p-2' : ''}`}
+                  class={`absolute top-1 right-1 p-2.5 sm:p-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-colors touch-manipulation ${isFullscreen ? 'top-4 right-4 p-2' : ''}`}
                   title={isFullscreen ? 'Exit fullscreen (ESC)' : 'View fullscreen'}
                   aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                 >
                   {isFullscreen ? (
                     // Collapse/minimize icon
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   ) : (
                     // Expand/fullscreen icon
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                     </svg>
                   )}
@@ -277,21 +291,21 @@ export function Spectrogram({
               )}
             </div>
 
-            {/* Color legend (dBFS scale) */}
+            {/* Color legend (dBFS scale) - compact on mobile */}
             {showLegend && imageLoaded && (
-              <div class={`flex flex-col items-center ${isFullscreen ? 'ml-4' : 'ml-2'}`}>
-                <span class={`text-xs mb-0.5 ${isFullscreen ? 'text-gray-400' : 'text-gray-400 dark:text-gray-500'}`}>dBFS</span>
+              <div class={`flex flex-col items-center ${isFullscreen ? 'ml-4' : 'ml-1 sm:ml-2'}`}>
+                <span class={`text-xs mb-0.5 hidden sm:block ${isFullscreen ? 'text-gray-400' : 'text-gray-400 dark:text-gray-500'}`}>dBFS</span>
                 <div class="flex flex-1">
-                  {/* Gradient bar - stretches to match image height */}
+                  {/* Gradient bar - stretches to match image height, narrower on mobile */}
                   <div
-                    class="rounded self-stretch"
+                    class={`rounded self-stretch ${isFullscreen ? '' : 'w-2 sm:w-3'}`}
                     style={{
                       background: DBFS_GRADIENT,
-                      width: isFullscreen ? '16px' : '12px',
+                      width: isFullscreen ? '16px' : undefined,
                     }}
                   />
-                  {/* dB labels positioned at top and bottom */}
-                  <div class={`flex flex-col justify-between text-xs ml-1 py-0.5 ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {/* dB labels positioned at top and bottom - hide on mobile */}
+                  <div class={`flex-col justify-between text-xs ml-0.5 sm:ml-1 py-0.5 hidden sm:flex ${isFullscreen ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
                     <span class="leading-none">0</span>
                     <span class="leading-none">-80</span>
                   </div>

@@ -184,6 +184,7 @@ export function SliderInput({
           {formatValue(value)}
         </span>
       </div>
+      {/* Taller slider track on mobile for easier touch */}
       <input
         type="range"
         value={value}
@@ -192,8 +193,12 @@ export function SliderInput({
         max={max}
         step={step}
         disabled={disabled}
-        class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer
-               disabled:opacity-50 disabled:cursor-not-allowed"
+        class="w-full h-3 sm:h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer
+               disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation
+               [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 sm:[&::-webkit-slider-thumb]:h-4 sm:[&::-webkit-slider-thumb]:w-4
+               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:rounded-full
+               [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 sm:[&::-moz-range-thumb]:h-4 sm:[&::-moz-range-thumb]:w-4
+               [&::-moz-range-thumb]:bg-primary-600 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0"
       />
       <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
         <span>{formatValue(min)}</span>
@@ -342,18 +347,20 @@ export function ToggleInput({
 
   return (
     <div class="mb-4">
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex-1">
           <label class={labelClass.replace('mb-1', '')}>{label}</label>
           {helpText && <p class={helpTextClass}>{helpText}</p>}
         </div>
+        {/* Larger toggle on mobile for better touch targets */}
         <button
           type="button"
           onClick={handleChange}
           disabled={disabled}
           class={`
-            relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
+            relative inline-flex h-8 w-14 sm:h-6 sm:w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
             transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+            touch-manipulation
             ${value ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
@@ -362,9 +369,9 @@ export function ToggleInput({
         >
           <span
             class={`
-              pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
+              pointer-events-none inline-block h-7 w-7 sm:h-5 sm:w-5 transform rounded-full bg-white shadow ring-0
               transition duration-200 ease-in-out
-              ${value ? 'translate-x-5' : 'translate-x-0'}
+              ${value ? 'translate-x-6 sm:translate-x-5' : 'translate-x-0'}
             `}
           />
         </button>
@@ -401,13 +408,13 @@ export function CheckboxInput({
 
   return (
     <div class="mb-4">
-      <label class="flex items-start gap-3 cursor-pointer">
+      <label class="flex items-start gap-3 cursor-pointer touch-manipulation">
         <input
           type="checkbox"
           checked={value === 1}
           onChange={handleChange}
           disabled={disabled}
-          class="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-gray-600
+          class="mt-0.5 h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 dark:border-gray-600
                  text-primary-600 focus:ring-primary-500
                  disabled:opacity-50 disabled:cursor-not-allowed"
         />

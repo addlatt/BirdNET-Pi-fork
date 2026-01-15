@@ -32,15 +32,20 @@ export function Header(): JSX.Element {
     { href: '/app/services', label: 'Services' },
   ];
 
-  // Close settings dropdown when clicking outside
+  // Close settings dropdown when clicking/touching outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setIsSettingsOpen(false);
       }
     }
+    // Add both mousedown and touchstart for cross-device support
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   return (
@@ -98,9 +103,9 @@ export function Header(): JSX.Element {
             </div>
           </nav>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - 44px touch target */}
           <button
-            class="md:hidden p-2"
+            class="md:hidden p-3 -mr-2 touch-manipulation"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -114,14 +119,14 @@ export function Header(): JSX.Element {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - larger touch targets */}
         {isMenuOpen && (
           <nav class="md:hidden pb-4">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                class="block py-2 hover:text-primary-200 transition-colors font-medium"
+                class="block py-3 hover:text-primary-200 hover:bg-primary-700 -mx-4 px-4 transition-colors font-medium touch-manipulation"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {link.label}
@@ -135,7 +140,7 @@ export function Header(): JSX.Element {
               <a
                 key={link.href}
                 href={link.href}
-                class="block py-2 hover:text-primary-200 transition-colors font-medium"
+                class="block py-3 hover:text-primary-200 hover:bg-primary-700 -mx-4 px-4 transition-colors font-medium touch-manipulation"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {link.label}
