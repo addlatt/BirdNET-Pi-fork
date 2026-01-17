@@ -31,7 +31,7 @@ interface DetectionsProps {
 /**
  * Unified Detections page component.
  * Displays bird detections for any date with real-time updates when viewing today.
- * Uses URL parameter for date selection: /app/detections or /app/detections?date=2024-01-15
+ * Uses URL parameter for date selection: /detections or /detections?date=2024-01-15
  */
 export function Detections({ date }: DetectionsProps): JSX.Element {
   // Determine if we're viewing today
@@ -154,9 +154,9 @@ export function Detections({ date }: DetectionsProps): JSX.Element {
       setPage(1);
       // Update URL - use base path for today, query param for other dates
       if (newDate === today) {
-        route('/app/detections');
+        route('/detections');
       } else {
-        route(`/app/detections?date=${newDate}`);
+        route(`/detections?date=${newDate}`);
       }
     },
     [today]

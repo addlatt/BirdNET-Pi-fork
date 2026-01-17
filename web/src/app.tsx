@@ -20,15 +20,15 @@ export function App(): JSX.Element {
       <Header />
       <main class="container mx-auto px-4 py-6">
         <Router>
-          <Route path="/app/" component={Overview} />
-          <Route path="/app/detections" component={Detections} />
-          <Route path="/app/stats" component={Stats} />
-          <Route path="/app/species" component={SpeciesManagement} />
-          <Route path="/app/live" component={Spectrogram} />
-          <Route path="/app/recordings" component={Recordings} />
-          <Route path="/app/settings" component={Settings} />
-          <Route path="/app/advanced-settings" component={AdvancedSettings} />
-          <Route path="/app/services" component={ServiceControls} />
+          <Route path="/" component={Overview} />
+          <Route path="/detections" component={Detections} />
+          <Route path="/stats" component={Stats} />
+          <Route path="/species" component={SpeciesManagement} />
+          <Route path="/live" component={Spectrogram} />
+          <Route path="/recordings" component={Recordings} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/advanced-settings" component={AdvancedSettings} />
+          <Route path="/services" component={ServiceControls} />
           <Route default component={Overview} />
         </Router>
       </main>

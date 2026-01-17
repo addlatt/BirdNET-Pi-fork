@@ -2,38 +2,39 @@
 # This configuration serves both the legacy PHP application and the new Go API
 #
 # Paths are configured for typical BirdNET-Pi installation where:
-# - PHP app is at: /home/$USER/BirdNET-Pi/src/web/public
-# - Preact app is at: /home/$USER/BirdNET-Pi/web/dist
+# - PHP app is at: /home/$USER/BirdNET-Pi/src/web/public (served at /legacy)
+# - Preact app is at: /home/$USER/BirdNET-Pi/web/dist (served at /)
 # - Bird songs are at: /home/$USER/BirdSongs/Extracted
 
 http:// {
-	# Static assets (legacy PHP assets)
-	handle /assets/* {
-		root * /home/addlatt/BirdNET-Pi/src/web/public
-		file_server
-	}
-
 	# ==========================================================================
-	# NEW: Go API endpoints - proxy to Go server on port 8080
+	# Go API endpoints - proxy to Go server on port 8080
 	# ==========================================================================
 	handle /api/* {
 		reverse_proxy localhost:8080
 	}
 
 	# ==========================================================================
-	# NEW: WebSocket endpoint for real-time updates
+	# WebSocket endpoint for real-time updates
 	# ==========================================================================
 	handle /ws {
 		reverse_proxy localhost:8080
 	}
 
 	# ==========================================================================
-	# NEW: Preact app - serve static files from web/dist
+	# Legacy PHP app - served at /legacy
 	# ==========================================================================
-	# Use handle_path to automatically strip /app prefix and serve SPA
-	handle_path /app* {
-		root * /home/addlatt/BirdNET-Pi/web/dist
-		try_files {path} /index.html
+	handle_path /legacy* {
+		root * /home/addlatt/BirdNET-Pi/src/web/public
+		php_fastcgi unix//run/php/php-fpm.sock {
+			try_files {path} /index.php
+		}
+		file_server
+	}
+
+	# Static assets for legacy PHP app
+	handle /assets/* {
+		root * /home/addlatt/BirdNET-Pi/src/web/public
 		file_server
 	}
 
@@ -77,12 +78,12 @@ http:// {
 		reverse_proxy localhost:8888
 	}
 
-	# PHP front controller (default handler for legacy PHP app)
+	# ==========================================================================
+	# Preact app - default handler, served at /
+	# ==========================================================================
 	handle {
-		root * /home/addlatt/BirdNET-Pi/src/web/public
-		php_fastcgi unix//run/php/php-fpm.sock {
-			try_files {path} /index.php
-		}
+		root * /home/addlatt/BirdNET-Pi/web/dist
+		try_files {path} /index.html
 		file_server
 	}
 }

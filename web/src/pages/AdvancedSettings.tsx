@@ -457,7 +457,7 @@ export function AdvancedSettings(): JSX.Element {
       {/* Link to Basic Settings */}
       <div class="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <p class="text-gray-600 dark:text-gray-400">
-          <a href="/app/settings" class="text-primary-600 hover:underline">
+          <a href="/settings" class="text-primary-600 hover:underline">
             Basic Settings
           </a>{' '}
           for common configuration options like location, model, and notifications.

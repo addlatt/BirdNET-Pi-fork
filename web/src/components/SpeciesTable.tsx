@@ -318,7 +318,7 @@ export function SpeciesTable({
                     {/* Common Name - always visible */}
                     <td class="px-2 sm:px-4 py-3 whitespace-nowrap">
                       <a
-                        href={`/app/detections?species=${encodeURIComponent(s.sci_name)}`}
+                        href={`/detections?species=${encodeURIComponent(s.sci_name)}`}
                         class="text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
                       >
                         {s.com_name}

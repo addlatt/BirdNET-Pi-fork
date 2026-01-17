@@ -426,7 +426,7 @@ export function Settings(): JSX.Element {
       <div class="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <p class="text-gray-600 dark:text-gray-400">
           Need more options?{' '}
-          <a href="/app/advanced-settings" class="text-primary-600 hover:underline">
+          <a href="/advanced-settings" class="text-primary-600 hover:underline">
             Advanced Settings
           </a>{' '}
           includes privacy controls, disk management, passwords, and service configuration.

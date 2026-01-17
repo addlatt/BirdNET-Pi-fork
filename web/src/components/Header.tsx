@@ -18,18 +18,18 @@ export function Header(): JSX.Element {
   const settingsRef = useRef<HTMLDivElement>(null);
 
   const navLinks: NavLink[] = [
-    { href: '/app/', label: 'Overview' },
-    { href: '/app/live', label: 'Live' },
-    { href: '/app/detections', label: 'Detections' },
-    { href: '/app/recordings', label: 'Play' },
-    { href: '/app/stats', label: 'Stats' },
-    { href: '/app/species', label: 'Species' },
+    { href: '/', label: 'Overview' },
+    { href: '/live', label: 'Live' },
+    { href: '/detections', label: 'Detections' },
+    { href: '/recordings', label: 'Play' },
+    { href: '/stats', label: 'Stats' },
+    { href: '/species', label: 'Species' },
   ];
 
   const settingsLinks: NavLink[] = [
-    { href: '/app/settings', label: 'Settings' },
-    { href: '/app/advanced-settings', label: 'Advanced' },
-    { href: '/app/services', label: 'Services' },
+    { href: '/settings', label: 'Settings' },
+    { href: '/advanced-settings', label: 'Advanced' },
+    { href: '/services', label: 'Services' },
   ];
 
   // Close settings dropdown when clicking/touching outside
@@ -53,7 +53,7 @@ export function Header(): JSX.Element {
       <div class="container mx-auto px-4">
         <div class="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="/app/" class="flex items-center space-x-2">
+          <a href="/" class="flex items-center space-x-2">
             <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
