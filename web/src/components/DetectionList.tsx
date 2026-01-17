@@ -79,7 +79,6 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   // Build external info URLs
   const wikipediaUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(detection.sci_name.replace(/ /g, '_'))}`;
   const allAboutBirdsUrl = `https://www.allaboutbirds.org/guide/${encodeURIComponent(detection.com_name.replace(/ /g, '_'))}`;
-  const eBirdUrl = `https://ebird.org/species/${encodeURIComponent(detection.sci_name.toLowerCase().replace(/ /g, ''))}`;
 
   // Handle delete confirmation
   const handleDeleteClick = useCallback(() => {
@@ -167,10 +166,6 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
              class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 whitespace-nowrap touch-manipulation">
             <BirdIcon class="w-3 h-3 mr-1" />Birds
           </a>
-          <a href={eBirdUrl} target="_blank" rel="noopener noreferrer"
-             class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap touch-manipulation">
-            <EBirdIcon class="w-3 h-3 mr-1" />eBird
-          </a>
           <button onClick={() => setShowChart(true)}
                   class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 whitespace-nowrap touch-manipulation">
             <ChartIcon class="w-3 h-3 mr-1" />History
@@ -251,18 +246,6 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               >
                 <BirdIcon class="w-3 h-3 mr-1" />
                 AllAboutBirds
-              </a>
-              <a
-                href={eBirdUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center px-2 py-1 text-xs font-medium rounded
-                       bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300
-                       hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-                title="View on eBird"
-              >
-                <EBirdIcon class="w-3 h-3 mr-1" />
-                eBird
               </a>
               <button
                 onClick={() => setShowChart(true)}
@@ -384,14 +367,6 @@ function BirdIcon({ class: className }: { class?: string }): JSX.Element {
     <svg class={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M16 7c0-2.21-1.79-4-4-4S8 4.79 8 7c0 .34.04.67.12 1H3l3 6v7h12v-7l3-6h-5.12c.08-.33.12-.66.12-1z" />
       <circle cx="12" cy="7" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function EBirdIcon({ class: className }: { class?: string }): JSX.Element {
-  return (
-    <svg class={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
     </svg>
   );
 }

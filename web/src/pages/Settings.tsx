@@ -117,7 +117,7 @@ export function Settings(): JSX.Element {
   const modelOptions = AVAILABLE_MODELS.map((m) => ({ value: m, label: m }));
   const formatOptions = AVAILABLE_AUDIO_FORMATS.map((f) => ({ value: f, label: f.toUpperCase() }));
   const colorOptions = AVAILABLE_COLOR_SCHEMES.map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }));
-  const infoSiteOptions = AVAILABLE_INFO_SITES.map((s) => ({ value: s, label: s === 'ALLABOUTBIRDS' ? 'All About Birds' : 'eBird' }));
+  const infoSiteOptions = AVAILABLE_INFO_SITES.map((s) => ({ value: s, label: 'All About Birds' }));
   const imageProviderOptions = AVAILABLE_IMAGE_PROVIDERS.map((p) => ({
     value: p,
     label: p === '' ? 'None' : p.charAt(0) + p.slice(1).toLowerCase(),
