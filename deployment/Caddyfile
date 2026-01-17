@@ -32,12 +32,6 @@ http:// {
 		file_server
 	}
 
-	# Static assets for legacy PHP app
-	handle /assets/* {
-		root * /home/addlatt/BirdNET-Pi/src/web/public
-		file_server
-	}
-
 	# Vendored tools (no auth)
 	handle /adminer/* {
 		root * /home/addlatt/BirdNET-Pi/src/web/vendor/adminer
