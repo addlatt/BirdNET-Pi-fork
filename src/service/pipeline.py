@@ -39,7 +39,6 @@ from birdnet.reporting import (
     update_json_file,
 )
 
-from .notifier import notify_detection
 
 log = logging.getLogger(__name__)
 
@@ -221,20 +220,8 @@ class AnalysisPipeline:
                     # Write to BirdDB.txt
                     write_to_file(file, detection)
 
-                    # Write to SQLite database
+                    # Write to SQLite database (also notifies Go server for WebSocket)
                     write_to_db(file, detection)
-
-                    # Notify Go server for WebSocket broadcast
-                    notify_detection(
-                        date=detection.date,
-                        time=detection.time,
-                        sci_name=detection.scientific_name,
-                        com_name=detection.common_name,
-                        confidence=detection.confidence,
-                        file_name=os.path.basename(detection.file_name_extr),
-                        lat=float(conf.get("LATITUDE", 0)),
-                        lon=float(conf.get("LONGITUDE", 0)),
-                    )
 
                 # Send notifications
                 apprise(file, detections)

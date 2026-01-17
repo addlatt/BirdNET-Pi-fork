@@ -1,24 +1,45 @@
 [Unit]
 Description=BirdNET-Pi Go API Server
+Documentation=https://github.com/Nachtzuster/BirdNET-Pi
 After=network.target
 
 [Service]
 Type=simple
-User=birdnet
-WorkingDirectory=/var/www/birdnet
+User=addlatt
+Group=addlatt
+WorkingDirectory=/home/addlatt/BirdNET-Pi
+
+# Environment - adjust paths as needed
 Environment="PORT=8080"
-Environment="DB_PATH=/home/birdnet/BirdNET-Pi/data/db/birds.db"
+Environment="DB_PATH=/home/addlatt/BirdNET-Pi/data/db/birds.db"
 Environment="ML_SERVICE_URL=http://127.0.0.1:8001"
-Environment="STATIC_DIR=/var/www/birdnet/web/dist"
-ExecStart=/var/www/birdnet/bin/birdnet-server
+Environment="STATIC_DIR=/home/addlatt/BirdNET-Pi/web/dist"
+Environment="CONFIG_PATH=/home/addlatt/BirdNET-Pi/birdnet.conf"
+
+ExecStart=/home/addlatt/BirdNET-Pi/bin/birdnet-server
+
+# Restart policy with rate limiting (prevents restart storms)
 Restart=always
 RestartSec=5
+# Allow max 5 restarts in 60 seconds, then stop trying
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Watchdog: systemd will restart if server doesn't respond
+# (requires Go server to implement sd_notify - optional enhancement)
+# WatchdogSec=30
 
 # Security hardening
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/log/birdnet
+PrivateTmp=true
+ReadWritePaths=/home/addlatt/BirdNET-Pi/data
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=birdnet-api
 
 [Install]
 WantedBy=multi-user.target
