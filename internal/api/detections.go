@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	db "github.com/birdnet-pi/birdnet/internal/db/generated"
@@ -402,13 +403,23 @@ func (h *Handlers) ListDates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get dates with detections
-	dates, err := h.db.Queries.GetDetectionDates(ctx, db.GetDetectionDatesParams{
+	rawDates, err := h.db.Queries.GetDetectionDates(ctx, db.GetDetectionDatesParams{
 		Limit:  int64(limit),
 		Offset: 0,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch dates")
 		return
+	}
+
+	// Convert ISO timestamps to date strings (handle "2026-01-13T00:00:00Z" -> "2026-01-13")
+	dates := make([]string, 0, len(rawDates))
+	for _, d := range rawDates {
+		dateStr := d
+		if idx := strings.Index(dateStr, "T"); idx > 0 {
+			dateStr = dateStr[:idx]
+		}
+		dates = append(dates, dateStr)
 	}
 
 	// Build response

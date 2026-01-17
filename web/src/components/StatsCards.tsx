@@ -1,4 +1,4 @@
-import type { JSX, VNode } from 'preact';
+import type { JSX } from 'preact';
 import type { StatsResponse } from '../types/api';
 
 /**
@@ -10,70 +10,95 @@ interface StatsCardsProps {
 }
 
 /**
- * Card data structure
+ * Compact stats summary cards - no icons, higher information density.
  */
-interface StatCard {
-  label: string;
-  value: string | number;
-  icon: VNode;
+export function StatsCards({ stats }: StatsCardsProps): JSX.Element {
+  // Compute weekly total from daily stats
+  const weeklyTotal = stats.daily_stats?.reduce((sum, d) => sum + d.detection_count, 0) || 0;
+
+  // Compute average confidence from daily stats
+  const avgConfidence = stats.daily_stats && stats.daily_stats.length > 0
+    ? stats.daily_stats.reduce((sum, d) => sum + d.avg_confidence, 0) / stats.daily_stats.length
+    : 0;
+
+  return (
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Last Hour */}
+      <StatCard
+        label="Last Hour"
+        value={stats.detections_last_hour || 0}
+        subtext={stats.detections_last_hour === 1 ? 'detection' : 'detections'}
+        color="blue"
+      />
+
+      {/* Today */}
+      <StatCard
+        label="Today"
+        value={stats.detections_today || 0}
+        subtext={`${stats.species_today || 0} species`}
+        color="green"
+      />
+
+      {/* This Week (based on selected period) */}
+      <StatCard
+        label="Period Total"
+        value={formatNumber(weeklyTotal)}
+        subtext="detections"
+        color="purple"
+      />
+
+      {/* Species Today */}
+      <StatCard
+        label="Species Today"
+        value={stats.species_today || 0}
+        subtext={`of ${stats.total_species || 0} total`}
+        color="amber"
+      />
+
+      {/* Total Species */}
+      <StatCard
+        label="All-Time Species"
+        value={stats.total_species || 0}
+        subtext={`${formatNumber(stats.total_detections || 0)} detections`}
+        color="indigo"
+      />
+
+      {/* Average Confidence */}
+      <StatCard
+        label="Avg Confidence"
+        value={avgConfidence > 0 ? `${Math.round(avgConfidence * 100)}%` : '-'}
+        subtext="for period"
+        color="teal"
+      />
+    </div>
+  );
 }
 
 /**
- * Stats summary cards component.
+ * Individual stat card component.
  */
-export function StatsCards({ stats }: StatsCardsProps): JSX.Element {
-  const cards: StatCard[] = [
-    {
-      label: 'Detections Today',
-      value: stats.detections_today || 0,
-      icon: (
-        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Species Today',
-      value: stats.species_today || 0,
-      icon: (
-        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Total Detections',
-      value: formatNumber(stats.total_detections || 0),
-      icon: (
-        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Total Species',
-      value: stats.total_species || 0,
-      icon: (
-        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-      ),
-    },
-  ];
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  subtext: string;
+  color: 'blue' | 'green' | 'purple' | 'amber' | 'indigo' | 'teal';
+}
+
+function StatCard({ label, value, subtext, color }: StatCardProps): JSX.Element {
+  const colorClasses: Record<string, string> = {
+    blue: 'border-l-blue-500',
+    green: 'border-l-green-500',
+    purple: 'border-l-purple-500',
+    amber: 'border-l-amber-500',
+    indigo: 'border-l-indigo-500',
+    teal: 'border-l-teal-500',
+  };
 
   return (
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {cards.map((card) => (
-        <div key={card.label} class="card p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</p>
-            </div>
-            {card.icon}
-          </div>
-        </div>
-      ))}
+    <div class={`card p-3 border-l-4 ${colorClasses[color]}`}>
+      <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
+      <p class="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{value}</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500">{subtext}</p>
     </div>
   );
 }

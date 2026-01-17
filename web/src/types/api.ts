@@ -129,6 +129,15 @@ export interface TopSpecies {
   detection_count: number;
 }
 
+/** New species detected today (first time ever) */
+export interface NewSpecies {
+  sci_name: string;
+  com_name: string;
+  first_time: string;
+  max_confidence: number;
+  detection_count: number;
+}
+
 /** Response from GET /api/stats */
 export interface StatsResponse {
   total_detections: number;
@@ -139,6 +148,7 @@ export interface StatsResponse {
   daily_stats?: DailyStat[];
   hourly_distribution?: HourlyStat[];
   top_species?: TopSpecies[];
+  new_species_today?: NewSpecies[];
 }
 
 /** Query parameters for GET /api/stats */
@@ -147,7 +157,21 @@ export interface StatsParams {
   include_daily?: 'true' | 'false';
   include_hourly?: 'true' | 'false';
   include_top_species?: 'true' | 'false';
+  include_new_species?: 'true' | 'false';
   top_limit?: number;
+}
+
+// =============================================================================
+// Heatmap Types (internal/api/heatmap.go)
+// =============================================================================
+
+/** Response from GET /api/heatmap/today */
+export interface HeatmapResponse {
+  date: string;
+  species: string[];
+  hours: number[];
+  data: number[][];  // [species_index][hour] = count
+  total_detections: number;
 }
 
 // =============================================================================
@@ -306,6 +330,34 @@ export interface DeleteSpeciesResponse {
 }
 
 // =============================================================================
+// Spectrogram Types (internal/api/spectrogram.go)
+// =============================================================================
+
+/** Response from GET /api/spectrogram/info */
+export interface SpectrogramInfoResponse {
+  image_url: string;
+  last_modified?: string;
+  available: boolean;
+  livestream_url: string;
+  refresh_seconds: number;
+}
+
+/** Recent detection for spectrogram page */
+export interface RecentDetection {
+  time: string;
+  com_name: string;
+  sci_name: string;
+  confidence: number;
+  file_name: string;
+}
+
+/** Response from GET /api/spectrogram/detections */
+export interface RecentDetectionsResponse {
+  detections: RecentDetection[];
+  total: number;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 
@@ -323,4 +375,91 @@ export function isApiError(response: unknown): response is ApiError {
     'error' in response &&
     typeof (response as ApiError).error === 'string'
   );
+}
+
+// =============================================================================
+// Recordings Types (internal/api/recordings.go)
+// =============================================================================
+
+/** Response from GET /api/recordings/dates */
+export interface ListRecordingDatesResponse {
+  dates: string[];
+  total: number;
+}
+
+/** Recording species with stats */
+export interface RecordingSpecies {
+  sci_name: string;
+  com_name: string;
+  detection_count: number;
+  max_confidence: number;
+  last_seen?: string;
+}
+
+/** Response from GET /api/recordings/species */
+export interface ListRecordingSpeciesResponse {
+  species: RecordingSpecies[];
+  total: number;
+}
+
+/** Query parameters for GET /api/recordings/species */
+export interface ListRecordingSpeciesParams {
+  sort?: 'alphabetical' | 'occurrences' | 'confidence' | 'date';
+  date?: string;
+}
+
+/** Single recording file with metadata */
+export interface RecordingFile {
+  date: string;
+  time: string;
+  sci_name: string;
+  com_name: string;
+  confidence: number;
+  file_name: string;
+  audio_url: string;
+  spectrogram_url: string;
+  is_locked: boolean;
+  is_shifted: boolean;
+  shifted_url?: string;
+}
+
+/** Response from GET /api/recordings/by-species/{name} */
+export interface ListRecordingFilesResponse {
+  files: RecordingFile[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** Query parameters for GET /api/recordings/by-species/{name} */
+export interface ListRecordingFilesParams {
+  date?: string;
+  sort?: 'date' | 'confidence';
+  only_locked?: boolean;
+  limit?: number;
+  page?: number;
+}
+
+/** Request body for POST /api/recordings/{date}/{species}/{filename}/change */
+export interface ChangeIdentificationRequest {
+  new_species: string;
+}
+
+/** Response from toggle lock */
+export interface ToggleLockResponse {
+  status: string;
+  is_locked: boolean;
+}
+
+/** Response from toggle shift */
+export interface ToggleShiftResponse {
+  status: string;
+  is_shifted: boolean;
+  shifted_url?: string;
+}
+
+/** Response from GET /api/recordings/exclusions */
+export interface ExclusionListResponse {
+  exclusions: string[];
+  total: number;
 }

@@ -293,18 +293,17 @@ func (h *Handlers) UpdateSpeciesList(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetLabels handles GET /api/labels requests.
-// Returns all available species labels from labels.txt.
+// Returns all available species labels from detected species in the database.
 func (h *Handlers) GetLabels(w http.ResponseWriter, r *http.Request) {
-	labelsPath := filepath.Join(h.scriptsDir, "labels.txt")
-
-	labels, err := readSpeciesListFile(labelsPath)
+	species, err := h.db.Queries.ListSpeciesWithStats(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to read labels file")
+		writeError(w, http.StatusInternalServerError, "Failed to fetch species from database")
 		return
 	}
 
-	if labels == nil {
-		labels = []string{}
+	labels := make([]string, 0, len(species))
+	for _, s := range species {
+		labels = append(labels, s.ComName)
 	}
 
 	response := LabelsResponse{

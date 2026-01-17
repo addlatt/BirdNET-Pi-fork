@@ -74,7 +74,7 @@ SELECT
     MIN(date) as first_detection,
     MAX(date) as last_detection
 FROM detections
-WHERE sci_name = ?
+WHERE sci_name = ? OR com_name = ?
 GROUP BY sci_name, com_name;
 
 -- name: GetDailyStats :many
@@ -268,3 +268,94 @@ SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_c
 FROM detections
 GROUP BY sci_name, com_name
 ORDER BY detection_count DESC;
+
+-- =============================================================================
+-- New Species Today - Species detected today that have never been seen before
+-- =============================================================================
+
+-- name: GetNewSpeciesToday :many
+-- Get species detected today that have never been detected before today
+SELECT
+    d.sci_name,
+    d.com_name,
+    MIN(d.time) as first_time,
+    MAX(d.confidence) as max_confidence,
+    COUNT(*) as detection_count
+FROM detections d
+WHERE d.date = DATE('now', 'localtime')
+  AND d.sci_name NOT IN (
+    SELECT DISTINCT sci_name
+    FROM detections
+    WHERE date < DATE('now', 'localtime')
+  )
+GROUP BY d.sci_name, d.com_name
+ORDER BY first_time ASC;
+
+-- =============================================================================
+-- Species Hourly Heatmap - For bird activity visualization
+-- =============================================================================
+
+-- name: GetSpeciesHourlyDistributionToday :many
+-- Gets detection counts per species per hour for today (for heatmap chart)
+SELECT
+    sci_name,
+    com_name,
+    CAST(strftime('%H', time) AS INTEGER) as hour,
+    COUNT(*) as detection_count
+FROM detections
+WHERE date = DATE('now', 'localtime')
+GROUP BY sci_name, com_name, hour
+ORDER BY com_name, hour;
+
+-- =============================================================================
+-- Phase 4.4: Recordings Browser Queries
+-- =============================================================================
+
+-- name: ListSpeciesWithStats :many
+-- List all species with stats (sorted alphabetically)
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY com_name ASC;
+
+-- name: ListSpeciesWithStatsByOccurrences :many
+-- List all species with stats (sorted by occurrences)
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY detection_count DESC;
+
+-- name: ListSpeciesWithStatsByConfidence :many
+-- List all species with stats (sorted by confidence)
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY max_confidence DESC;
+
+-- name: ListSpeciesWithStatsByDate2 :many
+-- List all species with stats (sorted by last seen date)
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, MAX(date) as last_seen
+FROM detections
+GROUP BY sci_name, com_name
+ORDER BY last_seen DESC;
+
+-- name: ListSpeciesWithStatsByDate :many
+-- List species with stats for a specific date (sorted by occurrences)
+SELECT sci_name, com_name, COUNT(*) as detection_count, MAX(confidence) as max_confidence, date as last_seen
+FROM detections
+WHERE date = ?
+GROUP BY sci_name, com_name
+ORDER BY detection_count DESC;
+
+-- name: ListDetectionsBySpeciesAndDate :many
+-- List detections for a species on a specific date
+SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name
+FROM detections
+WHERE (sci_name = ? OR com_name = ?) AND date = ?
+ORDER BY time DESC
+LIMIT ? OFFSET ?;
+
+-- name: DeleteDetectionByFileName :exec
+-- Delete a detection by filename
+DELETE FROM detections
+WHERE file_name = ?;

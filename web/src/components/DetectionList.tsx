@@ -4,6 +4,7 @@ import type { Detection } from '../types/api';
 import { deleteDetection } from '../hooks/useApi';
 import { SpeciesMiniChart } from './SpeciesMiniChart';
 import { BirdImage } from './BirdImage';
+import { AudioPlayer } from './AudioPlayer';
 
 /**
  * DetectionList props
@@ -57,8 +58,7 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
   const [showChart, setShowChart] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showSpectrogram, setShowSpectrogram] = useState(false);
-  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
 
   const confidencePercent = Math.round(detection.confidence * 100);
   const confidenceColor = getConfidenceColor(confidencePercent);
@@ -108,8 +108,87 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
 
   return (
     <>
-      <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        {/* Mobile: show confidence badge at top right */}
+        <div class="flex sm:hidden justify-between items-start mb-2">
+          <div class="flex items-center gap-2">
+            <BirdImage
+              sciName={detection.sci_name}
+              comName={detection.com_name}
+              size="small"
+            />
+            <div>
+              <h3 class="font-medium text-gray-900 dark:text-white text-sm">
+                {detection.com_name}
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 italic truncate max-w-[180px]">
+                {detection.sci_name}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class={`px-2 py-1 text-xs font-bold rounded ${confidencePercent >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
+              {confidencePercent}%
+            </span>
+            {onDelete && (
+              <button
+                onClick={handleDeleteClick}
+                disabled={deleting}
+                class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                title="Delete detection"
+              >
+                <TrashIcon class="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile: date/time and spectrogram toggle */}
+        <div class="sm:hidden text-xs text-gray-500 dark:text-gray-400 mb-2">
+          <span>{dateOnly} - {detection.time}</span>
+          {detection.file_name && (
+            <button
+              onClick={() => setShowPlayer(!showPlayer)}
+              class="ml-2 text-primary-600 hover:underline touch-manipulation"
+            >
+              {showPlayer ? 'Hide' : 'Show'}
+            </button>
+          )}
+        </div>
+
+        {/* Mobile: Info Links - horizontal scroll */}
+        <div class="sm:hidden flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation">
+            <WikiIcon class="w-3 h-3 mr-1" />Wiki
+          </a>
+          <a href={allAboutBirdsUrl} target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 whitespace-nowrap touch-manipulation">
+            <BirdIcon class="w-3 h-3 mr-1" />Birds
+          </a>
+          <a href={eBirdUrl} target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap touch-manipulation">
+            <EBirdIcon class="w-3 h-3 mr-1" />eBird
+          </a>
+          <button onClick={() => setShowChart(true)}
+                  class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 whitespace-nowrap touch-manipulation">
+            <ChartIcon class="w-3 h-3 mr-1" />History
+          </button>
+        </div>
+
+        {/* Mobile: Audio Player with Spectrogram */}
+        {showPlayer && detection.file_name && (
+          <div class="sm:hidden mt-2">
+            <AudioPlayer
+              audioUrl={audioPath}
+              spectrogramUrl={spectrogramPath}
+            />
+          </div>
+        )}
+
+        {/* Desktop Layout */}
+        <div class="hidden sm:flex items-start gap-4">
           {/* Bird Image */}
           <BirdImage
             sciName={detection.sci_name}
@@ -128,7 +207,7 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               </span>
             </div>
 
-            {/* Date, Time, Audio Link */}
+            {/* Date, Time, Spectrogram Toggle */}
             <div class="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap gap-x-2">
               <span>{dateOnly}</span>
               <span>-</span>
@@ -137,52 +216,18 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
                 <>
                   <span>-</span>
                   <button
-                    onClick={() => setShowAudioPlayer(!showAudioPlayer)}
+                    onClick={() => setShowPlayer(!showPlayer)}
                     class="text-primary-600 hover:underline"
-                    title="Play audio"
+                    title="Show spectrogram and audio player"
                   >
-                    {showAudioPlayer ? 'Hide' : 'Play'}
-                  </button>
-                  <span>-</span>
-                  <button
-                    onClick={() => setShowSpectrogram(!showSpectrogram)}
-                    class="text-primary-600 hover:underline"
-                    title="Show spectrogram"
-                  >
-                    {showSpectrogram ? 'Hide' : 'Show'} Spectrogram
+                    {showPlayer ? 'Hide' : 'Show'} Spectrogram
                   </button>
                 </>
               )}
             </div>
 
-            {/* Audio Player */}
-            {showAudioPlayer && detection.file_name && (
-              <div class="mt-2">
-                <audio
-                  controls
-                  autoPlay
-                  class="w-full max-w-md"
-                  src={audioPath}
-                >
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            )}
-
-            {/* Spectrogram Image */}
-            {showSpectrogram && detection.file_name && (
-              <div class="mt-2">
-                <img
-                  src={spectrogramPath}
-                  alt={`Spectrogram for ${detection.com_name}`}
-                  class="max-w-full rounded border border-gray-200 dark:border-gray-700"
-                  loading="lazy"
-                />
-              </div>
-            )}
-
             {/* Info Links */}
-            <div class="flex items-center mt-2 gap-2">
+            <div class="flex items-center mt-2 gap-2 flex-wrap">
               <a
                 href={wikipediaUrl}
                 target="_blank"
@@ -230,6 +275,16 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
                 History
               </button>
             </div>
+
+            {/* Desktop: Audio Player with Spectrogram */}
+            {showPlayer && detection.file_name && (
+              <div class="mt-2 max-w-lg">
+                <AudioPlayer
+                  audioUrl={audioPath}
+                  spectrogramUrl={spectrogramPath}
+                />
+              </div>
+            )}
           </div>
 
           {/* Confidence + Actions */}
@@ -247,16 +302,16 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               </span>
             </div>
 
-            {/* Delete Button */}
+            {/* Delete Button - larger touch target on mobile */}
             {onDelete && (
               <button
                 onClick={handleDeleteClick}
                 disabled={deleting}
-                class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="p-3 sm:p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                 title="Delete detection"
               >
-                <TrashIcon class="w-5 h-5" />
+                <TrashIcon class="w-6 h-6 sm:w-5 sm:h-5" />
               </button>
             )}
           </div>
@@ -272,16 +327,16 @@ function DetectionItem({ detection, onDelete }: DetectionItemProps): JSX.Element
               <button
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                class="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded
-                       hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 py-2.5 sm:px-3 sm:py-1 text-sm font-medium text-white bg-red-600 rounded
+                       hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
               </button>
               <button
                 onClick={handleCancelDelete}
                 disabled={deleting}
-                class="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300
-                       bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                class="px-4 py-2.5 sm:px-3 sm:py-1 text-sm font-medium text-gray-700 dark:text-gray-300
+                       bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 touch-manipulation"
               >
                 Cancel
               </button>

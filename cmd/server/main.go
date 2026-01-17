@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/birdnet-pi/birdnet/internal/api"
+	"github.com/birdnet-pi/birdnet/internal/config"
 	"github.com/birdnet-pi/birdnet/internal/db"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
@@ -25,6 +26,15 @@ func main() {
 	mlServiceURL := getEnv("ML_SERVICE_URL", "http://127.0.0.1:8001")
 	scriptsDir := getEnv("SCRIPTS_DIR", "scripts")
 	dataDir := getEnv("DATA_DIR", "data")
+	birdsongsDir := getEnv("BIRDSONGS_DIR", expandHome("~/BirdSongs"))
+	configPath := getEnv("CONFIG_PATH", config.DefaultConfigPath)
+	homeDir := getEnv("HOME", expandHome("~"))
+
+	// Initialize configuration manager
+	configMgr := config.NewManager(configPath, homeDir)
+	if err := configMgr.Load(); err != nil {
+		log.Printf("Warning: Failed to load configuration: %v (settings API may not work)", err)
+	}
 
 	// Initialize database (read-only)
 	database, err := db.New(dbPath)
@@ -57,7 +67,7 @@ func main() {
 	r.Use(corsMiddleware)
 
 	// Initialize API handlers
-	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, scriptsDir, dataDir)
+	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, configMgr, scriptsDir, dataDir, birdsongsDir)
 
 	// Public API routes
 	r.Route("/api", func(r chi.Router) {
@@ -92,9 +102,39 @@ func main() {
 		// Stats
 		r.Get("/stats", handlers.GetStats)
 
+		// Heatmap
+		r.Get("/heatmap/today", handlers.GetHeatmapToday)
+
+		// Spectrogram
+		r.Get("/spectrogram/info", handlers.GetSpectrogramInfo)
+		r.Get("/spectrogram/image", handlers.GetSpectrogramImage)
+		r.Get("/spectrogram/detections", handlers.GetRecentDetections)
+		r.Get("/stream", handlers.ProxyLivestream)
+
 		// System
 		r.Get("/system/status", handlers.SystemStatus)
 		r.Get("/system/memory", handlers.SystemMemory)
+
+		// Settings
+		r.Get("/settings", handlers.GetSettings)
+		r.Put("/settings", handlers.UpdateSettings)
+		r.Get("/settings/schema", handlers.GetSettingsSchema)
+
+		// Services
+		r.Get("/services", handlers.ListServices)
+		r.Post("/services/restart-all", handlers.RestartAllServices)
+		r.Post("/services/{name}/{action}", handlers.ServiceAction)
+
+		// Recordings (Play/Audio page)
+		r.Get("/recordings/dates", handlers.ListRecordingDates)
+		r.Get("/recordings/species", handlers.ListRecordingSpecies)
+		r.Get("/recordings/by-date/{date}", handlers.ListRecordingsByDate)
+		r.Get("/recordings/by-species/{name}", handlers.ListRecordingsBySpecies)
+		r.Post("/recordings/{date}/{species}/{filename}/delete", handlers.DeleteRecording)
+		r.Post("/recordings/{date}/{species}/{filename}/change", handlers.ChangeRecordingIdentification)
+		r.Post("/recordings/{date}/{species}/{filename}/lock", handlers.ToggleRecordingLock)
+		r.Post("/recordings/{date}/{species}/{filename}/shift", handlers.ToggleRecordingShift)
+		r.Get("/recordings/exclusions", handlers.GetExclusionList)
 	})
 
 	// Internal routes (Python → Go)
@@ -112,6 +152,14 @@ func main() {
 	if _, err := os.Stat(staticDir); err == nil {
 		fileServer := http.FileServer(http.Dir(staticDir))
 		r.Handle("/app/*", http.StripPrefix("/app", fileServer))
+	}
+
+	// Static file server for bird recordings and spectrograms
+	extractedDir := birdsongsDir + "/Extracted"
+	if _, err := os.Stat(extractedDir); err == nil {
+		birdFileServer := http.FileServer(http.Dir(extractedDir))
+		r.Handle("/By_Date/*", http.StripPrefix("", birdFileServer))
+		r.Handle("/Charts/*", http.StripPrefix("", birdFileServer))
 	}
 
 	// Create server
@@ -152,6 +200,17 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func expandHome(path string) string {
+	if len(path) > 1 && path[:2] == "~/" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return path
+		}
+		return home + path[1:]
+	}
+	return path
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
