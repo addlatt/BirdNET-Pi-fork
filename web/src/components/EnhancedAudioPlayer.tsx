@@ -365,6 +365,16 @@ export function EnhancedAudioPlayer({
             class="w-full h-auto block"
             onError={() => setError('Spectrogram unavailable')}
           />
+          {/* Detection window highlight - dims areas outside the 3-second detection window */}
+          {/* For 6-second extraction: detection is at 25%-75% (1.5s-4.5s) */}
+          <div
+            class="absolute top-0 left-0 h-full bg-black/25 pointer-events-none"
+            style={{ width: '25%' }}
+          />
+          <div
+            class="absolute top-0 right-0 h-full bg-black/25 pointer-events-none"
+            style={{ width: '25%' }}
+          />
           {/* Progress overlay */}
           {duration > 0 && (
             <>

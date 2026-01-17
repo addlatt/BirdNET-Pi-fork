@@ -191,6 +191,7 @@ export function AudioPlayer({ audioUrl, spectrogramUrl, title, allowFullscreen =
             onClick={seekToPercentage}
             progressPercent={progressPercentage}
             allowFullscreen={false}
+            showDetectionWindow={true}
             class={isFullscreen ? 'h-full max-h-full overflow-hidden' : ''}
           />
           {/* Fullscreen toggle button */}
