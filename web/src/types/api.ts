@@ -73,6 +73,26 @@ export interface ListSpeciesParams {
   sort?: 'alphabetical' | 'occurrences' | 'confidence' | 'date';
 }
 
+/** Species ranking entry for home page */
+export interface SpeciesRankingEntry {
+  sci_name: string;
+  com_name: string;
+  detection_count: number;
+  latest_date: string;
+  latest_time: string;
+  latest_file: string;
+  latest_confidence: number;
+  best_date: string;
+  best_time: string;
+  best_file: string;
+  best_confidence: number;
+}
+
+/** Response from GET /api/species/ranking */
+export interface SpeciesRankingResponse {
+  species: SpeciesRankingEntry[];
+}
+
 /** Response from GET /api/species/{name} */
 export interface SpeciesDetail {
   sci_name: string;

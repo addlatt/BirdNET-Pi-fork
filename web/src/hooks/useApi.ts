@@ -10,6 +10,7 @@ import type {
   SpeciesDetail,
   SpeciesHistoryResponse,
   SpeciesHistoryParams,
+  SpeciesRankingResponse,
   StatsResponse,
   StatsParams,
   HeatmapResponse,
@@ -222,6 +223,14 @@ export async function fetchSpeciesHistory(name: string, params: SpeciesHistoryPa
  */
 export async function fetchAllSpecies(): Promise<ListSpeciesResponse> {
   return apiFetch<ListSpeciesResponse>(`${API_BASE}/species/all`);
+}
+
+/**
+ * Fetch species ranking with latest and best detection info.
+ * GET /api/species/ranking
+ */
+export async function fetchSpeciesRanking(): Promise<SpeciesRankingResponse> {
+  return apiFetch<SpeciesRankingResponse>(`${API_BASE}/species/ranking`);
 }
 
 /**
@@ -552,6 +561,7 @@ export type {
   SpeciesDetail,
   SpeciesHistoryResponse,
   SpeciesHistoryParams,
+  SpeciesRankingResponse,
   StatsResponse,
   StatsParams,
   HeatmapResponse,

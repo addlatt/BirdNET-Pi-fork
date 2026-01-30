@@ -383,6 +383,77 @@ func (h *Handlers) DeleteAllSpeciesDetections(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, response)
 }
 
+// SpeciesRankingEntry represents a species in the ranking response.
+type SpeciesRankingEntry struct {
+	SciName          string  `json:"sci_name"`
+	ComName          string  `json:"com_name"`
+	DetectionCount   int64   `json:"detection_count"`
+	LatestDate       string  `json:"latest_date"`
+	LatestTime       string  `json:"latest_time"`
+	LatestFile       string  `json:"latest_file"`
+	LatestConfidence float64 `json:"latest_confidence"`
+	BestDate         string  `json:"best_date"`
+	BestTime         string  `json:"best_time"`
+	BestFile         string  `json:"best_file"`
+	BestConfidence   float64 `json:"best_confidence"`
+}
+
+// SpeciesRankingResponse represents the species ranking response.
+type SpeciesRankingResponse struct {
+	Species []SpeciesRankingEntry `json:"species"`
+}
+
+// GetSpeciesRanking handles GET /api/species/ranking requests.
+// Returns unique species ranked by detection frequency with latest and best detection info.
+func (h *Handlers) GetSpeciesRanking(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	rows, err := h.db.Queries.GetSpeciesRanking(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to fetch species ranking")
+		return
+	}
+
+	var species []SpeciesRankingEntry
+	for _, row := range rows {
+		// Extract date-only from latest_date if needed
+		latestDate := row.LatestDate
+		if idx := strings.Index(latestDate, "T"); idx > 0 {
+			latestDate = latestDate[:idx]
+		}
+		// Extract date-only from best_date if needed
+		bestDate := row.BestDate
+		if idx := strings.Index(bestDate, "T"); idx > 0 {
+			bestDate = bestDate[:idx]
+		}
+
+		species = append(species, SpeciesRankingEntry{
+			SciName:          row.SciName,
+			ComName:          row.ComName,
+			DetectionCount:   row.DetectionCount,
+			LatestDate:       latestDate,
+			LatestTime:       row.LatestTime,
+			LatestFile:       row.LatestFile,
+			LatestConfidence: row.LatestConfidence.Float64,
+			BestDate:         bestDate,
+			BestTime:         row.BestTime,
+			BestFile:         row.BestFile,
+			BestConfidence:   row.BestConfidence.Float64,
+		})
+	}
+
+	// Ensure we return empty array instead of null
+	if species == nil {
+		species = []SpeciesRankingEntry{}
+	}
+
+	response := SpeciesRankingResponse{
+		Species: species,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
 // ListAllSpecies handles GET /api/species/all requests.
 // Returns all species with detection count, max confidence, and last seen date.
 func (h *Handlers) ListAllSpecies(w http.ResponseWriter, r *http.Request) {

@@ -85,6 +85,7 @@ func main() {
 		// Species
 		r.Get("/species", handlers.ListSpecies)
 		r.Get("/species/all", handlers.ListAllSpecies)
+		r.Get("/species/ranking", handlers.GetSpeciesRanking)
 		r.Get("/species/{name}", handlers.GetSpeciesDetail)
 		r.Get("/species/{name}/history", handlers.GetSpeciesHistory)
 		r.Get("/species/{name}/count", handlers.GetSpeciesCount)

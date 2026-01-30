@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { fetchStats, fetchDetections, fetchHeatmapToday } from '../hooks/useApi';
-import type { StatsResponse, Detection, DetectionNotification, HeatmapResponse } from '../types/api';
-import { DetectionList } from '../components/DetectionList';
+import { fetchStats, fetchSpeciesRanking, fetchHeatmapToday } from '../hooks/useApi';
+import type { StatsResponse, SpeciesRankingEntry, DetectionNotification, HeatmapResponse } from '../types/api';
+import { SpeciesRankingList } from '../components/SpeciesRankingList';
 import { OverviewStatsCards } from '../components/OverviewStatsCards';
 import { BirdActivityHeatmap } from '../components/BirdActivityHeatmap';
 
@@ -12,7 +12,7 @@ import { BirdActivityHeatmap } from '../components/BirdActivityHeatmap';
  */
 export function Overview(): JSX.Element {
   const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [recentDetections, setRecentDetections] = useState<Detection[]>([]);
+  const [speciesRanking, setSpeciesRanking] = useState<SpeciesRankingEntry[]>([]);
   const [heatmapData, setHeatmapData] = useState<HeatmapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [heatmapLoading, setHeatmapLoading] = useState(true);
@@ -28,13 +28,13 @@ export function Overview(): JSX.Element {
       try {
         setLoading(true);
         setHeatmapLoading(true);
-        const [statsData, detectionsData, heatmap] = await Promise.all([
+        const [statsData, rankingData, heatmap] = await Promise.all([
           fetchStats({ include_top_species: 'true', top_limit: 5 }),
-          fetchDetections({ per_page: 10 }),
+          fetchSpeciesRanking(),
           fetchHeatmapToday(),
         ]);
         setStats(statsData);
-        setRecentDetections(detectionsData.detections || []);
+        setSpeciesRanking(rankingData.species || []);
         setHeatmapData(heatmap);
         setError(null);
       } catch (err) {
@@ -93,18 +93,42 @@ export function Overview(): JSX.Element {
   // Subscribe to real-time detection updates
   useEffect(() => {
     const unsubscribe = subscribe<DetectionNotification>('detection', (payload) => {
-      // Convert notification to Detection format
-      const detection: Detection = {
-        date: payload.date,
-        time: payload.time,
-        sci_name: payload.sci_name,
-        com_name: payload.com_name,
-        confidence: payload.confidence,
-        file_name: payload.file_name,
-      };
-
-      // Add new detection to the top of the list
-      setRecentDetections((prev) => [detection, ...prev.slice(0, 9)]);
+      // Update species ranking: increment count for existing species or add new one
+      setSpeciesRanking((prev) => {
+        const existingIndex = prev.findIndex((s) => s.sci_name === payload.sci_name);
+        if (existingIndex >= 0) {
+          // Update existing species: increment count and update latest detection
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            detection_count: updated[existingIndex].detection_count + 1,
+            latest_date: payload.date.split('T')[0],
+            latest_time: payload.time,
+            latest_file: payload.file_name,
+            latest_confidence: payload.confidence,
+          };
+          // Re-sort by detection count
+          updated.sort((a, b) => b.detection_count - a.detection_count);
+          return updated;
+        } else {
+          // New species - add to list
+          const newEntry: SpeciesRankingEntry = {
+            sci_name: payload.sci_name,
+            com_name: payload.com_name,
+            detection_count: 1,
+            latest_date: payload.date.split('T')[0],
+            latest_time: payload.time,
+            latest_file: payload.file_name,
+            latest_confidence: payload.confidence,
+            best_date: payload.date.split('T')[0],
+            best_time: payload.time,
+            best_file: payload.file_name,
+            best_confidence: payload.confidence,
+          };
+          // Add and sort by detection count
+          return [...prev, newEntry].sort((a, b) => b.detection_count - a.detection_count);
+        }
+      });
 
       // Update stats
       setStats((prev) => {
@@ -160,12 +184,12 @@ export function Overview(): JSX.Element {
       {/* Bird Activity Heatmap */}
       <BirdActivityHeatmap data={heatmapData} loading={heatmapLoading} />
 
-      {/* Recent Detections */}
+      {/* Species Ranking */}
       <div class="card">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Detections</h2>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Species Ranking</h2>
         </div>
-        <DetectionList detections={recentDetections} />
+        <SpeciesRankingList species={speciesRanking} />
       </div>
 
       {/* Top Species */}
