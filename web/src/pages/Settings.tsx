@@ -13,6 +13,7 @@ import {
   SaveButton,
   AlertMessage,
 } from '../components/settings/FormInputs';
+import { NotificationSpeciesSelector } from '../components/settings/NotificationSpeciesSelector';
 import {
   AVAILABLE_MODELS,
   AVAILABLE_AUDIO_FORMATS,
@@ -72,6 +73,8 @@ export function Settings(): JSX.Element {
         apprise_notify_new_species: config.apprise_notify_new_species,
         apprise_notify_new_species_each_day: config.apprise_notify_new_species_each_day,
         apprise_weekly_report: config.apprise_weekly_report,
+        apprise_only_notify_species_names: config.apprise_only_notify_species_names,
+        apprise_only_notify_species_names_2: config.apprise_only_notify_species_names_2,
         image_provider: config.image_provider,
         flickr_api_key: config.flickr_api_key,
         color_scheme: config.color_scheme,
@@ -349,6 +352,20 @@ export function Settings(): JSX.Element {
           value={formData.apprise_weekly_report ?? 1}
           onChange={(v) => updateField('apprise_weekly_report', v)}
           helpText="Send a weekly summary of detections"
+        />
+        <NotificationSpeciesSelector
+          label="Notification Watchlist"
+          value={formData.apprise_only_notify_species_names_2 || ''}
+          onChange={(v) => updateField('apprise_only_notify_species_names_2', v)}
+          listType="watchlist"
+          helpText="Only notify for these species. Leave empty to notify for all species."
+        />
+        <NotificationSpeciesSelector
+          label="Excluded from Notifications"
+          value={formData.apprise_only_notify_species_names || ''}
+          onChange={(v) => updateField('apprise_only_notify_species_names', v)}
+          listType="exclude"
+          helpText="Never notify for these species (e.g., common birds you don't want alerts for)."
         />
         <TextAreaInput
           label="Apprise URLs"
