@@ -34,7 +34,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=read-only
 PrivateTmp=true
-ReadWritePaths=/home/addlatt/BirdNET-Pi/data
+ReadWritePaths=/home/addlatt/BirdNET-Pi
 
 # Logging
 StandardOutput=journal
