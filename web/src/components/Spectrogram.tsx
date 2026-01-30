@@ -25,6 +25,10 @@ export interface SpectrogramProps {
   allowFullscreen?: boolean;
   /** Additional CSS class for the container */
   class?: string;
+  /** Show detection window highlight (default: false) */
+  showDetectionWindow?: boolean;
+  /** Extraction length in seconds (default: 6) - used to calculate detection window position */
+  extractionLength?: number;
 }
 
 /**
@@ -82,7 +86,14 @@ export function Spectrogram({
   showAxes = true,
   allowFullscreen = true,
   class: className,
+  showDetectionWindow = false,
+  extractionLength = 6,
 }: SpectrogramProps): JSX.Element {
+  // Calculate detection window position (3-second detection window centered in extraction)
+  const DETECTION_WINDOW_SECONDS = 3;
+  const spacer = (extractionLength - DETECTION_WINDOW_SECONDS) / 2;
+  const detectionStartPercent = (spacer / extractionLength) * 100;
+  const detectionEndPercent = ((spacer + DETECTION_WINDOW_SECONDS) / extractionLength) * 100;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -246,6 +257,22 @@ export function Spectrogram({
                     Spectrogram unavailable
                   </span>
                 </div>
+              )}
+
+              {/* Detection window highlight - dims areas outside the 3-second detection window */}
+              {showDetectionWindow && imageLoaded && (
+                <>
+                  {/* Left dim area (before detection window) */}
+                  <div
+                    class="absolute top-0 left-0 h-full bg-black/25 pointer-events-none rounded-l"
+                    style={{ width: `${detectionStartPercent}%` }}
+                  />
+                  {/* Right dim area (after detection window) */}
+                  <div
+                    class="absolute top-0 right-0 h-full bg-black/25 pointer-events-none rounded-r"
+                    style={{ width: `${100 - detectionEndPercent}%` }}
+                  />
+                </>
               )}
 
               {/* Progress overlay */}

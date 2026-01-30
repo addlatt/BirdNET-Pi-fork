@@ -324,7 +324,7 @@ export const AVAILABLE_COLOR_SCHEMES = ['light', 'dark'] as const;
 export const AVAILABLE_FULL_DISK_ACTIONS = ['purge', 'keep'] as const;
 
 /** Available info sites */
-export const AVAILABLE_INFO_SITES = ['ALLABOUTBIRDS', 'EBIRD'] as const;
+export const AVAILABLE_INFO_SITES = ['ALLABOUTBIRDS'] as const;
 
 /** Available image providers */
 export const AVAILABLE_IMAGE_PROVIDERS = ['WIKIPEDIA', 'FLICKR', ''] as const;
