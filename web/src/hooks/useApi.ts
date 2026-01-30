@@ -11,6 +11,7 @@ import type {
   SpeciesHistoryResponse,
   SpeciesHistoryParams,
   SpeciesRankingResponse,
+  SpeciesRankingParams,
   StatsResponse,
   StatsParams,
   HeatmapResponse,
@@ -229,8 +230,9 @@ export async function fetchAllSpecies(): Promise<ListSpeciesResponse> {
  * Fetch species ranking with latest and best detection info.
  * GET /api/species/ranking
  */
-export async function fetchSpeciesRanking(): Promise<SpeciesRankingResponse> {
-  return apiFetch<SpeciesRankingResponse>(`${API_BASE}/species/ranking`);
+export async function fetchSpeciesRanking(params: SpeciesRankingParams = {}): Promise<SpeciesRankingResponse> {
+  const query = buildQuery(params as Record<string, string | undefined>);
+  return apiFetch<SpeciesRankingResponse>(`${API_BASE}/species/ranking${query}`);
 }
 
 /**
@@ -562,6 +564,7 @@ export type {
   SpeciesHistoryResponse,
   SpeciesHistoryParams,
   SpeciesRankingResponse,
+  SpeciesRankingParams,
   StatsResponse,
   StatsParams,
   HeatmapResponse,

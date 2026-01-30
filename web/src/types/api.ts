@@ -93,6 +93,11 @@ export interface SpeciesRankingResponse {
   species: SpeciesRankingEntry[];
 }
 
+/** Query parameters for GET /api/species/ranking */
+export interface SpeciesRankingParams {
+  period?: 'today' | 'week' | 'month' | 'all';
+}
+
 /** Response from GET /api/species/{name} */
 export interface SpeciesDetail {
   sci_name: string;

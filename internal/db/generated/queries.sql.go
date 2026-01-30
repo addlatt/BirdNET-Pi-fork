@@ -699,6 +699,93 @@ func (q *Queries) GetSpeciesRanking(ctx context.Context) ([]GetSpeciesRankingRow
 	return items, nil
 }
 
+const getSpeciesRankingByDateRange = `-- name: GetSpeciesRankingByDateRange :many
+WITH filtered AS (
+    SELECT date, time, sci_name, com_name, confidence, lat, lon, cutoff, week, sens, overlap, file_name FROM detections WHERE date >= ? AND date <= ?
+),
+latest AS (
+    SELECT sci_name, com_name, date, time, file_name, confidence,
+           ROW_NUMBER() OVER (PARTITION BY sci_name ORDER BY date DESC, time DESC) as rn
+    FROM filtered
+),
+best AS (
+    SELECT sci_name, com_name, date, time, file_name, confidence,
+           ROW_NUMBER() OVER (PARTITION BY sci_name ORDER BY confidence DESC, date DESC, time DESC) as rn
+    FROM filtered
+)
+SELECT
+    l.sci_name,
+    l.com_name,
+    (SELECT COUNT(*) FROM filtered WHERE sci_name = l.sci_name) as detection_count,
+    l.date as latest_date,
+    l.time as latest_time,
+    l.file_name as latest_file,
+    l.confidence as latest_confidence,
+    b.date as best_date,
+    b.time as best_time,
+    b.file_name as best_file,
+    b.confidence as best_confidence
+FROM latest l
+JOIN best b ON l.sci_name = b.sci_name AND b.rn = 1
+WHERE l.rn = 1
+ORDER BY detection_count DESC
+`
+
+type GetSpeciesRankingByDateRangeParams struct {
+	Date   string `db:"date" json:"date"`
+	Date_2 string `db:"date_2" json:"date_2"`
+}
+
+type GetSpeciesRankingByDateRangeRow struct {
+	SciName          string          `db:"sci_name" json:"sci_name"`
+	ComName          string          `db:"com_name" json:"com_name"`
+	DetectionCount   int64           `db:"detection_count" json:"detection_count"`
+	LatestDate       string          `db:"latest_date" json:"latest_date"`
+	LatestTime       string          `db:"latest_time" json:"latest_time"`
+	LatestFile       string          `db:"latest_file" json:"latest_file"`
+	LatestConfidence sql.NullFloat64 `db:"latest_confidence" json:"latest_confidence"`
+	BestDate         string          `db:"best_date" json:"best_date"`
+	BestTime         string          `db:"best_time" json:"best_time"`
+	BestFile         string          `db:"best_file" json:"best_file"`
+	BestConfidence   sql.NullFloat64 `db:"best_confidence" json:"best_confidence"`
+}
+
+// Get unique species ranked by detection frequency within a date range
+func (q *Queries) GetSpeciesRankingByDateRange(ctx context.Context, arg GetSpeciesRankingByDateRangeParams) ([]GetSpeciesRankingByDateRangeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSpeciesRankingByDateRange, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpeciesRankingByDateRangeRow
+	for rows.Next() {
+		var i GetSpeciesRankingByDateRangeRow
+		if err := rows.Scan(
+			&i.SciName,
+			&i.ComName,
+			&i.DetectionCount,
+			&i.LatestDate,
+			&i.LatestTime,
+			&i.LatestFile,
+			&i.LatestConfidence,
+			&i.BestDate,
+			&i.BestTime,
+			&i.BestFile,
+			&i.BestConfidence,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSpeciesStats = `-- name: GetSpeciesStats :one
 SELECT
     sci_name,

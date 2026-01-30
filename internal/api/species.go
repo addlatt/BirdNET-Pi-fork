@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	db "github.com/birdnet-pi/birdnet/internal/db/generated"
 	"github.com/go-chi/chi/v5"
@@ -405,28 +406,67 @@ type SpeciesRankingResponse struct {
 
 // GetSpeciesRanking handles GET /api/species/ranking requests.
 // Returns unique species ranked by detection frequency with latest and best detection info.
+// Query parameters:
+//   - period: "today", "week", "month", "all" (default: "today")
 func (h *Handlers) GetSpeciesRanking(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "today"
+	}
 
-	rows, err := h.db.Queries.GetSpeciesRanking(ctx)
+	// Calculate date range based on period
+	now := time.Now()
+	var startDate, endDate string
+	endDate = now.Format("2006-01-02")
+
+	switch period {
+	case "today":
+		startDate = endDate
+	case "week":
+		startDate = now.AddDate(0, 0, -7).Format("2006-01-02")
+	case "month":
+		startDate = now.AddDate(0, -1, 0).Format("2006-01-02")
+	case "all":
+		// Use the original query without date filter
+		rows, err := h.db.Queries.GetSpeciesRanking(ctx)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to fetch species ranking")
+			return
+		}
+		species := convertRankingRows(rows)
+		writeJSON(w, http.StatusOK, SpeciesRankingResponse{Species: species})
+		return
+	default:
+		startDate = endDate // Default to today
+	}
+
+	// Use date-filtered query
+	rows, err := h.db.Queries.GetSpeciesRankingByDateRange(ctx, db.GetSpeciesRankingByDateRangeParams{
+		Date:   startDate,
+		Date_2: endDate,
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch species ranking")
 		return
 	}
 
+	species := convertRankingRowsByDateRange(rows)
+	writeJSON(w, http.StatusOK, SpeciesRankingResponse{Species: species})
+}
+
+// convertRankingRows converts GetSpeciesRankingRow to SpeciesRankingEntry
+func convertRankingRows(rows []db.GetSpeciesRankingRow) []SpeciesRankingEntry {
 	var species []SpeciesRankingEntry
 	for _, row := range rows {
-		// Extract date-only from latest_date if needed
 		latestDate := row.LatestDate
 		if idx := strings.Index(latestDate, "T"); idx > 0 {
 			latestDate = latestDate[:idx]
 		}
-		// Extract date-only from best_date if needed
 		bestDate := row.BestDate
 		if idx := strings.Index(bestDate, "T"); idx > 0 {
 			bestDate = bestDate[:idx]
 		}
-
 		species = append(species, SpeciesRankingEntry{
 			SciName:          row.SciName,
 			ComName:          row.ComName,
@@ -441,17 +481,42 @@ func (h *Handlers) GetSpeciesRanking(w http.ResponseWriter, r *http.Request) {
 			BestConfidence:   row.BestConfidence.Float64,
 		})
 	}
-
-	// Ensure we return empty array instead of null
 	if species == nil {
 		species = []SpeciesRankingEntry{}
 	}
+	return species
+}
 
-	response := SpeciesRankingResponse{
-		Species: species,
+// convertRankingRowsByDateRange converts GetSpeciesRankingByDateRangeRow to SpeciesRankingEntry
+func convertRankingRowsByDateRange(rows []db.GetSpeciesRankingByDateRangeRow) []SpeciesRankingEntry {
+	var species []SpeciesRankingEntry
+	for _, row := range rows {
+		latestDate := row.LatestDate
+		if idx := strings.Index(latestDate, "T"); idx > 0 {
+			latestDate = latestDate[:idx]
+		}
+		bestDate := row.BestDate
+		if idx := strings.Index(bestDate, "T"); idx > 0 {
+			bestDate = bestDate[:idx]
+		}
+		species = append(species, SpeciesRankingEntry{
+			SciName:          row.SciName,
+			ComName:          row.ComName,
+			DetectionCount:   row.DetectionCount,
+			LatestDate:       latestDate,
+			LatestTime:       row.LatestTime,
+			LatestFile:       row.LatestFile,
+			LatestConfidence: row.LatestConfidence.Float64,
+			BestDate:         bestDate,
+			BestTime:         row.BestTime,
+			BestFile:         row.BestFile,
+			BestConfidence:   row.BestConfidence.Float64,
+		})
 	}
-
-	writeJSON(w, http.StatusOK, response)
+	if species == nil {
+		species = []SpeciesRankingEntry{}
+	}
+	return species
 }
 
 // ListAllSpecies handles GET /api/species/all requests.

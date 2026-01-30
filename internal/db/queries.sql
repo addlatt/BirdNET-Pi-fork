@@ -392,3 +392,35 @@ FROM latest l
 JOIN best b ON l.sci_name = b.sci_name AND b.rn = 1
 WHERE l.rn = 1
 ORDER BY detection_count DESC;
+
+-- name: GetSpeciesRankingByDateRange :many
+-- Get unique species ranked by detection frequency within a date range
+WITH filtered AS (
+    SELECT * FROM detections WHERE date >= ? AND date <= ?
+),
+latest AS (
+    SELECT sci_name, com_name, date, time, file_name, confidence,
+           ROW_NUMBER() OVER (PARTITION BY sci_name ORDER BY date DESC, time DESC) as rn
+    FROM filtered
+),
+best AS (
+    SELECT sci_name, com_name, date, time, file_name, confidence,
+           ROW_NUMBER() OVER (PARTITION BY sci_name ORDER BY confidence DESC, date DESC, time DESC) as rn
+    FROM filtered
+)
+SELECT
+    l.sci_name,
+    l.com_name,
+    (SELECT COUNT(*) FROM filtered WHERE sci_name = l.sci_name) as detection_count,
+    l.date as latest_date,
+    l.time as latest_time,
+    l.file_name as latest_file,
+    l.confidence as latest_confidence,
+    b.date as best_date,
+    b.time as best_time,
+    b.file_name as best_file,
+    b.confidence as best_confidence
+FROM latest l
+JOIN best b ON l.sci_name = b.sci_name AND b.rn = 1
+WHERE l.rn = 1
+ORDER BY detection_count DESC;
