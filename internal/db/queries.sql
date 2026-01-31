@@ -424,3 +424,46 @@ FROM latest l
 JOIN best b ON l.sci_name = b.sci_name AND b.rn = 1
 WHERE l.rn = 1
 ORDER BY detection_count DESC;
+
+-- =============================================================================
+-- Task Scheduler History Queries
+-- =============================================================================
+
+-- name: InsertTaskExecution :exec
+-- Record a task execution in history
+INSERT INTO task_history (task_name, started_at, completed_at, duration_ms, status, error, trigger)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- name: GetTaskHistory :many
+-- Get execution history for a specific task
+SELECT id, task_name, started_at, completed_at, duration_ms, status, error, trigger
+FROM task_history
+WHERE task_name = ?
+ORDER BY started_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: GetLatestTaskExecution :one
+-- Get the most recent execution for a task
+SELECT id, task_name, started_at, completed_at, duration_ms, status, error, trigger
+FROM task_history
+WHERE task_name = ?
+ORDER BY started_at DESC
+LIMIT 1;
+
+-- name: ListAllTaskHistory :many
+-- Get execution history for all tasks
+SELECT id, task_name, started_at, completed_at, duration_ms, status, error, trigger
+FROM task_history
+ORDER BY started_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountTaskHistory :one
+-- Count executions for a specific task
+SELECT COUNT(*) as count
+FROM task_history
+WHERE task_name = ?;
+
+-- name: DeleteOldTaskHistory :exec
+-- Delete task history entries older than a specific date
+DELETE FROM task_history
+WHERE started_at < ?;

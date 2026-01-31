@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -14,9 +16,12 @@ import (
 	"github.com/birdnet-pi/birdnet/internal/db"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
+	"github.com/birdnet-pi/birdnet/internal/scheduler"
+	"github.com/birdnet-pi/birdnet/internal/tasks"
 	"github.com/birdnet-pi/birdnet/internal/ws"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/mattn/go-sqlite3" // SQLite driver for scheduler history
 )
 
 func main() {
@@ -68,6 +73,10 @@ func main() {
 
 	// Initialize API handlers
 	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, configMgr, scriptsDir, dataDir, birdsongsDir)
+
+	// Initialize task scheduler
+	taskScheduler, taskHistory := initScheduler(database, hub, configMgr, homeDir, birdsongsDir, scriptsDir, dataDir)
+	handlers.SetScheduler(taskScheduler, taskHistory)
 
 	// Public API routes
 	r.Route("/api", func(r chi.Router) {
@@ -136,6 +145,14 @@ func main() {
 		r.Post("/recordings/{date}/{species}/{filename}/lock", handlers.ToggleRecordingLock)
 		r.Post("/recordings/{date}/{species}/{filename}/shift", handlers.ToggleRecordingShift)
 		r.Get("/recordings/exclusions", handlers.GetExclusionList)
+
+		// Task scheduler
+		r.Get("/tasks", handlers.ListTasks)
+		r.Get("/tasks/history", handlers.GetAllTaskHistory)
+		r.Get("/tasks/{name}", handlers.GetTask)
+		r.Post("/tasks/{name}/run", handlers.RunTask)
+		r.Post("/tasks/{name}/cancel", handlers.CancelTask)
+		r.Get("/tasks/{name}/history", handlers.GetTaskHistory)
 	})
 
 	// Internal routes (Python → Go)
@@ -180,11 +197,25 @@ func main() {
 		}
 	}()
 
+	// Start the scheduler
+	if taskScheduler != nil {
+		if err := taskScheduler.Start(); err != nil {
+			log.Printf("Warning: Failed to start scheduler: %v", err)
+		}
+	}
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Stop scheduler first
+	if taskScheduler != nil {
+		log.Println("Stopping scheduler...")
+		schedulerCtx := taskScheduler.Stop()
+		<-schedulerCtx.Done()
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -227,4 +258,50 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// initScheduler creates and configures the task scheduler with all tasks.
+func initScheduler(database *db.DB, hub *ws.Hub, configMgr *config.Manager, homeDir, birdsongsDir, scriptsDir, dataDir string) (*scheduler.Scheduler, *scheduler.HistoryStore) {
+	// Open a separate database connection for the scheduler (read-write for history)
+	historyDBPath := filepath.Join(dataDir, "db", "birds.db")
+	historyDB, err := sql.Open("sqlite3", historyDBPath)
+	if err != nil {
+		log.Printf("Warning: Failed to open history database: %v (task history will not be persisted)", err)
+		return nil, nil
+	}
+
+	// Create history store and ensure table exists
+	historyStore := scheduler.NewHistoryStore(historyDB)
+	if err := historyStore.EnsureTable(); err != nil {
+		log.Printf("Warning: Failed to create task_history table: %v", err)
+	}
+
+	// Create task registry and register all tasks
+	registry := scheduler.NewRegistry()
+
+	// Paths for tasks
+	extractedDir := filepath.Join(birdsongsDir, "Extracted")
+	processedDir := filepath.Join(birdsongsDir, "Processed")
+
+	// Register disk cleanup task
+	diskCleanup := tasks.NewDiskCleanupTask(configMgr, extractedDir, processedDir, dataDir)
+	registry.MustRegister(diskCleanup)
+
+	// Register weekly report task
+	weeklyReport := tasks.NewWeeklyReportTask(scriptsDir)
+	registry.MustRegister(weeklyReport)
+
+	// Register species cleanup task (needs DB access for species list)
+	speciesCleanup := tasks.NewSpeciesCleanupTask(configMgr, historyDB, extractedDir, dataDir)
+	registry.MustRegister(speciesCleanup)
+
+	// Register backup task
+	backup := tasks.NewBackupTask(homeDir, birdsongsDir)
+	registry.MustRegister(backup)
+
+	// Create scheduler
+	sched := scheduler.NewScheduler(registry, historyStore, hub, configMgr)
+
+	log.Printf("Task scheduler initialized with %d tasks", registry.Count())
+	return sched, historyStore
 }

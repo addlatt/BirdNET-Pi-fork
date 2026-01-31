@@ -102,9 +102,19 @@ type Config struct {
 	CustomImageTitle string `json:"custom_image_title" ini:"CUSTOM_IMAGE_TITLE"`
 
 	// === Logging ===
-	LogLevelBirdnetRecordingService   string `json:"log_level_birdnet_recording_service" ini:"LogLevel_BirdnetRecordingService"`
-	LogLevelLiveAudioStreamService    string `json:"log_level_live_audio_stream_service" ini:"LogLevel_LiveAudioStreamService"`
-	LogLevelSpectrogramViewerService  string `json:"log_level_spectrogram_viewer_service" ini:"LogLevel_SpectrogramViewerService"`
+	LogLevelBirdnetRecordingService  string `json:"log_level_birdnet_recording_service" ini:"LogLevel_BirdnetRecordingService"`
+	LogLevelLiveAudioStreamService   string `json:"log_level_live_audio_stream_service" ini:"LogLevel_LiveAudioStreamService"`
+	LogLevelSpectrogramViewerService string `json:"log_level_spectrogram_viewer_service" ini:"LogLevel_SpectrogramViewerService"`
+
+	// === Task Scheduler ===
+	TaskDiskCleanupEnabled    int    `json:"task_disk_cleanup_enabled" ini:"TASK_DISK_CLEANUP_ENABLED"`
+	TaskDiskCleanupSchedule   string `json:"task_disk_cleanup_schedule" ini:"TASK_DISK_CLEANUP_SCHEDULE"`
+	TaskWeeklyReportEnabled   int    `json:"task_weekly_report_enabled" ini:"TASK_WEEKLY_REPORT_ENABLED"`
+	TaskWeeklyReportSchedule  string `json:"task_weekly_report_schedule" ini:"TASK_WEEKLY_REPORT_SCHEDULE"`
+	TaskSpeciesCleanupEnabled int    `json:"task_species_cleanup_enabled" ini:"TASK_SPECIES_CLEANUP_ENABLED"`
+	TaskSpeciesCleanupSchedule string `json:"task_species_cleanup_schedule" ini:"TASK_SPECIES_CLEANUP_SCHEDULE"`
+	TaskBackupEnabled         int    `json:"task_backup_enabled" ini:"TASK_BACKUP_ENABLED"`
+	TaskBackupSchedule        string `json:"task_backup_schedule" ini:"TASK_BACKUP_SCHEDULE"`
 }
 
 // ConfigUpdate represents a partial config update from the API.
@@ -197,6 +207,16 @@ type ConfigUpdate struct {
 	LogLevelBirdnetRecordingService  *string `json:"log_level_birdnet_recording_service,omitempty"`
 	LogLevelLiveAudioStreamService   *string `json:"log_level_live_audio_stream_service,omitempty"`
 	LogLevelSpectrogramViewerService *string `json:"log_level_spectrogram_viewer_service,omitempty"`
+
+	// === Task Scheduler ===
+	TaskDiskCleanupEnabled     *int    `json:"task_disk_cleanup_enabled,omitempty"`
+	TaskDiskCleanupSchedule    *string `json:"task_disk_cleanup_schedule,omitempty"`
+	TaskWeeklyReportEnabled    *int    `json:"task_weekly_report_enabled,omitempty"`
+	TaskWeeklyReportSchedule   *string `json:"task_weekly_report_schedule,omitempty"`
+	TaskSpeciesCleanupEnabled  *int    `json:"task_species_cleanup_enabled,omitempty"`
+	TaskSpeciesCleanupSchedule *string `json:"task_species_cleanup_schedule,omitempty"`
+	TaskBackupEnabled          *int    `json:"task_backup_enabled,omitempty"`
+	TaskBackupSchedule         *string `json:"task_backup_schedule,omitempty"`
 
 	// === Special Fields (not in config file) ===
 	// Apprise config is stored in a separate file
