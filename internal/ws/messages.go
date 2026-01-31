@@ -28,12 +28,21 @@ const (
 	TypeVADResult        = "vad_result"
 )
 
+// Task scheduler message types
+const (
+	TypeTaskStarted   = "task_started"
+	TypeTaskCompleted = "task_completed"
+	TypeTaskFailed    = "task_failed"
+	TypeTaskCancelled = "task_cancelled"
+)
+
 // Default channels
 const (
 	ChannelDetections  = "detections"
 	ChannelStatus      = "status"
 	ChannelSpectrogram = "spectrogram" // Part 2
 	ChannelLLM         = "llm"         // Part 2
+	ChannelTasks       = "tasks"       // Task scheduler events
 )
 
 // DetectionPayload is the payload for detection notifications.
@@ -87,4 +96,13 @@ func NewChannelMessage(msgType string, channel string, payload interface{}) (*WS
 // ParsePayload parses the payload into the given struct.
 func (m *WSMessage) ParsePayload(v interface{}) error {
 	return json.Unmarshal(m.Payload, v)
+}
+
+// TaskEventPayload is the payload for task scheduler events.
+type TaskEventPayload struct {
+	TaskName  string `json:"task_name"`
+	Status    string `json:"status"`
+	Trigger   string `json:"trigger"`
+	Error     string `json:"error,omitempty"`
+	Timestamp string `json:"timestamp"`
 }

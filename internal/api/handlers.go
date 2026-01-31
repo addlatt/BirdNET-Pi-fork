@@ -5,6 +5,7 @@ import (
 	"github.com/birdnet-pi/birdnet/internal/db"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
+	"github.com/birdnet-pi/birdnet/internal/scheduler"
 	"github.com/birdnet-pi/birdnet/internal/ws"
 )
 
@@ -15,6 +16,8 @@ type Handlers struct {
 	monitor      *monitor.MemoryMonitor
 	mlClient     *mlclient.Client
 	configMgr    *config.Manager
+	scheduler    *scheduler.Scheduler
+	taskHistory  *scheduler.HistoryStore
 	scriptsDir   string
 	dataDir      string
 	birdsongsDir string
@@ -32,4 +35,11 @@ func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClien
 		dataDir:      dataDir,
 		birdsongsDir: birdsongsDir,
 	}
+}
+
+// SetScheduler sets the scheduler dependency.
+// This is called after NewHandlers because the scheduler depends on handlers existing.
+func (h *Handlers) SetScheduler(s *scheduler.Scheduler, history *scheduler.HistoryStore) {
+	h.scheduler = s
+	h.taskHistory = history
 }
