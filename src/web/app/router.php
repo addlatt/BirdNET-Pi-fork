@@ -203,7 +203,10 @@ if (isset($_GET['view'])) {
 
     switch ($view) {
         case 'System Info':
-            echo "<iframe src='/phpsysinfo/index.php'></iframe>";
+            echo "<div style='padding: 2rem; text-align: center;'>";
+            echo "<h2>System Info Deprecated</h2>";
+            echo "<p>The phpsysinfo tool has been removed. Use the new <a href='/app'>Go API</a> for system information, or access the system via SSH.</p>";
+            echo "</div>";
             break;
 
         case 'System Controls':
@@ -317,7 +320,10 @@ if (isset($_GET['view'])) {
             break;
 
         case 'File':
-            echo "<iframe src='/filemanager/filemanager.php'></iframe>";
+            echo "<div style='padding: 2rem; text-align: center;'>";
+            echo "<h2>File Manager Deprecated</h2>";
+            echo "<p>The PHP file manager has been removed. Use the new <a href='/app'>Recordings browser</a> in the Go app, or access files via SSH/SFTP.</p>";
+            echo "</div>";
             break;
 
         case 'Adminer':

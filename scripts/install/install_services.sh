@@ -83,11 +83,6 @@ create_necessary_dirs() {
   sudo -u ${USER} ln -fs $my_dir/model/labels.txt ${my_dir}/data/
   sudo -u ${USER} ln -sf $my_dir/model/labels_nm/labels_en.txt $my_dir/model/labels_flickr.txt
 
-  # phpsysinfo configuration
-  sudo -u ${USER} ln -fs $my_dir/templates/phpsysinfo.ini ${HOME}/phpsysinfo/
-  sudo -u ${USER} ln -fs $my_dir/templates/green_bootstrap.css ${HOME}/phpsysinfo/templates/
-  sudo -u ${USER} ln -fs $my_dir/templates/index_bootstrap.html ${HOME}/phpsysinfo/templates/html
-
   chmod -R g+rw $my_dir
   chmod -R g+rw ${RECS_DIR}
 }
@@ -180,22 +175,6 @@ http:// ${BIRDNETPI_URL} {
     root * ${WEB_ROOT}/vendor/adminer
     php_fastcgi unix//run/php/php-fpm.sock
   }
-  handle /filemanager/* {
-    basicauth {
-      birdnet ${HASHWORD}
-    }
-    root * ${WEB_ROOT}/vendor/filemanager
-    php_fastcgi unix//run/php/php-fpm.sock
-  }
-
-  # phpsysinfo (protected)
-  handle /phpsysinfo/* {
-    basicauth {
-      birdnet ${HASHWORD}
-    }
-    root * ${HOME}/phpsysinfo
-    php_fastcgi unix//run/php/php-fpm.sock
-  }
 
   # Bird recordings (browse)
   handle /By_Date/* {
@@ -251,16 +230,6 @@ http:// ${BIRDNETPI_URL} {
   # Vendored tools (no auth)
   handle /adminer/* {
     root * ${WEB_ROOT}/vendor/adminer
-    php_fastcgi unix//run/php/php-fpm.sock
-  }
-  handle /filemanager/* {
-    root * ${WEB_ROOT}/vendor/filemanager
-    php_fastcgi unix//run/php/php-fpm.sock
-  }
-
-  # phpsysinfo (no auth)
-  handle /phpsysinfo/* {
-    root * ${HOME}/phpsysinfo
     php_fastcgi unix//run/php/php-fpm.sock
   }
 
@@ -414,11 +383,6 @@ EOF
   chmod 0440 /etc/sudoers.d/010_caddy-nopasswd
 }
 
-install_phpsysinfo() {
-  sudo -u ${USER} git clone https://github.com/phpsysinfo/phpsysinfo.git \
-    ${HOME}/phpsysinfo
-}
-
 config_icecast() {
   if [ -f /etc/icecast2/icecast.xml ];then
     cp /etc/icecast2/icecast.xml{,.prebirdnetpi}
@@ -495,7 +459,6 @@ install_services() {
   install_spectrogram_service
   install_chart_viewer_service
   install_gotty_terminal
-  install_phpsysinfo
   install_livestream_service
   install_birdnet_mount
   install_cleanup_cron

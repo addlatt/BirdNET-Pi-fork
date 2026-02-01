@@ -43,16 +43,6 @@ http:// {
 		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/vendor/adminer
 		php_fastcgi unix//run/php/php-fpm.sock
 	}
-	handle /filemanager/* {
-		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/vendor/filemanager
-		php_fastcgi unix//run/php/php-fpm.sock
-	}
-
-	# phpsysinfo (no auth)
-	handle /phpsysinfo/* {
-		root * {$BIRDNET_HOME}/phpsysinfo
-		php_fastcgi unix//run/php/php-fpm.sock
-	}
 
 	# Bird recordings (browse)
 	handle /By_Date/* {

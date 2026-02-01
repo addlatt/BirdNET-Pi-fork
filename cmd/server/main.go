@@ -125,6 +125,13 @@ func main() {
 		// System
 		r.Get("/system/status", handlers.SystemStatus)
 		r.Get("/system/memory", handlers.SystemMemory)
+		r.Get("/system/update-check", handlers.CheckForUpdates)
+		r.Post("/system/reboot", handlers.Reboot)
+		r.Post("/system/shutdown", handlers.Shutdown)
+
+		// Reports
+		r.Get("/reports/weekly", handlers.WeeklyReport)
+		r.Get("/reports/weekly/export", handlers.ExportWeeklyReport)
 
 		// Diagnostics (replaces shell scripts)
 		r.Get("/diagnostics/disk", handlers.DiskUsage)

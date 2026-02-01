@@ -29,7 +29,6 @@ type CaddyTemplateData struct {
 	HasPassword     bool
 	PasswordHash    string
 	WebRoot         string
-	PHPSysinfoDir   string
 	ExtractedDir    string
 }
 
@@ -49,26 +48,6 @@ const caddyfileTemplate = `http:// {{.BirdnetpiURL}} {
     }
     {{- end}}
     root * {{.WebRoot}}/vendor/adminer
-    php_fastcgi unix//run/php/php-fpm.sock
-  }
-  handle /filemanager/* {
-    {{- if .HasPassword}}
-    basicauth {
-      birdnet {{.PasswordHash}}
-    }
-    {{- end}}
-    root * {{.WebRoot}}/vendor/filemanager
-    php_fastcgi unix//run/php/php-fpm.sock
-  }
-
-  # phpsysinfo{{if .HasPassword}} (protected){{end}}
-  handle /phpsysinfo/* {
-    {{- if .HasPassword}}
-    basicauth {
-      birdnet {{.PasswordHash}}
-    }
-    {{- end}}
-    root * {{.PHPSysinfoDir}}
     php_fastcgi unix//run/php/php-fpm.sock
   }
 
@@ -139,7 +118,6 @@ func (g *CaddyfileGenerator) Generate() error {
 	}
 
 	webRoot := filepath.Join(userHome, "BirdNET-Pi", "src", "web")
-	phpSysinfoDir := filepath.Join(userHome, "phpsysinfo")
 	extractedDir := cfg.Extracted
 	if extractedDir == "" {
 		extractedDir = filepath.Join(cfg.RecsDir, "Extracted")
@@ -147,11 +125,10 @@ func (g *CaddyfileGenerator) Generate() error {
 
 	// Prepare template data
 	data := CaddyTemplateData{
-		BirdnetpiURL:  cfg.BirdnetpiURL,
-		HasPassword:   cfg.CaddyPwd != "",
-		WebRoot:       webRoot,
-		PHPSysinfoDir: phpSysinfoDir,
-		ExtractedDir:  extractedDir,
+		BirdnetpiURL: cfg.BirdnetpiURL,
+		HasPassword:  cfg.CaddyPwd != "",
+		WebRoot:      webRoot,
+		ExtractedDir: extractedDir,
 	}
 
 	// Generate password hash if password is set
