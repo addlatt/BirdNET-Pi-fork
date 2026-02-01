@@ -87,6 +87,7 @@ func main() {
 		r.Get("/detections", handlers.ListDetections)
 		r.Get("/detections/{date}/{time}/{species}", handlers.GetDetection)
 		r.Delete("/detections/{date}/{time}/{species}", handlers.DeleteDetection)
+		r.Post("/detections/reclassify", handlers.ReclassifyDetection)
 
 		// Dates (for history page date picker)
 		r.Get("/dates", handlers.ListDates)
@@ -125,10 +126,25 @@ func main() {
 		r.Get("/system/status", handlers.SystemStatus)
 		r.Get("/system/memory", handlers.SystemMemory)
 
+		// Diagnostics (replaces shell scripts)
+		r.Get("/diagnostics/disk", handlers.DiskUsage)
+		r.Get("/diagnostics/most-recent", handlers.MostRecent)
+		r.Get("/diagnostics/pi", handlers.PiDiagnostics)
+		r.Get("/diagnostics/system", handlers.SystemDiagnostics)
+		r.Get("/diagnostics/species-count", handlers.SpeciesCount)
+		r.Get("/diagnostics/logs", handlers.DumpLogs)
+
+		// Logs API (recent logs without streaming)
+		r.Get("/logs/recent", handlers.GetRecentLogs)
+
 		// Settings
 		r.Get("/settings", handlers.GetSettings)
 		r.Put("/settings", handlers.UpdateSettings)
 		r.Get("/settings/schema", handlers.GetSettingsSchema)
+		r.Post("/settings/caddy/regenerate", handlers.RegenerateCaddyfile)
+
+		// Labels (available species for reclassification)
+		r.Get("/labels/model", handlers.GetModelLabels)
 
 		// Services
 		r.Get("/services", handlers.ListServices)
@@ -160,10 +176,12 @@ func main() {
 		r.Post("/detection", handlers.ReceiveDetection)
 	})
 
-	// WebSocket endpoint
+	// WebSocket endpoints
 	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		hub.HandleWebSocket(w, r)
 	})
+	r.Get("/ws/logs", handlers.StreamLogs)
+	r.Get("/ws/logs/detections", handlers.StreamDetectionLogs)
 
 	// Static file server for Preact app (in production)
 	staticDir := getEnv("STATIC_DIR", "web/dist")
@@ -298,6 +316,25 @@ func initScheduler(database *db.DB, hub *ws.Hub, configMgr *config.Manager, home
 	// Register backup task
 	backup := tasks.NewBackupTask(homeDir, birdsongsDir)
 	registry.MustRegister(backup)
+
+	// Register data reset task (manual only, no automatic schedule)
+	dataReset := tasks.NewDataResetTask(configMgr, historyDB, homeDir, birdsongsDir, dataDir)
+	registry.MustRegister(dataReset)
+
+	// Register species list update task
+	speciesListUpdate := tasks.NewSpeciesListUpdateTask(configMgr, historyDB, homeDir)
+	registry.MustRegister(speciesListUpdate)
+
+	// Register notification task
+	notification := tasks.NewNotificationTask(configMgr, historyDB, homeDir)
+	registry.MustRegister(notification)
+
+	// Register service control tasks (manual only)
+	restartServices := tasks.NewRestartServicesTask()
+	registry.MustRegister(restartServices)
+
+	stopCoreServices := tasks.NewStopCoreServicesTask()
+	registry.MustRegister(stopCoreServices)
 
 	// Create scheduler
 	sched := scheduler.NewScheduler(registry, historyStore, hub, configMgr)

@@ -1,0 +1,15 @@
+[Unit]
+Description=BirdNET-Pi Livestream Service
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=simple
+User=%USER%
+Environment="HOME=%HOME%"
+ExecStart=%PYTHON_VENV% %INSTALL_DIR%/src/service/livestream.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

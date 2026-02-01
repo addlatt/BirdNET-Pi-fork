@@ -1,0 +1,14 @@
+[Unit]
+Description=BirdNET-Pi Spectrogram Service
+After=network.target
+
+[Service]
+Type=simple
+User=%USER%
+Environment="HOME=%HOME%"
+ExecStart=%PYTHON_VENV% %INSTALL_DIR%/src/service/spectrogram.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

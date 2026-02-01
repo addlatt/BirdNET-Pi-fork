@@ -2,6 +2,7 @@
 
 .PHONY: all build test test-verbose test-coverage test-race lint clean help
 .PHONY: dev-server dev-web install-deps generate
+.PHONY: build-arm64 build-arm build-pi build-all-platforms
 
 # Go parameters
 GOCMD=go
@@ -38,6 +39,23 @@ build-debug: ## Build with debug symbols
 	@echo "Building $(BINARY_NAME) (debug)..."
 	@mkdir -p $(BINARY_DIR)
 	$(GOBUILD) -o $(BINARY_DIR)/$(BINARY_NAME) $(CMD_DIR)
+
+build-arm64: ## Build for Raspberry Pi 3/4/5 (64-bit ARM)
+	@echo "Building $(BINARY_NAME) for linux/arm64..."
+	@mkdir -p $(BINARY_DIR)
+	GOOS=linux GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-linux-arm64 $(CMD_DIR)
+
+build-arm: ## Build for Raspberry Pi Zero/older Pi (32-bit ARM)
+	@echo "Building $(BINARY_NAME) for linux/arm..."
+	@mkdir -p $(BINARY_DIR)
+	GOOS=linux GOARCH=arm GOARM=7 $(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-linux-arm $(CMD_DIR)
+
+build-pi: build-arm64 ## Alias for build-arm64 (most common Pi target)
+	@echo "Pi build complete: $(BINARY_DIR)/$(BINARY_NAME)-linux-arm64"
+
+build-all-platforms: build build-arm64 build-arm ## Build for all platforms
+	@echo "All platform builds complete:"
+	@ls -la $(BINARY_DIR)/
 
 ## Test targets
 
@@ -205,4 +223,4 @@ help: ## Show this help
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'

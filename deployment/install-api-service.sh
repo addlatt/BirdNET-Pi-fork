@@ -4,16 +4,25 @@
 
 set -e
 
-SERVICE_FILE="$HOME/BirdNET-Pi/deployment/birdnet-api.service"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVICE_TEMPLATE="$SCRIPT_DIR/birdnet-api.service"
 SERVICE_NAME="birdnet-api"
+TEMP_SERVICE="/tmp/${SERVICE_NAME}.service"
 
 echo "Installing $SERVICE_NAME service..."
 
 # Stop any manually running instance
 pkill -f 'bin/birdnet-server' 2>/dev/null || true
 
+# Substitute placeholders in service file
+echo "Configuring service for user: $USER"
+sed -e "s|%USER%|$USER|g" \
+    -e "s|%HOME%|$HOME|g" \
+    "$SERVICE_TEMPLATE" > "$TEMP_SERVICE"
+
 # Copy service file to systemd
-sudo cp "$SERVICE_FILE" /etc/systemd/system/
+sudo cp "$TEMP_SERVICE" /etc/systemd/system/${SERVICE_NAME}.service
+rm -f "$TEMP_SERVICE"
 
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload

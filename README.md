@@ -1,6 +1,6 @@
 # birdnet-pi fork
 
-a modernized fork of [Nachtzuster's BirdNET-Pi](https://github.com/Nachtzuster/BirdNET-Pi) with a new Go + Preact frontend.
+a modernized fork of [Nachtzuster's BirdNET-Pi](https://github.com/Nachtzuster/BirdNET-Pi) with a Go API, Preact frontend, and Python services.
 
 the original php web interface still works at `/legacy`. the new preact app runs at `/`.
 
@@ -8,21 +8,56 @@ the original php web interface still works at `/legacy`. the new preact app runs
 
 ## what's different
 
-this fork replaces the php web interface with:
+this fork replaces the php web interface and shell scripts with:
 
-- **go api server** - fast, handles websockets, runs as a systemd service with auto-restart
+- **go api server** - REST api, websocket streaming, task scheduler, auto-restart
 - **preact frontend** - modern typescript ui, real-time updates via websocket
-- **same python backend** - birdnet analysis unchanged, just talks to go now
+- **python services** - spectrogram generation, livestreaming (replaces shell scripts)
+- **same ml backend** - birdnet analysis unchanged
 
-the bird detection stuff is identical to upstream. this is just a frontend/api rewrite.
+the bird detection stuff is identical to upstream. this is a frontend/api/service rewrite.
 
 ## architecture
 
 ```
-browser → caddy → go api (port 8080) → sqlite (read-only)
-                                     → python ml service
-                                     → websocket for live updates
+┌─────────────────────────────────────────────────────────────────────┐
+│                              Browser                                │
+└──────────────────────────────────┬──────────────────────────────────┘
+                                   │
+                              ┌────▼────┐
+                              │  Caddy  │ :80
+                              └────┬────┘
+           ┌───────────┬──────────┼──────────┬───────────┐
+           │           │          │          │           │
+      ┌────▼────┐ ┌────▼────┐ ┌───▼───┐ ┌────▼────┐ ┌────▼────┐
+      │ Go API  │ │ Preact  │ │Icecast│ │ gotty   │ │Streamlit│
+      │  :8080  │ │ static  │ │ :8000 │ │  :8888  │ │  :8501  │
+      └────┬────┘ └─────────┘ └───▲───┘ └─────────┘ └─────────┘
+           │                      │
+    ┌──────┼──────┐               │
+    │      │      │               │
+┌───▼──┐ ┌─▼──┐ ┌─▼────────┐ ┌────┴─────────┐
+│SQLite│ │ ML │ │WebSocket │ │ livestream.py│
+│      │ │Svc │ │  Hub     │ └──────────────┘
+└──────┘ └────┘ └──────────┘
+                     │
+          ┌──────────┼──────────┐
+          │          │          │
+   ┌──────▼───┐ ┌────▼────┐ ┌───▼────────────┐
+   │ /ws/logs │ │   /ws   │ │ spectrogram.py │
+   │ streaming│ │ updates │ └────────────────┘
+   └──────────┘ └─────────┘
 ```
+
+**services:**
+| service | technology | purpose |
+|---------|------------|---------|
+| birdnet-api | Go | REST API, WebSocket, task scheduling |
+| birdnet_analysis | Python | ML inference with BirdNET model |
+| birdnet_recording | Bash | Audio capture from microphone |
+| spectrogram_viewer | Python | Generates live spectrogram images |
+| livestream | Python | Streams audio to Icecast via ffmpeg |
+| birdnet_stats | Python/Streamlit | Statistics dashboard |
 
 ## requirements
 
@@ -43,17 +78,27 @@ curl -s https://raw.githubusercontent.com/Nachtzuster/BirdNET-Pi/main/newinstall
 cd ~/BirdNET-Pi
 git remote set-url origin https://github.com/addlatt/BirdNET-Pi-fork.git
 git fetch origin
-git checkout cutover/go-backend
+git checkout main
 git pull
 
 # build go server
-go build -o bin/birdnet-server ./cmd/server
+make build
 
-# build preact app
+# build preact app (optional - pre-built in web/dist)
 cd web && npm install && npm run build && cd ..
 
 # install and start the go service
 bash deployment/install-api-service.sh
+```
+
+### cross-compilation
+
+build for pi from another machine:
+
+```bash
+make build-arm64    # pi 3/4/5 (64-bit)
+make build-arm      # pi zero/older (32-bit)
+make build-pi       # alias for arm64
 ```
 
 ## usage
@@ -66,17 +111,17 @@ access from any browser on your network:
 ### service management
 
 ```bash
-# check status
-sudo systemctl status birdnet-api
+# check all services
+systemctl status birdnet-api spectrogram_viewer livestream
 
-# view logs
+# view api logs
 sudo journalctl -u birdnet-api -f
 
-# restart
-sudo systemctl restart birdnet-api
+# restart everything
+sudo systemctl restart birdnet-api spectrogram_viewer livestream
 ```
 
-the go server auto-restarts if it crashes. rate limited to 5 restarts per minute to prevent loops.
+the go server auto-restarts if it crashes. rate limited to 5 restarts per minute.
 
 ## development
 
@@ -85,26 +130,36 @@ see [CLAUDE.md](CLAUDE.md) for the full dev guide.
 quick version:
 
 ```bash
-# make changes locally
-# commit and push
+# make changes locally, commit and push
 git add -A && git commit -m "message" && git push
 
 # on pi: pull, rebuild, restart
-ssh user@birdnet "cd ~/BirdNET-Pi && git pull && go build -o bin/birdnet-server ./cmd/server && cd web && npm run build && sudo systemctl restart birdnet-api"
+ssh user@birdnet "cd ~/BirdNET-Pi && git pull && make build && sudo systemctl restart birdnet-api"
 ```
 
 ## api
 
-main endpoints:
+### REST endpoints
 
 ```
 GET  /api/health              # health check
-GET  /api/detections          # list detections
+GET  /api/detections          # list detections (paginated)
 GET  /api/species             # species with counts
 GET  /api/settings            # current config
 PUT  /api/settings            # update config
 GET  /api/services            # service statuses
-WS   /ws                      # websocket for live updates
+POST /api/services/{name}/{action}  # start/stop/restart services
+GET  /api/diagnostics/disk    # disk usage info
+GET  /api/diagnostics/system  # system info
+GET  /api/logs/recent         # recent log entries
+```
+
+### WebSocket endpoints
+
+```
+WS   /ws                      # live detection updates
+WS   /ws/logs                 # streaming log output
+WS   /ws/logs/detections      # detection-only log stream
 ```
 
 ## license

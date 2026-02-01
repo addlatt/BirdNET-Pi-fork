@@ -44,6 +44,9 @@ install_scripts() {
   ln -sf ${my_dir}/scripts/runtime/* /usr/local/bin/
   ln -sf ${my_dir}/scripts/tools/* /usr/local/bin/
   ln -sf ${my_dir}/scripts/config/* /usr/local/bin/
+  # Symlink Python service scripts
+  ln -sf ${my_dir}/src/service/spectrogram.py /usr/local/bin/
+  ln -sf ${my_dir}/src/service/livestream.py /usr/local/bin/
 }
 
 install_birdnet_analysis() {
@@ -349,7 +352,8 @@ Restart=always
 RestartSec=10
 Type=simple
 User=${USER}
-ExecStart=/usr/local/bin/spectrogram.sh
+Environment="HOME=${HOME}"
+ExecStart=${PYTHON_VIRTUAL_ENV} /usr/local/bin/spectrogram.py
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -375,26 +379,13 @@ EOF
   systemctl enable chart_viewer.service
 }
 
-install_gotty_logs() {
+install_gotty_terminal() {
+  # Install gotty for web terminal access only
+  # Note: birdnet_log.service is no longer needed - use Go API /ws/logs WebSocket endpoint
   sudo -u ${USER} ln -sf $my_dir/templates/gotty \
     ${HOME}/.gotty
   sudo -u ${USER} ln -sf $my_dir/templates/bashrc \
     ${HOME}/.bashrc
-  cat << EOF > $HOME/BirdNET-Pi/templates/birdnet_log.service
-[Unit]
-Description=BirdNET Analysis Log
-[Service]
-Restart=on-failure
-RestartSec=3
-Type=simple
-User=${USER}
-Environment=TERM=xterm-256color
-ExecStart=/usr/local/bin/gotty --address localhost -p 8080 --path log --title-format "BirdNET-Pi Log" birdnet_log.sh
-[Install]
-WantedBy=multi-user.target
-EOF
-  ln -sf $HOME/BirdNET-Pi/templates/birdnet_log.service /usr/lib/systemd/system
-  systemctl enable birdnet_log.service
   cat << EOF > $HOME/BirdNET-Pi/templates/web_terminal.service
 [Unit]
 Description=BirdNET-Pi Web Terminal
@@ -453,7 +444,8 @@ Restart=always
 Type=simple
 RestartSec=3
 User=${USER}
-ExecStart=/usr/local/bin/livestream.sh
+Environment="HOME=${HOME}"
+ExecStart=${PYTHON_VIRTUAL_ENV} /usr/local/bin/livestream.py
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -502,7 +494,7 @@ install_services() {
   install_custom_recording_service # But does not enable
   install_spectrogram_service
   install_chart_viewer_service
-  install_gotty_logs
+  install_gotty_terminal
   install_phpsysinfo
   install_livestream_service
   install_birdnet_mount
