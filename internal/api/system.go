@@ -2,8 +2,11 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -136,4 +139,115 @@ func (h *Handlers) SystemMemory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+// UpdateCheckResponse represents the update check result.
+type UpdateCheckResponse struct {
+	CurrentCommit   string `json:"current_commit"`
+	LatestCommit    string `json:"latest_commit"`
+	BehindCount     int    `json:"behind_count"`
+	UpdateAvailable bool   `json:"update_available"`
+}
+
+// CheckForUpdates handles GET /api/system/update-check requests.
+func (h *Handlers) CheckForUpdates(w http.ResponseWriter, r *http.Request) {
+	// Fetch latest from origin
+	fetchCmd := exec.CommandContext(r.Context(), "git", "fetch", "origin")
+	if err := fetchCmd.Run(); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to fetch from origin: "+err.Error())
+		return
+	}
+
+	// Get current commit
+	currentCmd := exec.CommandContext(r.Context(), "git", "rev-parse", "HEAD")
+	currentOutput, err := currentCmd.Output()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get current commit: "+err.Error())
+		return
+	}
+	currentCommit := strings.TrimSpace(string(currentOutput))
+
+	// Get latest commit on origin/main
+	latestCmd := exec.CommandContext(r.Context(), "git", "rev-parse", "origin/main")
+	latestOutput, err := latestCmd.Output()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get latest commit: "+err.Error())
+		return
+	}
+	latestCommit := strings.TrimSpace(string(latestOutput))
+
+	// Get count of commits behind
+	behindCmd := exec.CommandContext(r.Context(), "git", "rev-list", "HEAD..origin/main", "--count")
+	behindOutput, err := behindCmd.Output()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get behind count: "+err.Error())
+		return
+	}
+	behindStr := strings.TrimSpace(string(behindOutput))
+	behindCount := 0
+	for _, c := range behindStr {
+		if c >= '0' && c <= '9' {
+			behindCount = behindCount*10 + int(c-'0')
+		}
+	}
+
+	response := UpdateCheckResponse{
+		CurrentCommit:   currentCommit,
+		LatestCommit:    latestCommit,
+		BehindCount:     behindCount,
+		UpdateAvailable: currentCommit != latestCommit,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// ConfirmationRequest is used for dangerous operations that require confirmation.
+type ConfirmationRequest struct {
+	Confirm bool `json:"confirm"`
+}
+
+// Reboot handles POST /api/system/reboot requests.
+func (h *Handlers) Reboot(w http.ResponseWriter, r *http.Request) {
+	var req ConfirmationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if !req.Confirm {
+		writeError(w, http.StatusBadRequest, "confirmation required: set confirm=true")
+		return
+	}
+
+	// Send response before rebooting
+	writeJSON(w, http.StatusOK, map[string]string{"status": "rebooting"})
+
+	// Reboot in background after response is sent
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		exec.Command("sudo", "reboot").Run()
+	}()
+}
+
+// Shutdown handles POST /api/system/shutdown requests.
+func (h *Handlers) Shutdown(w http.ResponseWriter, r *http.Request) {
+	var req ConfirmationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if !req.Confirm {
+		writeError(w, http.StatusBadRequest, "confirmation required: set confirm=true")
+		return
+	}
+
+	// Send response before shutting down
+	writeJSON(w, http.StatusOK, map[string]string{"status": "shutting_down"})
+
+	// Shutdown in background after response is sent
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		exec.Command("sudo", "shutdown", "-h", "now").Run()
+	}()
 }

@@ -513,9 +513,10 @@ function get_info_url($sciname) {
     $engname = get_com_en_name($sciname);
     $config = get_config();
     if (($config['INFO_SITE'] ?? '') === 'EBIRD') {
-        // Load ebird data from project data directory
-        require PROJECT_ROOT . '/data/ebird.php';
-        $ebird = $ebirds[$sciname] ?? '';
+        // Load ebird data from JSON file
+        $json_path = PROJECT_ROOT . '/data/ebird.json';
+        $ebird_data = json_decode(file_get_contents($json_path), true) ?? [];
+        $ebird = $ebird_data[$sciname] ?? '';
         $language = $config['DATABASE_LANG'] ?? 'en';
         $url = "https://ebird.org/species/$ebird?siteLanguage=$language";
         $url_title = "eBirds";
