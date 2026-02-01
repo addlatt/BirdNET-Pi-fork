@@ -5,18 +5,18 @@ After=network.target
 
 [Service]
 Type=simple
-User=addlatt
-Group=addlatt
-WorkingDirectory=/home/addlatt/BirdNET-Pi
+User=%USER%
+Group=%USER%
+WorkingDirectory=%HOME%/BirdNET-Pi
 
-# Environment - adjust paths as needed
+# Environment - paths are substituted during installation
 Environment="PORT=8080"
-Environment="DB_PATH=/home/addlatt/BirdNET-Pi/data/db/birds.db"
+Environment="DB_PATH=%HOME%/BirdNET-Pi/data/db/birds.db"
 Environment="ML_SERVICE_URL=http://127.0.0.1:8001"
-Environment="STATIC_DIR=/home/addlatt/BirdNET-Pi/web/dist"
-Environment="CONFIG_PATH=/home/addlatt/BirdNET-Pi/birdnet.conf"
+Environment="STATIC_DIR=%HOME%/BirdNET-Pi/web/dist"
+Environment="CONFIG_PATH=%HOME%/BirdNET-Pi/birdnet.conf"
 
-ExecStart=/home/addlatt/BirdNET-Pi/bin/birdnet-server
+ExecStart=%HOME%/BirdNET-Pi/bin/birdnet-server
 
 # Restart policy with rate limiting (prevents restart storms)
 Restart=always
@@ -34,7 +34,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=read-only
 PrivateTmp=true
-ReadWritePaths=/home/addlatt/BirdNET-Pi
+ReadWritePaths=%HOME%/BirdNET-Pi
 
 # Logging
 StandardOutput=journal

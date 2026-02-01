@@ -407,7 +407,6 @@ export const SETTINGS_SECTIONS: SectionMeta[] = [
 export const MANAGED_SERVICES = [
   { name: 'livestream.service', displayName: 'Live Audio Stream' },
   { name: 'web_terminal.service', displayName: 'Web Terminal' },
-  { name: 'birdnet_log.service', displayName: 'BirdNET Log' },
   { name: 'birdnet_analysis.service', displayName: 'BirdNET Analysis' },
   { name: 'birdnet_stats.service', displayName: 'Streamlit Statistics' },
   { name: 'birdnet_recording.service', displayName: 'Recording Service' },

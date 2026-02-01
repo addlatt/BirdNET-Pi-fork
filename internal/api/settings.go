@@ -8,6 +8,48 @@ import (
 	"github.com/birdnet-pi/birdnet/internal/config"
 )
 
+// RegenerateCaddyfile handles POST /api/settings/caddy/regenerate requests.
+// Regenerates the Caddyfile from current configuration.
+func (h *Handlers) RegenerateCaddyfile(w http.ResponseWriter, r *http.Request) {
+	if h.configMgr == nil {
+		writeError(w, http.StatusServiceUnavailable, "Configuration manager not available")
+		return
+	}
+
+	// Get home directory from config
+	cfg := h.configMgr.Get()
+	homeDir := ""
+	if cfg.RecsDir != "" {
+		// Extract home from RECS_DIR
+		homeDir = cfg.RecsDir
+		for i := 0; i < 2; i++ {
+			if idx := len(homeDir) - 1; idx >= 0 && homeDir[idx] == '/' {
+				homeDir = homeDir[:idx]
+			}
+			lastSlash := -1
+			for i, c := range homeDir {
+				if c == '/' {
+					lastSlash = i
+				}
+			}
+			if lastSlash > 0 {
+				homeDir = homeDir[:lastSlash]
+			}
+		}
+	}
+
+	generator := config.NewCaddyfileGenerator(h.configMgr, homeDir)
+	if err := generator.Generate(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to regenerate Caddyfile: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status":  "success",
+		"message": "Caddyfile regenerated and Caddy reloaded",
+	})
+}
+
 // GetSettings handles GET /api/settings requests.
 // Returns the current configuration, apprise settings, timezone info, and schema.
 func (h *Handlers) GetSettings(w http.ResponseWriter, r *http.Request) {

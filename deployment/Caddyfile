@@ -1,10 +1,14 @@
 # BirdNET-Pi Caddy Configuration
 # This configuration serves both the legacy PHP application and the new Go API
 #
-# Paths are configured for typical BirdNET-Pi installation where:
-# - PHP app is at: /home/$USER/BirdNET-Pi/src/web/public (served at /legacy)
-# - Preact app is at: /home/$USER/BirdNET-Pi/web/dist (served at /)
-# - Bird songs are at: /home/$USER/BirdSongs/Extracted
+# INSTALLATION: This file uses {$VAR} environment variable syntax.
+# Before installing, either:
+# 1. Export the variables: export BIRDNET_USER=pi BIRDNET_HOME=/home/pi
+# 2. Or use the install script which performs substitution automatically
+#
+# Required variables:
+#   BIRDNET_USER - Username running BirdNET-Pi (e.g., "pi")
+#   BIRDNET_HOME - Home directory (e.g., "/home/pi")
 
 http:// {
 	# Enable gzip compression for all responses
@@ -27,7 +31,7 @@ http:// {
 	# Legacy PHP app - served at /legacy
 	# ==========================================================================
 	handle_path /legacy* {
-		root * /home/addlatt/BirdNET-Pi/src/web/public
+		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/public
 		php_fastcgi unix//run/php/php-fpm.sock {
 			try_files {path} /index.php
 		}
@@ -36,33 +40,33 @@ http:// {
 
 	# Vendored tools (no auth)
 	handle /adminer/* {
-		root * /home/addlatt/BirdNET-Pi/src/web/vendor/adminer
+		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/vendor/adminer
 		php_fastcgi unix//run/php/php-fpm.sock
 	}
 	handle /filemanager/* {
-		root * /home/addlatt/BirdNET-Pi/src/web/vendor/filemanager
+		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/vendor/filemanager
 		php_fastcgi unix//run/php/php-fpm.sock
 	}
 
 	# phpsysinfo (no auth)
 	handle /phpsysinfo/* {
-		root * /home/addlatt/phpsysinfo
+		root * {$BIRDNET_HOME}/phpsysinfo
 		php_fastcgi unix//run/php/php-fpm.sock
 	}
 
 	# Bird recordings (browse)
 	handle /By_Date/* {
-		root * /home/addlatt/BirdSongs/Extracted
+		root * {$BIRDNET_HOME}/BirdSongs/Extracted
 		file_server browse
 	}
 	handle /Charts/* {
-		root * /home/addlatt/BirdSongs/Extracted
+		root * {$BIRDNET_HOME}/BirdSongs/Extracted
 		file_server browse
 	}
 
 	# Live spectrogram image
 	handle /spectrogram.png {
-		root * /home/addlatt/BirdSongs/Extracted
+		root * {$BIRDNET_HOME}/BirdSongs/Extracted
 		file_server
 	}
 
@@ -78,7 +82,7 @@ http:// {
 	# Preact app - default handler, served at /
 	# ==========================================================================
 	handle {
-		root * /home/addlatt/BirdNET-Pi/web/dist
+		root * {$BIRDNET_HOME}/BirdNET-Pi/web/dist
 
 		# Cache static assets with hashed filenames for 1 year
 		@static path *.js *.css *.woff *.woff2 *.ttf
