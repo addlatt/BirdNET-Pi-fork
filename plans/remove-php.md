@@ -17,7 +17,7 @@ src/web/
 │   ├── bootstrap.php          # Config loader
 │   ├── router.php             # View router, AJAX handlers
 │   ├── lib/
-│   │   └── common.php         # DB functions, image providers
+│   │   └── common.php         # DB functions, image providers (updated: uses ebird.json)
 │   └── pages/
 │       ├── overview.php       # Dashboard
 │       ├── todays_detections.php
@@ -36,13 +36,13 @@ src/web/
 │       ├── restore.php
 │       └── api.php            # Image API
 └── vendor/
-    ├── adminer/               # Database admin
-    └── filemanager/           # File browser
+    ├── adminer/               # Database admin (keeping until Phase 4)
+    └── filemanager/           # REMOVED in Phase 1
 
 data/
-└── ebird.php                  # eBird species codes (~5000 lines)
+└── ebird.php                  # REMOVED - converted to ebird.json
 
-Total: 25 PHP files, ~5,400 lines
+Total: 21 PHP files remaining, ~4,900 lines (was 25 files, ~10,400 lines)
 ```
 
 ## Already Migrated
@@ -67,63 +67,48 @@ Total: 25 PHP files, ~5,400 lines
 
 ## Gaps to Close
 
-### Gap 1: Weekly Report & eBird Export
+### Gap 1: Weekly Report & eBird Export ✅ CLOSED
 
 **PHP Files:** `weekly_report.php`, `data/ebird.php`
 
-**Current Functionality:**
-- Generate weekly detection summary
-- Compare current week vs previous week
-- Export to eBird CSV format (species code mapping)
-- Hourly detection aggregation
+**Status:** Go endpoints implemented in Phase 1. PHP `weekly_report.php` still exists but can be removed once frontend component is added.
 
-**Required Go Endpoints:**
+**Implemented Go Endpoints:**
 ```
 GET /api/reports/weekly
-    ?week=2024-W05           # ISO week format
+    ?week=2024-W05           # ISO week format (optional, defaults to current)
     Response: {
-      week: string,
+      week: "2024-W05",
+      start_date: "2024-01-28",
+      end_date: "2024-02-03",
       total_detections: int,
       unique_species: int,
-      hourly_breakdown: [],
-      top_species: [],
-      comparison: { prev_week_total, change_pct }
+      comparison: { prev_total, change_pct },
+      top_species: [{ sci_name, com_name, count, change_pct }],
+      new_species: [{ sci_name, com_name, count, first_detected }]
     }
 
 GET /api/reports/weekly/export
-    ?format=ebird|csv
-    Response: text/csv download
+    ?format=csv|ebird&week=2024-W05
+    Response: text/csv download with species codes
 ```
 
-**Required Files:**
-- `internal/api/reports.go` - Report generation endpoints
-- `data/ebird.json` - Convert ebird.php to JSON (or embed in Go)
+**Files Created:**
+- `internal/api/reports.go` - Report generation + export endpoints
+- `data/ebird.json` - 6,523 eBird species codes (converted from PHP)
 
-**Effort:** LOW - Straightforward query aggregation
+**Remaining:** Add WeeklyReport.tsx component to replace PHP page
 
 ---
 
-### Gap 2: System Controls
+### Gap 2: System Controls ⚡ PARTIALLY CLOSED
 
 **PHP File:** `system_controls.php`
 
-**Current Functionality:**
-- Reboot system (`sudo reboot`)
-- Shutdown system (`sudo shutdown -h now`)
-- Check for updates (`git fetch && git status`)
-- Run system update (`update_birdnet.sh`)
-- Clear all data (`clear_all_data.sh`)
+**Status:** Core endpoints implemented in Phase 1. Update/clear data endpoints deferred.
 
-**Required Go Endpoints:**
+**Implemented Go Endpoints:**
 ```
-POST /api/system/reboot
-    Requires: confirmation token
-    Action: sudo reboot
-
-POST /api/system/shutdown
-    Requires: confirmation token
-    Action: sudo shutdown -h now
-
 GET /api/system/update-check
     Response: {
       current_commit: string,
@@ -132,17 +117,29 @@ GET /api/system/update-check
       update_available: bool
     }
 
+POST /api/system/reboot
+    Body: { "confirm": true }
+    Response: { "status": "rebooting" }
+
+POST /api/system/shutdown
+    Body: { "confirm": true }
+    Response: { "status": "shutting_down" }
+```
+
+**Remaining Endpoints (deferred):**
+```
 POST /api/system/update
     Action: git pull && rebuild
     Response: streamed output via WebSocket
+
+POST /api/system/clear-data
+    Action: clear_all_data.sh
+    Requires: confirmation + careful handling
 ```
 
-**Security Considerations:**
-- Require authentication for all endpoints
-- Add confirmation tokens for destructive actions
-- Rate limit reboot/shutdown
+**Security:** Confirmation required via `{"confirm": true}` in request body
 
-**Effort:** MEDIUM - Need careful sudo handling
+**Effort:** LOW for remaining (update script execution)
 
 ---
 
@@ -222,7 +219,7 @@ POST /api/images/cache/refresh
 
 ### Gap 5: Vendor Tool Replacements
 
-#### Adminer (Database Admin)
+#### Adminer (Database Admin) - KEEPING FOR NOW
 
 **Current:** PHP-based SQLite browser at /adminer
 
@@ -232,52 +229,85 @@ POST /api/images/cache/refresh
 3. Add basic DB viewer to Preact - most work
 4. Remove entirely - users can use CLI sqlite3
 
-**Recommendation:** Remove from default install, document CLI usage
+**Decision:** Keep until Phase 4 (final PHP removal)
 
-#### File Manager
+#### File Manager ✅ REMOVED
 
-**Current:** PHP file browser at /filemanager
+**Status:** Removed in Phase 1
 
-**Status:** Already replaced by Recordings.tsx
+**Changes Made:**
+- Deleted `src/web/vendor/filemanager/` directory
+- Removed `/filemanager/*` route from `deployment/Caddyfile`
+- Removed from `internal/config/caddy.go` template
+- Removed from `scripts/install/install_services.sh` Caddyfile generation
+- Added deprecation message in `src/web/app/router.php`
 
-**Action:** Remove vendor/filemanager/
+**Replacement:** Recordings.tsx + /api/recordings endpoints
 
-#### phpsysinfo
+#### phpsysinfo ✅ REMOVED
 
-**Current:** PHP system info at /phpsysinfo
+**Status:** Removed in Phase 1
 
-**Status:** Replaced by /api/diagnostics/system
+**Changes Made:**
+- Removed `/phpsysinfo/*` route from `deployment/Caddyfile`
+- Removed from `internal/config/caddy.go` template
+- Removed `install_phpsysinfo()` function from install script
+- Removed phpsysinfo symlink creation from install script
+- Added deprecation message in `src/web/app/router.php`
 
-**Action:** Remove from Caddyfile, remove phpsysinfo install
+**Replacement:** /api/diagnostics/system + /api/system/status endpoints
 
 ---
 
 ## Migration Phases
 
-### Phase 1: Quick Wins
+### Phase 1: Quick Wins ✅ COMPLETE
 
 **Goal:** Close easy gaps, remove unused vendor tools
 
+**Status:** Completed 2026-02-03 | Branch: `php-deprecation-phase1`
+
 **Tasks:**
-- [ ] Add `GET /api/reports/weekly` endpoint
-- [ ] Add `GET /api/system/update-check` endpoint
-- [ ] Add `POST /api/system/reboot` endpoint (with confirmation)
-- [ ] Add `POST /api/system/shutdown` endpoint (with confirmation)
-- [ ] Convert `data/ebird.php` to `data/ebird.json`
-- [ ] Remove filemanager from Caddyfile
-- [ ] Remove phpsysinfo from Caddyfile and install script
-- [ ] Add WeeklyReport.tsx component (optional)
+- [x] Add `GET /api/reports/weekly` endpoint
+- [x] Add `GET /api/reports/weekly/export` endpoint (CSV + eBird format)
+- [x] Add `GET /api/system/update-check` endpoint
+- [x] Add `POST /api/system/reboot` endpoint (with confirmation)
+- [x] Add `POST /api/system/shutdown` endpoint (with confirmation)
+- [x] Convert `data/ebird.php` to `data/ebird.json`
+- [x] Remove filemanager from Caddyfile
+- [x] Remove phpsysinfo from Caddyfile and install script
+- [x] Update `internal/config/caddy.go` template (remove filemanager/phpsysinfo)
+- [x] Update `src/web/app/lib/common.php` to use ebird.json
+- [x] Update `src/web/app/router.php` with deprecation messages
+- [ ] Add WeeklyReport.tsx component (optional - deferred)
 
-**Files to Create:**
-- `internal/api/reports.go`
-- `internal/api/system_control.go`
-- `data/ebird.json`
+**Files Created:**
+- `internal/api/reports.go` - Weekly report + export endpoints
+- `data/ebird.json` - 6,523 eBird species codes
 
-**Files to Modify:**
-- `deployment/Caddyfile` - remove PHP routes
-- `scripts/install/install_services.sh` - remove phpsysinfo
+**Files Modified:**
+- `internal/api/system.go` - Added update-check, reboot, shutdown handlers
+- `cmd/server/main.go` - Registered 5 new routes
+- `deployment/Caddyfile` - Removed filemanager/phpsysinfo routes
+- `scripts/install/install_services.sh` - Removed phpsysinfo function and refs
+- `internal/config/caddy.go` - Removed deprecated routes from template
+- `src/web/app/lib/common.php` - Updated eBird lookup to use JSON
+- `src/web/app/router.php` - Added deprecation messages for removed tools
 
-**Effort:** 2-3 days
+**Files Deleted:**
+- `data/ebird.php`
+- `src/web/vendor/filemanager/` (4 files)
+
+**New API Endpoints:**
+```
+GET  /api/system/update-check    - Check git for updates
+POST /api/system/reboot          - Reboot (requires {"confirm": true})
+POST /api/system/shutdown        - Shutdown (requires {"confirm": true})
+GET  /api/reports/weekly         - Weekly detection report
+GET  /api/reports/weekly/export  - CSV export (?format=csv|ebird)
+```
+
+**Effort:** 1 day (actual)
 
 ---
 
@@ -330,8 +360,7 @@ POST /api/images/cache/refresh
 - [ ] Remove `php-*` packages from apt install
 - [ ] Delete `src/web/app/` directory
 - [ ] Delete `src/web/public/` directory
-- [ ] Delete `src/web/vendor/` directory
-- [ ] Delete `data/ebird.php`
+- [ ] Delete `src/web/vendor/adminer/` (last vendor tool)
 - [ ] Update README.md
 - [ ] Test fresh install without PHP
 
@@ -339,8 +368,13 @@ POST /api/images/cache/refresh
 ```
 src/web/app/           # ~3,500 lines
 src/web/public/        # ~100 lines
-src/web/vendor/        # ~1,500 lines
-data/ebird.php         # ~5,000 lines
+src/web/vendor/adminer/ # ~500 lines (filemanager already removed)
+```
+
+**Already Removed in Phase 1:**
+```
+data/ebird.php         # Converted to ebird.json
+src/web/vendor/filemanager/  # Replaced by Recordings.tsx
 ```
 
 **Effort:** 1 day
@@ -391,11 +425,11 @@ php_fastcgi unix//run/php/php-fpm.sock
 
 ## Timeline Estimate
 
-| Phase | Duration | Cumulative |
-|-------|----------|------------|
-| Phase 1 | 2-3 days | 2-3 days |
-| Phase 2 | 3-5 days | 5-8 days |
-| Phase 3 | 2-3 days | 7-11 days |
-| Phase 4 | 1 day | 8-12 days |
+| Phase | Estimated | Actual | Status |
+|-------|-----------|--------|--------|
+| Phase 1 | 2-3 days | 1 day | ✅ Complete |
+| Phase 2 | 3-5 days | - | Pending |
+| Phase 3 | 2-3 days | - | Pending |
+| Phase 4 | 1 day | - | Pending |
 
-**Total: ~2 weeks of development**
+**Remaining: ~5-9 days of development**
