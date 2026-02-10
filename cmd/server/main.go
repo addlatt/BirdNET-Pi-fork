@@ -14,6 +14,7 @@ import (
 	"github.com/birdnet-pi/birdnet/internal/api"
 	"github.com/birdnet-pi/birdnet/internal/config"
 	"github.com/birdnet-pi/birdnet/internal/db"
+	"github.com/birdnet-pi/birdnet/internal/images"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
 	"github.com/birdnet-pi/birdnet/internal/scheduler"
@@ -78,6 +79,15 @@ func main() {
 	taskScheduler, taskHistory := initScheduler(database, hub, configMgr, homeDir, birdsongsDir, scriptsDir, dataDir)
 	handlers.SetScheduler(taskScheduler, taskHistory)
 
+	// Initialize image service
+	imageService, err := images.NewService(dataDir, configMgr)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize image service: %v (image API will not work)", err)
+	} else {
+		handlers.SetImageService(imageService)
+		defer imageService.Close()
+	}
+
 	// Public API routes
 	r.Route("/api", func(r chi.Router) {
 		// Health check
@@ -99,6 +109,8 @@ func main() {
 		r.Get("/species/{name}", handlers.GetSpeciesDetail)
 		r.Get("/species/{name}/history", handlers.GetSpeciesHistory)
 		r.Get("/species/{name}/count", handlers.GetSpeciesCount)
+		r.Get("/species/{name}/image", handlers.GetSpeciesImage)
+		r.Post("/species/{name}/image/blacklist", handlers.BlacklistSpeciesImage)
 		r.Delete("/species/{name}/all", handlers.DeleteAllSpeciesDetections)
 
 		// Species Lists (confirmed, excluded, whitelisted, include)
@@ -168,6 +180,10 @@ func main() {
 		r.Post("/recordings/{date}/{species}/{filename}/lock", handlers.ToggleRecordingLock)
 		r.Post("/recordings/{date}/{species}/{filename}/shift", handlers.ToggleRecordingShift)
 		r.Get("/recordings/exclusions", handlers.GetExclusionList)
+
+		// Image cache management
+		r.Get("/images/cache/stats", handlers.GetImageCacheStats)
+		r.Post("/images/cache/refresh", handlers.RefreshImageCache)
 
 		// Task scheduler
 		r.Get("/tasks", handlers.ListTasks)

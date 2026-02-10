@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/birdnet-pi/birdnet/internal/config"
 	"github.com/birdnet-pi/birdnet/internal/db"
+	"github.com/birdnet-pi/birdnet/internal/images"
 	"github.com/birdnet-pi/birdnet/internal/mlclient"
 	"github.com/birdnet-pi/birdnet/internal/monitor"
 	"github.com/birdnet-pi/birdnet/internal/scheduler"
@@ -18,6 +19,7 @@ type Handlers struct {
 	configMgr    *config.Manager
 	scheduler    *scheduler.Scheduler
 	taskHistory  *scheduler.HistoryStore
+	imageService *images.Service
 	scriptsDir   string
 	dataDir      string
 	birdsongsDir string
@@ -44,4 +46,9 @@ func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClien
 func (h *Handlers) SetScheduler(s *scheduler.Scheduler, history *scheduler.HistoryStore) {
 	h.scheduler = s
 	h.taskHistory = history
+}
+
+// SetImageService sets the image service dependency.
+func (h *Handlers) SetImageService(s *images.Service) {
+	h.imageService = s
 }

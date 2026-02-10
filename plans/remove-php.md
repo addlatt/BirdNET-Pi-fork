@@ -196,38 +196,30 @@ GET /api/backup/status?id={restore_id}
 
 ---
 
-### Gap 4: Image Provider Caching
+### Gap 4: Image Provider Caching ✅ CLOSED
 
 **PHP File:** `common.php` (getFlickrImage, getWikipediaImage functions)
 
-**Current Functionality:**
-- Flickr API search with caching in flickr.db
-- Wikipedia API image lookup with caching in wikipedia.db
-- Image expiration (15-25 days)
-- Blacklist management for bad images
-- License URL extraction
+**Status:** Go implementation complete in Phase 3. Full Flickr + Wikipedia support with SQLite caching, blacklist management, and cache expiration.
 
-**Current Go Status:**
-- Basic `/api/species/{name}/image` exists
-- May not have full caching logic
-
-**Required Enhancements:**
+**Implemented Go Endpoints:**
 ```
 GET /api/species/{name}/image
-    Query: ?provider=flickr|wikipedia|auto
-    Response: { url, license_url, attribution, cached_at }
+    Query: ?provider=flickr|wikipedia|auto&com_name=Common+Name
+    Response: { sci_name, com_name, provider, image_url, title, source_id, author_url, license_url, photos_url, cached_at }
 
 POST /api/species/{name}/image/blacklist
+    Body: { provider, com_name }
     Action: Mark current image as bad, fetch new one
 
 GET /api/images/cache/stats
-    Response: { flickr_count, wikipedia_count, expired_count }
+    Response: { flickr_count, wikipedia_count, total_count, expired_count }
 
 POST /api/images/cache/refresh
-    Action: Refresh expired images
+    Action: Refresh expired images (background)
 ```
 
-**Effort:** MEDIUM - API calls + caching logic
+**Effort:** MEDIUM (actual: Phase 3)
 
 ---
 
@@ -368,23 +360,53 @@ GET  /api/backup/status     - Get restore progress by ID
 
 ---
 
-### Phase 3: Image Provider Enhancement
+### Phase 3: Image Provider Enhancement ✅ COMPLETE
 
 **Goal:** Full Flickr/Wikipedia caching in Go
 
+**Status:** Completed 2026-02-10
+
 **Tasks:**
-- [ ] Implement Flickr API client in Go
-- [ ] Implement Wikipedia API client in Go
-- [ ] Add image cache SQLite table
-- [ ] Add cache expiration logic
-- [ ] Add blacklist management
+- [x] Implement Flickr API client in Go
+- [x] Implement Wikipedia API client in Go
+- [x] Add image cache SQLite table
+- [x] Add cache expiration logic (20-day fixed expiration)
+- [x] Add blacklist management (DB table + in-memory set)
+- [x] Add image service orchestrator with provider selection
+- [x] Add 4 HTTP API endpoints
+- [x] Update BirdImage.tsx to use server-side API
+- [x] Add frontend TypeScript types and API functions
 
-**Files to Create:**
-- `internal/images/flickr.go`
-- `internal/images/wikipedia.go`
-- `internal/images/cache.go`
+**Files Created:**
+- `internal/images/types.go` - Shared types: ImageResult, CacheStats, provider constants
+- `internal/images/cache.go` - SQLite cache (data/db/images.db), blacklist, expiration
+- `internal/images/wikipedia.go` - Wikipedia REST + Commons API client
+- `internal/images/flickr.go` - Flickr REST API client (search, info, licenses, user lookup)
+- `internal/images/service.go` - Orchestrator: provider selection, cache-then-fetch
+- `internal/api/images.go` - HTTP handlers for 4 image endpoints
 
-**Effort:** 2-3 days
+**Files Modified:**
+- `internal/api/handlers.go` - Added imageService field + SetImageService()
+- `cmd/server/main.go` - Initialize image service, register 4 routes, close on shutdown
+- `web/src/types/api.ts` - Added SpeciesImageResponse, BlacklistImageResponse, ImageCacheStatsResponse
+- `web/src/hooks/useApi.ts` - Added fetchSpeciesImage(), blacklistSpeciesImage()
+- `web/src/components/BirdImage.tsx` - Replaced client-side Wikipedia fetch with /api/species/{name}/image
+
+**New API Endpoints:**
+```
+GET  /api/species/{name}/image          - Fetch species image (cached or fresh)
+POST /api/species/{name}/image/blacklist - Blacklist image + get replacement
+GET  /api/images/cache/stats            - Cache statistics
+POST /api/images/cache/refresh          - Refresh expired cache entries
+```
+
+**Key Design Decisions:**
+- Single `images.db` with provider column (simpler than PHP's two-DB approach)
+- Fixed 20-day cache expiration (vs PHP's random 15-25 days)
+- Blacklist stored in DB table (migrated from txt file on first run)
+- Flickr gracefully returns nil when API key is empty
+
+**Effort:** 2-3 days estimated
 
 ---
 
@@ -467,7 +489,7 @@ php_fastcgi unix//run/php/php-fpm.sock
 |-------|-----------|--------|--------|
 | Phase 1 | 2-3 days | 1 day | ✅ Complete |
 | Phase 2 | 3-5 days | 1 day | ✅ Complete |
-| Phase 3 | 2-3 days | - | Pending |
+| Phase 3 | 2-3 days | 1 day | ✅ Complete |
 | Phase 4 | 1 day | - | Pending |
 
-**Remaining: ~3-4 days of development**
+**Remaining: ~1 day of development (Phase 4 only)**

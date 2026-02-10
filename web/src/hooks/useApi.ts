@@ -42,6 +42,10 @@ import type {
   // Backup types
   RestoreResponse,
   RestoreStatusResponse,
+  // Image types
+  SpeciesImageResponse,
+  BlacklistImageResponse,
+  ImageCacheStatsResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -552,6 +556,45 @@ export async function fetchExclusionList(): Promise<ExclusionListResponse> {
 }
 
 // =============================================================================
+// Image Endpoints
+// =============================================================================
+
+/** Query parameters for GET /api/species/{name}/image */
+export interface FetchSpeciesImageParams {
+  provider?: string;
+  com_name?: string;
+}
+
+/**
+ * Fetch a species image (cached or freshly-fetched).
+ * GET /api/species/{name}/image
+ */
+export async function fetchSpeciesImage(sciName: string, params: FetchSpeciesImageParams = {}): Promise<SpeciesImageResponse> {
+  const query = buildQuery(params as Record<string, string | undefined>);
+  return apiFetch<SpeciesImageResponse>(`${API_BASE}/species/${encodeURIComponent(sciName)}/image${query}`);
+}
+
+/**
+ * Blacklist the current species image and get a replacement.
+ * POST /api/species/{name}/image/blacklist
+ */
+export async function blacklistSpeciesImage(sciName: string, provider?: string, comName?: string): Promise<SpeciesImageResponse | BlacklistImageResponse> {
+  const response = await fetch(
+    `${API_BASE}/species/${encodeURIComponent(sciName)}/image/blacklist`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, com_name: comName }),
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+// =============================================================================
 // Backup Endpoints
 // =============================================================================
 
@@ -660,4 +703,8 @@ export type {
   // Backup types
   RestoreResponse,
   RestoreStatusResponse,
+  // Image types
+  SpeciesImageResponse,
+  BlacklistImageResponse,
+  ImageCacheStatsResponse,
 };

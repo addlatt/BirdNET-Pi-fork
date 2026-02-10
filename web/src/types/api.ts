@@ -403,6 +403,38 @@ export interface RestoreStatusResponse {
 }
 
 // =============================================================================
+// Image Types (internal/api/images.go)
+// =============================================================================
+
+/** Response from GET /api/species/{name}/image */
+export interface SpeciesImageResponse {
+  sci_name: string;
+  com_name: string;
+  provider: string;
+  image_url: string;
+  title: string;
+  source_id: string;
+  author_url: string;
+  license_url: string;
+  photos_url: string;
+  cached_at: string;
+}
+
+/** Response from POST /api/species/{name}/image/blacklist (when no replacement found) */
+export interface BlacklistImageResponse {
+  status: string;
+  message?: string;
+}
+
+/** Response from GET /api/images/cache/stats */
+export interface ImageCacheStatsResponse {
+  flickr_count: number;
+  wikipedia_count: number;
+  total_count: number;
+  expired_count: number;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 

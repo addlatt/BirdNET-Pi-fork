@@ -16,31 +16,7 @@ interface BirdImageProps {
 }
 
 /**
- * Wikipedia API response types
- */
-interface WikipediaPage {
-  pageid: number;
-  title: string;
-  thumbnail?: {
-    source: string;
-    width: number;
-    height: number;
-  };
-  original?: {
-    source: string;
-    width: number;
-    height: number;
-  };
-}
-
-interface WikipediaQueryResponse {
-  query?: {
-    pages?: Record<string, WikipediaPage>;
-  };
-}
-
-/**
- * Image cache to avoid repeated API calls
+ * Image cache to avoid repeated API calls during navigation
  */
 const imageCache = new Map<string, string | null>();
 
@@ -54,8 +30,8 @@ const sizeConfig = {
 };
 
 /**
- * BirdImage - Displays a bird image fetched from Wikipedia.
- * Uses the scientific name to search for the Wikipedia article and extract the main image.
+ * BirdImage - Displays a bird image fetched from the server-side image API.
+ * Uses the Go backend for caching, provider selection, and attribution.
  */
 export function BirdImage({ sciName, comName, class: className, size = 'medium' }: BirdImageProps): JSX.Element {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -68,7 +44,6 @@ export function BirdImage({ sciName, comName, class: className, size = 'medium' 
     let cancelled = false;
 
     async function fetchImage() {
-      // Check cache first
       const cacheKey = sciName.toLowerCase();
       if (imageCache.has(cacheKey)) {
         setImageUrl(imageCache.get(cacheKey) ?? null);
@@ -80,42 +55,23 @@ export function BirdImage({ sciName, comName, class: className, size = 'medium' 
         setLoading(true);
         setError(false);
 
-        // Try scientific name first, then common name
-        const searchTerms = [sciName, comName];
-        let foundUrl: string | null = null;
-
-        for (const term of searchTerms) {
-          if (foundUrl) break;
-
-          const url = new URL('https://en.wikipedia.org/w/api.php');
-          url.searchParams.set('action', 'query');
-          url.searchParams.set('titles', term);
-          url.searchParams.set('prop', 'pageimages');
-          url.searchParams.set('pithumbsize', String(config.width));
-          url.searchParams.set('format', 'json');
-          url.searchParams.set('origin', '*');
-          url.searchParams.set('redirects', '1'); // Follow Wikipedia redirects
-
-          const response = await fetch(url.toString());
-          if (!response.ok) continue;
-
-          const data = (await response.json()) as WikipediaQueryResponse;
-          const pages = data.query?.pages;
-
-          if (pages) {
-            const page = Object.values(pages)[0];
-            if (page?.thumbnail?.source) {
-              foundUrl = page.thumbnail.source;
-            }
-          }
-        }
+        const response = await fetch(
+          `/api/species/${encodeURIComponent(sciName)}/image?com_name=${encodeURIComponent(comName)}`
+        );
 
         if (!cancelled) {
-          imageCache.set(cacheKey, foundUrl);
-          setImageUrl(foundUrl);
+          if (response.ok) {
+            const data = await response.json();
+            const url = data.image_url || null;
+            imageCache.set(cacheKey, url);
+            setImageUrl(url);
+          } else {
+            imageCache.set(cacheKey, null);
+            setImageUrl(null);
+          }
           setLoading(false);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           imageCache.set(cacheKey, null);
           setError(true);
@@ -129,7 +85,7 @@ export function BirdImage({ sciName, comName, class: className, size = 'medium' 
     return () => {
       cancelled = true;
     };
-  }, [sciName, comName, config.width]);
+  }, [sciName, comName]);
 
   // Container classes
   const containerClasses = `${config.class} rounded-full overflow-hidden flex-shrink-0 ${className || ''}`;
