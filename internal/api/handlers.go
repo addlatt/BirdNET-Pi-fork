@@ -21,10 +21,11 @@ type Handlers struct {
 	scriptsDir   string
 	dataDir      string
 	birdsongsDir string
+	homeDir      string
 }
 
 // NewHandlers creates a new Handlers instance with all dependencies.
-func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClient *mlclient.Client, configMgr *config.Manager, scriptsDir, dataDir, birdsongsDir string) *Handlers {
+func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClient *mlclient.Client, configMgr *config.Manager, scriptsDir, dataDir, birdsongsDir, homeDir string) *Handlers {
 	return &Handlers{
 		db:           db,
 		hub:          hub,
@@ -34,6 +35,7 @@ func NewHandlers(db *db.DB, hub *ws.Hub, monitor *monitor.MemoryMonitor, mlClien
 		scriptsDir:   scriptsDir,
 		dataDir:      dataDir,
 		birdsongsDir: birdsongsDir,
+		homeDir:      homeDir,
 	}
 }
 

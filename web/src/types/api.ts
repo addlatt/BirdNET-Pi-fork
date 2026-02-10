@@ -383,6 +383,26 @@ export interface RecentDetectionsResponse {
 }
 
 // =============================================================================
+// Backup Types (internal/api/backup.go)
+// =============================================================================
+
+/** Response from POST /api/backup/restore */
+export interface RestoreResponse {
+  restore_id: string;
+  status: string;
+}
+
+/** Response from GET /api/backup/status */
+export interface RestoreStatusResponse {
+  id: string;
+  status: 'uploading' | 'extracting' | 'completed' | 'failed';
+  progress: number;
+  stage: string;
+  error?: string;
+  started_at: string;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 

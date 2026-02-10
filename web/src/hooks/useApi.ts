@@ -39,6 +39,9 @@ import type {
   ToggleLockResponse,
   ToggleShiftResponse,
   ExclusionListResponse,
+  // Backup types
+  RestoreResponse,
+  RestoreStatusResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -549,6 +552,68 @@ export async function fetchExclusionList(): Promise<ExclusionListResponse> {
 }
 
 // =============================================================================
+// Backup Endpoints
+// =============================================================================
+
+/**
+ * Download a backup archive.
+ * POST /api/backup/create - returns a binary .tar.gz stream.
+ */
+export async function downloadBackup(): Promise<void> {
+  const response = await fetch(`${API_BASE}/backup/create`, { method: 'POST' });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition');
+  let filename = 'birdnet-backup.tar.gz';
+  if (disposition) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match) {
+      filename = match[1];
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Upload a backup file for restore.
+ * POST /api/backup/restore (multipart/form-data)
+ */
+export async function uploadRestore(file: File): Promise<RestoreResponse> {
+  const formData = new FormData();
+  formData.append('backup', file);
+
+  const response = await fetch(`${API_BASE}/backup/restore`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json() as Promise<RestoreResponse>;
+}
+
+/**
+ * Fetch restore status by ID.
+ * GET /api/backup/status?id={restore_id}
+ */
+export async function fetchRestoreStatus(id: string): Promise<RestoreStatusResponse> {
+  return apiFetch<RestoreStatusResponse>(`${API_BASE}/backup/status?id=${encodeURIComponent(id)}`);
+}
+
+// =============================================================================
 // Re-export types for convenience
 // =============================================================================
 
@@ -592,4 +657,7 @@ export type {
   ToggleLockResponse,
   ToggleShiftResponse,
   ExclusionListResponse,
+  // Backup types
+  RestoreResponse,
+  RestoreStatusResponse,
 };

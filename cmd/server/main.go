@@ -72,7 +72,7 @@ func main() {
 	r.Use(corsMiddleware)
 
 	// Initialize API handlers
-	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, configMgr, scriptsDir, dataDir, birdsongsDir)
+	handlers := api.NewHandlers(database, hub, memMonitor, mlClient, configMgr, scriptsDir, dataDir, birdsongsDir, homeDir)
 
 	// Initialize task scheduler
 	taskScheduler, taskHistory := initScheduler(database, hub, configMgr, homeDir, birdsongsDir, scriptsDir, dataDir)
@@ -176,6 +176,11 @@ func main() {
 		r.Post("/tasks/{name}/run", handlers.RunTask)
 		r.Post("/tasks/{name}/cancel", handlers.CancelTask)
 		r.Get("/tasks/{name}/history", handlers.GetTaskHistory)
+
+		// Backup/Restore
+		r.Post("/backup/create", handlers.CreateBackup)
+		r.Post("/backup/restore", handlers.RestoreBackup)
+		r.Get("/backup/status", handlers.GetRestoreStatus)
 	})
 
 	// Internal routes (Python → Go)
