@@ -2,13 +2,13 @@
 
 a modernized fork of [Nachtzuster's BirdNET-Pi](https://github.com/Nachtzuster/BirdNET-Pi) with a Go API, Preact frontend, and Python services.
 
-the original php web interface still works at `/legacy`. the new preact app runs at `/`.
+the new preact app runs at `/`.
 
 ![overview](docs/overview.png)
 
 ## what's different
 
-this fork replaces the php web interface and shell scripts with:
+this fork replaces the original web interface and shell scripts with:
 
 - **go api server** - REST api, websocket streaming, task scheduler, auto-restart
 - **preact frontend** - modern typescript ui, real-time updates via websocket
@@ -105,8 +105,7 @@ make build-pi       # alias for arm64
 
 access from any browser on your network:
 - `http://birdnetpi.local` or your pi's ip
-- new preact ui at `/`
-- legacy php at `/legacy`
+- preact ui at `/`
 
 ### service management
 

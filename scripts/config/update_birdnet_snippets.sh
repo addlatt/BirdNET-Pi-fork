@@ -227,10 +227,6 @@ if grep -q -e 'Environment=XDG_RUNTIME_DIR=/run/user/' $HOME/BirdNET-Pi/template
   systemctl daemon-reload && restart_services.sh
 fi
 
-if grep -q 'php7.4-' /etc/caddy/Caddyfile &>/dev/null; then
-  sed -i 's/php7.4-/php-/' /etc/caddy/Caddyfile
-fi
-
 if ! [ -L /etc/avahi/services/http.service ];then
   # symbolic link does not work here, so just copy
   cp -f $HOME/BirdNET-Pi/templates/http.service /etc/avahi/services/

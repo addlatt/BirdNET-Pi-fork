@@ -17,7 +17,7 @@ install_depends() {
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
   apt -qqq update && apt -qqy upgrade
   echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections
-  apt install --no-install-recommends -qqy caddy sqlite3 php-sqlite3 php-fpm php-curl php-xml php-zip php icecast2 \
+  apt install --no-install-recommends -qqy caddy sqlite3 icecast2 \
     pulseaudio avahi-utils sox libsox-fmt-mp3 alsa-utils ffmpeg \
     wget curl unzip bc \
     python3-pip python3-venv lsof net-tools inotify-tools
@@ -154,26 +154,23 @@ install_Caddyfile() {
     cp /etc/caddy/Caddyfile{,.original}
   fi
 
-  # Web application root
-  WEB_ROOT="${HOME}/BirdNET-Pi/src/web"
+  # Preact app build directory
+  WEB_ROOT="${HOME}/BirdNET-Pi/web/dist"
 
   if ! [ -z ${CADDY_PWD} ];then
   HASHWORD=$(caddy hash-password --plaintext ${CADDY_PWD})
   cat << EOF > /etc/caddy/Caddyfile
 http:// ${BIRDNETPI_URL} {
-  # Static assets
-  handle /assets/* {
-    root * ${WEB_ROOT}/public
-    file_server
+  encode gzip
+
+  # Go API endpoints
+  handle /api/* {
+    reverse_proxy localhost:8080
   }
 
-  # Vendored tools (protected)
-  handle /adminer/* {
-    basicauth {
-      birdnet ${HASHWORD}
-    }
-    root * ${WEB_ROOT}/vendor/adminer
-    php_fastcgi unix//run/php/php-fpm.sock
+  # WebSocket endpoint
+  handle /ws {
+    reverse_proxy localhost:8080
   }
 
   # Bird recordings (browse)
@@ -204,16 +201,17 @@ http:// ${BIRDNETPI_URL} {
   }
   reverse_proxy /terminal* localhost:8888
 
-  # Other reverse proxies
-  reverse_proxy /log* localhost:8080
-  reverse_proxy /stats* localhost:8501
-
-  # PHP front controller (default handler)
+  # Preact SPA (default handler)
   handle {
-    root * ${WEB_ROOT}/public
-    php_fastcgi unix//run/php/php-fpm.sock {
-      try_files {path} /index.php
-    }
+    root * ${WEB_ROOT}
+
+    @static path *.js *.css *.woff *.woff2 *.ttf
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    @html path *.html /
+    header @html Cache-Control "no-cache, no-store, must-revalidate"
+
+    try_files {path} /index.html
     file_server
   }
 }
@@ -221,16 +219,16 @@ EOF
   else
   cat << EOF > /etc/caddy/Caddyfile
 http:// ${BIRDNETPI_URL} {
-  # Static assets
-  handle /assets/* {
-    root * ${WEB_ROOT}/public
-    file_server
+  encode gzip
+
+  # Go API endpoints
+  handle /api/* {
+    reverse_proxy localhost:8080
   }
 
-  # Vendored tools (no auth)
-  handle /adminer/* {
-    root * ${WEB_ROOT}/vendor/adminer
-    php_fastcgi unix//run/php/php-fpm.sock
+  # WebSocket endpoint
+  handle /ws {
+    reverse_proxy localhost:8080
   }
 
   # Bird recordings (browse)
@@ -251,16 +249,19 @@ http:// ${BIRDNETPI_URL} {
 
   # Reverse proxies
   reverse_proxy /stream localhost:8000
-  reverse_proxy /log* localhost:8080
-  reverse_proxy /stats* localhost:8501
   reverse_proxy /terminal* localhost:8888
 
-  # PHP front controller (default handler)
+  # Preact SPA (default handler)
   handle {
-    root * ${WEB_ROOT}/public
-    php_fastcgi unix//run/php/php-fpm.sock {
-      try_files {path} /index.php
-    }
+    root * ${WEB_ROOT}
+
+    @static path *.js *.css *.woff *.woff2 *.ttf
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    @html path *.html /
+    header @html Cache-Control "no-cache, no-store, must-revalidate"
+
+    try_files {path} /index.html
     file_server
   }
 }
@@ -271,6 +272,13 @@ EOF
   usermod -aG $USER caddy
   usermod -aG video caddy
   chmod g+r+x $HOME
+
+  # Caddy sudoers rule (needed for service management)
+  echo "Adding Caddy sudoers rule"
+  cat << SUDOEOF > /etc/sudoers.d/010_caddy-nopasswd
+caddy ALL=(ALL) NOPASSWD: ALL
+SUDOEOF
+  chmod 0440 /etc/sudoers.d/010_caddy-nopasswd
 }
 
 install_avahi_aliases() {
@@ -372,17 +380,6 @@ EOF
   systemctl enable web_terminal.service
 }
 
-configure_caddy_php() {
-  echo "Configuring PHP for Caddy"
-  sed -i 's/www-data/caddy/g' /etc/php/*/fpm/pool.d/www.conf
-  systemctl restart php\*-fpm.service
-  echo "Adding Caddy sudoers rule"
-  cat << EOF > /etc/sudoers.d/010_caddy-nopasswd
-caddy ALL=(ALL) NOPASSWD: ALL
-EOF
-  chmod 0440 /etc/sudoers.d/010_caddy-nopasswd
-}
-
 config_icecast() {
   if [ -f /etc/icecast2/icecast.xml ];then
     cp /etc/icecast2/icecast.xml{,.prebirdnetpi}
@@ -468,7 +465,6 @@ install_services() {
 
   create_necessary_dirs
   generate_BirdDB
-  configure_caddy_php
   config_icecast
   USER=$USER HOME=$HOME ${my_dir}/scripts/install/createdb.sh
 }

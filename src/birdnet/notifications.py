@@ -101,14 +101,11 @@ def sendAppriseNotifications(
     if "$flickrimage" in body or "$image" in body:
         if com_name not in images:
             try:
-                # DEPRECATED: This calls legacy PHP endpoint via Caddy.
-                # When USE_NEW_PIPELINE=1, PHP may be disabled. Skip gracefully.
-                # Future: Move image API to Go server.
-                url = f"http://localhost/api/v1/image/{sci_name}"
-                resp = requests.get(url=url, timeout=2).json()
-                images[com_name] = resp['data']['image_url']
+                from urllib.parse import quote
+                url = f"http://localhost:8080/api/species/{quote(sci_name, safe='')}/image?com_name={quote(com_name, safe='')}"
+                resp = requests.get(url=url, timeout=5).json()
+                images[com_name] = resp['image_url']
             except requests.exceptions.ConnectionError:
-                # Expected when PHP is disabled (new pipeline mode)
                 pass
             except requests.exceptions.Timeout:
                 # Server too slow, skip image

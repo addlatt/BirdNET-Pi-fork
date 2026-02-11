@@ -7,7 +7,6 @@ This is a modernized fork of BirdNET-Pi with a Go + Preact + Python architecture
 - **Go API server** (port 8080): Serves REST API, WebSocket, and static files
 - **Preact frontend**: Modern TypeScript UI at `/app/*`
 - **Python ML service**: BirdNET inference (existing analysis daemon)
-- **Legacy PHP app**: Available at `/legacy` during transition
 - **Caddy**: Reverse proxy handling all routing
 
 ## Architecture

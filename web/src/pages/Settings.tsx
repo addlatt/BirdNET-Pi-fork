@@ -24,7 +24,6 @@ import {
 
 /**
  * Settings page - Basic configuration options.
- * Mirrors the functionality of the PHP config.php page.
  */
 export function Settings(): JSX.Element {
   const {
