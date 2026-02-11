@@ -20,7 +20,6 @@ import {
 
 /**
  * Advanced Settings page - More technical configuration options.
- * Mirrors the functionality of the PHP advanced.php page.
  */
 export function AdvancedSettings(): JSX.Element {
   const {

@@ -1,5 +1,5 @@
 # BirdNET-Pi Caddy Configuration
-# This configuration serves both the legacy PHP application and the new Go API
+# BirdNET-Pi Caddy Configuration - Routes to Go API, Preact SPA, and services
 #
 # INSTALLATION: This file uses {$VAR} environment variable syntax.
 # Before installing, either:
@@ -27,23 +27,6 @@ http:// {
 		reverse_proxy localhost:8080
 	}
 
-	# ==========================================================================
-	# Legacy PHP app - served at /legacy
-	# ==========================================================================
-	handle_path /legacy* {
-		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/public
-		php_fastcgi unix//run/php/php-fpm.sock {
-			try_files {path} /index.php
-		}
-		file_server
-	}
-
-	# Vendored tools (no auth)
-	handle /adminer/* {
-		root * {$BIRDNET_HOME}/BirdNET-Pi/src/web/vendor/adminer
-		php_fastcgi unix//run/php/php-fpm.sock
-	}
-
 	# Bird recordings (browse)
 	handle /By_Date/* {
 		root * {$BIRDNET_HOME}/BirdSongs/Extracted
@@ -60,7 +43,7 @@ http:// {
 		file_server
 	}
 
-	# Reverse proxies (legacy services)
+	# Reverse proxies (external services)
 	handle /stream {
 		reverse_proxy localhost:8000
 	}

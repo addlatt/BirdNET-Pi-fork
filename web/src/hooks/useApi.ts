@@ -39,6 +39,13 @@ import type {
   ToggleLockResponse,
   ToggleShiftResponse,
   ExclusionListResponse,
+  // Backup types
+  RestoreResponse,
+  RestoreStatusResponse,
+  // Image types
+  SpeciesImageResponse,
+  BlacklistImageResponse,
+  ImageCacheStatsResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -549,6 +556,107 @@ export async function fetchExclusionList(): Promise<ExclusionListResponse> {
 }
 
 // =============================================================================
+// Image Endpoints
+// =============================================================================
+
+/** Query parameters for GET /api/species/{name}/image */
+export interface FetchSpeciesImageParams {
+  provider?: string;
+  com_name?: string;
+}
+
+/**
+ * Fetch a species image (cached or freshly-fetched).
+ * GET /api/species/{name}/image
+ */
+export async function fetchSpeciesImage(sciName: string, params: FetchSpeciesImageParams = {}): Promise<SpeciesImageResponse> {
+  const query = buildQuery(params as Record<string, string | undefined>);
+  return apiFetch<SpeciesImageResponse>(`${API_BASE}/species/${encodeURIComponent(sciName)}/image${query}`);
+}
+
+/**
+ * Blacklist the current species image and get a replacement.
+ * POST /api/species/{name}/image/blacklist
+ */
+export async function blacklistSpeciesImage(sciName: string, provider?: string, comName?: string): Promise<SpeciesImageResponse | BlacklistImageResponse> {
+  const response = await fetch(
+    `${API_BASE}/species/${encodeURIComponent(sciName)}/image/blacklist`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, com_name: comName }),
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json();
+}
+
+// =============================================================================
+// Backup Endpoints
+// =============================================================================
+
+/**
+ * Download a backup archive.
+ * POST /api/backup/create - returns a binary .tar.gz stream.
+ */
+export async function downloadBackup(): Promise<void> {
+  const response = await fetch(`${API_BASE}/backup/create`, { method: 'POST' });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition');
+  let filename = 'birdnet-backup.tar.gz';
+  if (disposition) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match) {
+      filename = match[1];
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Upload a backup file for restore.
+ * POST /api/backup/restore (multipart/form-data)
+ */
+export async function uploadRestore(file: File): Promise<RestoreResponse> {
+  const formData = new FormData();
+  formData.append('backup', file);
+
+  const response = await fetch(`${API_BASE}/backup/restore`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+  return response.json() as Promise<RestoreResponse>;
+}
+
+/**
+ * Fetch restore status by ID.
+ * GET /api/backup/status?id={restore_id}
+ */
+export async function fetchRestoreStatus(id: string): Promise<RestoreStatusResponse> {
+  return apiFetch<RestoreStatusResponse>(`${API_BASE}/backup/status?id=${encodeURIComponent(id)}`);
+}
+
+// =============================================================================
 // Re-export types for convenience
 // =============================================================================
 
@@ -592,4 +700,11 @@ export type {
   ToggleLockResponse,
   ToggleShiftResponse,
   ExclusionListResponse,
+  // Backup types
+  RestoreResponse,
+  RestoreStatusResponse,
+  // Image types
+  SpeciesImageResponse,
+  BlacklistImageResponse,
+  ImageCacheStatsResponse,
 };

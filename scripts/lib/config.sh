@@ -126,7 +126,7 @@ get_birdnet_paths() {
     export BIRDNET_BASE_PATH
     export BIRDNET_DB_PATH="${BIRDNET_BASE_PATH}/data/db/birds.db"
     export BIRDNET_MODEL_PATH="${BIRDNET_BASE_PATH}/model"
-    export BIRDNET_FONT_PATH="${BIRDNET_BASE_PATH}/src/web/public/assets/fonts"
+    export BIRDNET_FONT_PATH="${BIRDNET_BASE_PATH}/data/fonts"
     export BIRDNET_SCHEMA_PATH="${BIRDNET_BASE_PATH}/data/config_schema.json"
 
     # User-configurable paths from config

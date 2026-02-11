@@ -6,7 +6,6 @@ import { AlertMessage } from './settings/FormInputs';
 
 /**
  * ServiceControls component - Manage BirdNET-Pi services.
- * Mirrors the functionality of the PHP service_controls.php page.
  */
 export function ServiceControls(): JSX.Element {
   const {

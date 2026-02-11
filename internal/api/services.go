@@ -151,7 +151,7 @@ func getServiceStatus(serviceName string) config.ServiceStatus {
 // getRecordingBacklog counts the number of files waiting to be processed.
 func getRecordingBacklog() int {
 	// Count files in the recording buffer directory
-	// This mirrors the PHP behavior of checking for backlog
+	// Check for service backlog
 	cmd := exec.Command("sh", "-c", "ls -1 ~/BirdSongs/Extracted/*.wav 2>/dev/null | wc -l")
 	output, err := cmd.Output()
 	if err != nil {

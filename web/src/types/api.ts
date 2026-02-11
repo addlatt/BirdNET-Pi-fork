@@ -383,6 +383,58 @@ export interface RecentDetectionsResponse {
 }
 
 // =============================================================================
+// Backup Types (internal/api/backup.go)
+// =============================================================================
+
+/** Response from POST /api/backup/restore */
+export interface RestoreResponse {
+  restore_id: string;
+  status: string;
+}
+
+/** Response from GET /api/backup/status */
+export interface RestoreStatusResponse {
+  id: string;
+  status: 'uploading' | 'extracting' | 'completed' | 'failed';
+  progress: number;
+  stage: string;
+  error?: string;
+  started_at: string;
+}
+
+// =============================================================================
+// Image Types (internal/api/images.go)
+// =============================================================================
+
+/** Response from GET /api/species/{name}/image */
+export interface SpeciesImageResponse {
+  sci_name: string;
+  com_name: string;
+  provider: string;
+  image_url: string;
+  title: string;
+  source_id: string;
+  author_url: string;
+  license_url: string;
+  photos_url: string;
+  cached_at: string;
+}
+
+/** Response from POST /api/species/{name}/image/blacklist (when no replacement found) */
+export interface BlacklistImageResponse {
+  status: string;
+  message?: string;
+}
+
+/** Response from GET /api/images/cache/stats */
+export interface ImageCacheStatsResponse {
+  flickr_count: number;
+  wikipedia_count: number;
+  total_count: number;
+  expired_count: number;
+}
+
+// =============================================================================
 // API Error Types
 // =============================================================================
 

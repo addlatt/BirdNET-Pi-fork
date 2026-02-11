@@ -44,7 +44,7 @@ def get_model_path() -> Path:
 
 def get_font_dir() -> Path:
     """Get the path to the font directory."""
-    return BASE_PATH / 'src' / 'web' / 'public' / 'assets' / 'fonts'
+    return BASE_PATH / 'data' / 'fonts'
 
 
 def get_analyzing_now() -> Path:
@@ -221,8 +221,8 @@ def _validate_config(config: Dict[str, Any], schema: Dict) -> List[str]:
     return errors
 
 
-class PHPConfigParser(ConfigParser):
-    """ConfigParser that strips quotes from values like PHP's parse_ini_string."""
+class QuotedINIParser(ConfigParser):
+    """ConfigParser that strips surrounding quotes from values."""
 
     def get(self, section: str, option: str, *, raw: bool = False,
             vars: Optional[Dict] = None, fallback: Any = None) -> Any:
@@ -265,7 +265,7 @@ def get_config(force_reload: bool = False) -> Dict[str, Any]:
 
     # 2. Load from config file
     if CONFIG_FILE.exists():
-        parser = PHPConfigParser(interpolation=None)
+        parser = QuotedINIParser(interpolation=None)
         parser.optionxform = lambda x: x  # Preserve case
 
         try:

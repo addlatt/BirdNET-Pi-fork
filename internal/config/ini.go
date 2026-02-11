@@ -100,7 +100,6 @@ func (ini *INIFile) GetFloat(key string, defaultVal float64) float64 {
 }
 
 // Set updates a value in the file content using regex replacement.
-// This mirrors the PHP approach of using preg_replace.
 func (ini *INIFile) Set(key, value string) {
 	// Update in-memory map
 	ini.values[key] = value
@@ -177,7 +176,7 @@ func unquote(s string) string {
 // needsQuoting determines if a value should be quoted in the config file.
 // Values that need quoting: strings with spaces, special characters, or certain keys.
 func needsQuoting(key, value string) bool {
-	// These keys always need quoting (based on PHP behavior)
+	// These keys always need quoting
 	quotedKeys := map[string]bool{
 		"SITE_NAME":                       true,
 		"REC_CARD":                        true,

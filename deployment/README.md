@@ -1,6 +1,6 @@
-# BirdNET-Pi Deployment Guide (Phase 1)
+# BirdNET-Pi Deployment Guide
 
-This guide covers deploying the Phase 1 infrastructure upgrade with the Go API server running alongside the existing PHP application.
+This guide covers deploying BirdNET-Pi with the Go API server, Preact frontend, and Python services.
 
 ## Prerequisites
 
@@ -8,7 +8,6 @@ This guide covers deploying the Phase 1 infrastructure upgrade with the Go API s
 - Go 1.22+ installed
 - Node.js 18+ and npm installed
 - Caddy web server
-- PHP-FPM
 
 ## Architecture
 
@@ -18,26 +17,24 @@ This guide covers deploying the Phase 1 infrastructure upgrade with the Go API s
                     │                (:80)                      │
                     │                                          │
                     │  /api/*    → Go API (:8080)              │
-                    │  /ws       → Go WebSocket                │
-                    │  /app/*    → Preact SPA (static)         │
-                    │  /*        → PHP (via php-fpm)           │
+                    │  /ws       → Go WebSocket (:8080)        │
+                    │  /*        → Preact SPA (static)         │
                     └──────────────────────────────────────────┘
                                       │
                     ┌─────────────────┼─────────────────┐
                     │                 │                 │
                     ▼                 ▼                 ▼
             ┌───────────┐    ┌───────────┐     ┌───────────┐
-            │  Go API   │    │ PHP-FPM   │     │    ML     │
-            │  Server   │    │  Server   │     │  Service  │
-            │  (:8080)  │    │           │     │  (:8001)  │
+            │  Go API   │    │  Preact   │     │    ML     │
+            │  Server   │    │  SPA      │     │  Service  │
+            │  (:8080)  │    │ (static)  │     │  (:8001)  │
             └───────────┘    └───────────┘     └───────────┘
-                    │                 │
-                    └────────┬────────┘
-                             ▼
-                    ┌───────────────┐
-                    │   SQLite DB   │
-                    │  (birds.db)   │
-                    └───────────────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │   SQLite DB   │
+            │  (birds.db)   │
+            └───────────────┘
 ```
 
 ## Installation Steps
@@ -45,7 +42,7 @@ This guide covers deploying the Phase 1 infrastructure upgrade with the Go API s
 ### 1. Build the Go Server
 
 ```bash
-cd ~/BirdNET-Pi-fork
+cd ~/BirdNET-Pi
 make build
 ```
 
@@ -61,22 +58,7 @@ npm run build
 
 This creates `web/dist/` with production assets.
 
-### 3. Deploy Files
-
-```bash
-# Create deployment directory
-sudo mkdir -p /var/www/birdnet/bin
-sudo mkdir -p /var/www/birdnet/web
-
-# Copy binary and web assets
-sudo cp bin/birdnet-server /var/www/birdnet/bin/
-sudo cp -r web/dist /var/www/birdnet/web/
-
-# Set permissions
-sudo chown -R birdnet:birdnet /var/www/birdnet
-```
-
-### 4. Install Caddy (if not already installed)
+### 3. Install Caddy (if not already installed)
 
 ```bash
 sudo apt update
@@ -87,7 +69,7 @@ sudo apt update
 sudo apt install caddy
 ```
 
-### 5. Configure Caddy
+### 4. Configure Caddy
 
 ```bash
 # Backup existing config
@@ -96,15 +78,11 @@ sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak
 # Install new config
 sudo cp deployment/Caddyfile /etc/caddy/Caddyfile
 
-# Create log directory
-sudo mkdir -p /var/log/caddy
-sudo chown caddy:caddy /var/log/caddy
-
 # Reload Caddy
 sudo systemctl reload caddy
 ```
 
-### 6. Install and Start Go API Service
+### 5. Install and Start Go API Service
 
 ```bash
 # Install service file
@@ -148,21 +126,6 @@ curl http://localhost/api/health
 ```bash
 # Go API logs
 sudo journalctl -u birdnet-api -f
-
-# Caddy logs
-sudo tail -f /var/log/caddy/birdnet.log
-```
-
-## Rollback
-
-If issues occur, revert to Apache:
-
-```bash
-# Stop new services
-sudo systemctl stop birdnet-api caddy
-
-# Restart Apache
-sudo systemctl start apache2
 ```
 
 ## Environment Variables

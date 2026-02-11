@@ -336,7 +336,7 @@ export const AVAILABLE_FREQSHIFT_TOOLS = ['sox', 'ffmpeg'] as const;
 // Settings Section Types (for UI organization)
 // =============================================================================
 
-/** Settings sections matching the PHP pages */
+/** Settings sections */
 export type SettingsSection =
   | 'location'
   | 'model'

@@ -36,6 +36,11 @@ const (
 	TypeTaskCancelled = "task_cancelled"
 )
 
+// Backup/restore message types
+const (
+	TypeRestoreProgress = "restore_progress"
+)
+
 // Default channels
 const (
 	ChannelDetections  = "detections"

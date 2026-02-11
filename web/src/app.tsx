@@ -10,6 +10,7 @@ import { Recordings } from './pages/Recordings';
 import { Settings } from './pages/Settings';
 import { AdvancedSettings } from './pages/AdvancedSettings';
 import { ServiceControls } from './components/ServiceControls';
+import { Backup } from './pages/Backup';
 
 /**
  * Main application component with routing.
@@ -29,6 +30,7 @@ export function App(): JSX.Element {
           <Route path="/settings" component={Settings} />
           <Route path="/advanced-settings" component={AdvancedSettings} />
           <Route path="/services" component={ServiceControls} />
+          <Route path="/backup" component={Backup} />
           <Route default component={Overview} />
         </Router>
       </main>

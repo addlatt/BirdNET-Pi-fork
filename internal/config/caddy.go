@@ -25,30 +25,25 @@ func NewCaddyfileGenerator(configMgr *Manager, homeDir string) *CaddyfileGenerat
 
 // CaddyTemplateData holds data for the Caddyfile template.
 type CaddyTemplateData struct {
-	BirdnetpiURL    string
-	HasPassword     bool
-	PasswordHash    string
-	WebRoot         string
-	ExtractedDir    string
+	BirdnetpiURL string
+	HasPassword  bool
+	PasswordHash string
+	AppDir       string
+	ExtractedDir string
 }
 
 // caddyfileTemplate is the template for generating Caddyfiles.
 const caddyfileTemplate = `http:// {{.BirdnetpiURL}} {
-  # Static assets
-  handle /assets/* {
-    root * {{.WebRoot}}/public
-    file_server
+  encode gzip
+
+  # Go API endpoints
+  handle /api/* {
+    reverse_proxy localhost:8080
   }
 
-  # Vendored tools{{if .HasPassword}} (protected){{end}}
-  handle /adminer/* {
-    {{- if .HasPassword}}
-    basicauth {
-      birdnet {{.PasswordHash}}
-    }
-    {{- end}}
-    root * {{.WebRoot}}/vendor/adminer
-    php_fastcgi unix//run/php/php-fpm.sock
+  # WebSocket endpoint
+  handle /ws {
+    reverse_proxy localhost:8080
   }
 
   # Bird recordings (browse)
@@ -87,20 +82,17 @@ const caddyfileTemplate = `http:// {{.BirdnetpiURL}} {
     reverse_proxy localhost:8888
   }
 
-  # Other reverse proxies
-  handle /log* {
-    reverse_proxy localhost:8080
-  }
-  handle /stats* {
-    reverse_proxy localhost:8501
-  }
-
-  # PHP front controller (default handler)
+  # Preact SPA (default handler)
   handle {
-    root * {{.WebRoot}}/public
-    php_fastcgi unix//run/php/php-fpm.sock {
-      try_files {path} /index.php
-    }
+    root * {{.AppDir}}
+
+    @static path *.js *.css *.woff *.woff2 *.ttf
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    @html path *.html /
+    header @html Cache-Control "no-cache, no-store, must-revalidate"
+
+    try_files {path} /index.html
     file_server
   }
 }
@@ -117,7 +109,7 @@ func (g *CaddyfileGenerator) Generate() error {
 		userHome = filepath.Dir(cfg.RecsDir)
 	}
 
-	webRoot := filepath.Join(userHome, "BirdNET-Pi", "src", "web")
+	appDir := filepath.Join(userHome, "BirdNET-Pi", "web", "dist")
 	extractedDir := cfg.Extracted
 	if extractedDir == "" {
 		extractedDir = filepath.Join(cfg.RecsDir, "Extracted")
@@ -127,7 +119,7 @@ func (g *CaddyfileGenerator) Generate() error {
 	data := CaddyTemplateData{
 		BirdnetpiURL: cfg.BirdnetpiURL,
 		HasPassword:  cfg.CaddyPwd != "",
-		WebRoot:      webRoot,
+		AppDir:       appDir,
 		ExtractedDir: extractedDir,
 	}
 

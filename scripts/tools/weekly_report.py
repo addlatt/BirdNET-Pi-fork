@@ -23,7 +23,7 @@ def get_week_boundaries() -> tuple[str, str, str, str]:
     """
     Calculate date boundaries for this week and prior week.
 
-    Week runs Sunday to Saturday (matching the PHP implementation).
+    Week runs Sunday to Saturday.
     Returns: (start_date, end_date, prior_start_date, prior_end_date)
     """
     today = datetime.now()

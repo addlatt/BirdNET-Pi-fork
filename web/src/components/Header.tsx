@@ -30,6 +30,7 @@ export function Header(): JSX.Element {
     { href: '/settings', label: 'Settings' },
     { href: '/advanced-settings', label: 'Advanced' },
     { href: '/services', label: 'Services' },
+    { href: '/backup', label: 'Backup' },
   ];
 
   // Close settings dropdown when clicking/touching outside
