@@ -82,7 +82,7 @@
         "CLAUDE.md references docs/ml-service.md",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 8,

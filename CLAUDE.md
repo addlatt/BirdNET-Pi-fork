@@ -381,6 +381,7 @@ Key files:
 ## Related Documentation
 
 - `plans/infrastructure-upgrade.md` - Full migration plan and architecture details
+- `docs/ml-service.md` - Python ML service setup, endpoints, and Go integration
 - `deployment/birdnet-api.service` - Systemd service configuration
 - `deployment/Caddyfile` - Web server routing configuration
 - `ralph/` - Autonomous development loop (PRD, progress log, runner script)

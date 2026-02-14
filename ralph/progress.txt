@@ -49,3 +49,15 @@
 - System packages: all from install_services.sh install_depends() — caddy, sqlite3, ffmpeg, alsa-utils, sox, pulseaudio, icecast2, avahi-utils, inotify-tools, etc.
 - All acceptance criteria verified: "prerequisite" present, all version numbers present, hardware recs present
 - make test passes. Pure documentation update — no code changes.
+
+[iteration 7] 2026-02-14 — Story #7: Document Python ML service setup
+- Created docs/ml-service.md covering the full ML service architecture
+- Covers: FastAPI app on port 8001, venv setup with pip install -e ".[service]", uvicorn start command
+- Systemd service: deployment/birdnet-ml.service with management commands (systemctl start/stop/restart/status)
+- Environment variables: BIRDNET_CONFIG and GO_SERVER_URL
+- Health check verification: curl http://localhost:8001/status/health
+- Go integration via internal/mlclient/ with usage examples
+- All API endpoints documented: /status/*, /analysis/*, /vad/*, /llm/*, root endpoints
+- Detection notification flow: Python → POST /internal/detection → Go WebSocket broadcast
+- Added reference to docs/ml-service.md in CLAUDE.md's Related Documentation section
+- All acceptance criteria verified. make test passes. Pure documentation — no code changes.
