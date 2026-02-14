@@ -95,7 +95,7 @@
         "README.md references 'make install'",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 9,

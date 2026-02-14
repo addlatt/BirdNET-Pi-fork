@@ -3,6 +3,7 @@
 .PHONY: all build test test-verbose test-coverage test-race lint clean help
 .PHONY: dev-server dev-web install-deps generate
 .PHONY: build-arm64 build-arm build-pi build-all-platforms
+.PHONY: check-prereqs install
 
 # Go parameters
 GOCMD=go
@@ -132,6 +133,39 @@ fmt-check: ## Check if code is formatted
 vet: ## Run go vet
 	@echo "Running go vet..."
 	$(GOCMD) vet $(INTERNAL_DIR)
+
+## Setup
+
+check-prereqs: ## Verify required tools are installed with minimum versions
+	@echo "Checking prerequisites..."
+	@command -v go >/dev/null 2>&1 || { echo "ERROR: go is not installed (need 1.21+)"; exit 1; }
+	@command -v node >/dev/null 2>&1 || { echo "ERROR: node is not installed (need 18+)"; exit 1; }
+	@command -v npm >/dev/null 2>&1 || { echo "ERROR: npm is not installed"; exit 1; }
+	@command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is not installed (need 3.9+)"; exit 1; }
+	@GO_VER=$$(go version | grep -oP 'go(\d+)\.(\d+)' | grep -oP '\d+$$'); \
+	GO_MAJOR=$$(go version | grep -oP 'go\d+' | grep -oP '\d+'); \
+	if [ "$$GO_MAJOR" -lt 1 ] || { [ "$$GO_MAJOR" -eq 1 ] && [ "$$GO_VER" -lt 21 ]; }; then \
+		echo "ERROR: Go 1.21+ required, found $$(go version)"; exit 1; \
+	fi
+	@NODE_MAJOR=$$(node --version | grep -oP '\d+' | head -1); \
+	if [ "$$NODE_MAJOR" -lt 18 ]; then \
+		echo "ERROR: Node 18+ required, found $$(node --version)"; exit 1; \
+	fi
+	@PY_VER=$$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'); \
+	PY_MAJOR=$$(echo $$PY_VER | cut -d. -f1); \
+	PY_MINOR=$$(echo $$PY_VER | cut -d. -f2); \
+	if [ "$$PY_MAJOR" -lt 3 ] || { [ "$$PY_MAJOR" -eq 3 ] && [ "$$PY_MINOR" -lt 9 ]; }; then \
+		echo "ERROR: Python 3.9+ required, found $$PY_VER"; exit 1; \
+	fi
+	@echo "All prerequisites satisfied."
+
+install: check-prereqs ## Full developer setup: check prereqs, install deps, build all
+	@echo "Installing dependencies and building..."
+	$(GOMOD) download
+	cd $(WEB_DIR) && npm install
+	@$(MAKE) build
+	@$(MAKE) build-web
+	@echo "Install complete. Run 'make test' to verify."
 
 ## Dependencies
 

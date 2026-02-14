@@ -61,3 +61,12 @@
 - Detection notification flow: Python → POST /internal/detection → Go WebSocket broadcast
 - Added reference to docs/ml-service.md in CLAUDE.md's Related Documentation section
 - All acceptance criteria verified. make test passes. Pure documentation — no code changes.
+
+[iteration 8] 2026-02-14 — Story #8: Create make install developer setup target
+- Added 'check-prereqs' target to Makefile: verifies go (1.21+), node (18+), npm, python3 (3.9+) with version checks
+- Added 'install' target: depends on check-prereqs, runs go mod download, npm install (in web/), make build, make build-web
+- Version checking approach: extract major/minor from `go version`, `node --version`, and `python3 -c 'import sys; ...'`, compare numerically
+- Updated README.md development section: added "developer setup" subsection showing `make install` as the quickstart
+- Renamed existing "quick version" subsection to "deploy to pi" for clarity
+- No sudo, no systemd, no system packages — purely developer-facing and idempotent
+- All acceptance criteria verified. make test passes.

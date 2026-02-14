@@ -153,7 +153,19 @@ the go server auto-restarts if it crashes. rate limited to 5 restarts per minute
 
 see [CLAUDE.md](CLAUDE.md) for the full dev guide.
 
-quick version:
+### developer setup
+
+```bash
+# clone and set up everything (checks prereqs, installs deps, builds)
+git clone https://github.com/addlatt/BirdNET-Pi-fork.git
+cd BirdNET-Pi-fork
+make install
+
+# run tests
+make test
+```
+
+### deploy to pi
 
 ```bash
 # make changes locally, commit and push
