@@ -123,7 +123,7 @@
         "scripts/tools/read_chunks.sh contains a deprecation comment",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "deferred": [

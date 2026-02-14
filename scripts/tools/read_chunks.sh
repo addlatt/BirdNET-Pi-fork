@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# DEPRECATED: This script has zero references in the codebase and is no longer used.
+# It is kept for reference only.
 # read from pipe a set number of times
 
 usage() { echo "Usage: $0 -n <chunks> -f <pipe>" 1>&2; exit 1; }

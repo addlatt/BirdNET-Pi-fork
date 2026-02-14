@@ -82,3 +82,14 @@
 - Created recording_test.go with 9 test functions covering: splitStreams, buildTimeoutParam, buildFFmpegArgs (v4 and v5), buildArecordArgs (default, custom device, "default" device), ConfigFromManager (with values and defaults)
 - Added deprecation comment to scripts/runtime/birdnet_recording.sh
 - All acceptance criteria verified. make test passes (9 test functions, 0.005s).
+
+[iteration 10] 2026-02-14 — Story #10: Migrate custom_recording.sh + cleanup shell libs
+- Created internal/recording/custom.go with RunCustom(ctx, CustomRecordingConfig) function
+- TimeWindow struct with configurable start/end hours; DefaultWindows matches original shell (0-0, 3-7, 15-19, 22-23)
+- CustomRecordingConfig with RecordingDuration (60s), PauseDuration (240s), Channels, RecCard, ExtractedDir
+- CustomConfigFromManager() helper extracts config from RecordingConfig
+- inWindow() checks if current hour falls in any configured window; RunCustom() loops: check window → arecord → pause
+- Output pattern matches shell: Raw/%B-%Y/%d-%A/%F-birdnet-%H:%M:%S.wav (arecord strftime)
+- Created custom_test.go with 8 test functions: inWindow (all hours), inWindowEmpty, buildCustomArecordArgs (default, device, "default" device), CustomConfigFromManager (with values, defaults), DefaultWindows
+- Added DEPRECATED comment to scripts/runtime/custom_recording.sh, scripts/lib/config.sh, scripts/tools/read_chunks.sh
+- All acceptance criteria verified. make test passes (17 recording tests total, 0.005s).

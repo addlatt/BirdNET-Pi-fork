@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# DEPRECATED: This script is superseded by internal/config/ in the Go rewrite.
+# It is kept for reference only. Use the Go configuration package for new code.
 # =============================================================================
 # BirdNET-Pi Configuration Helper
 # =============================================================================
