@@ -40,3 +40,12 @@
 - Verified both Python router files still exist (not deleted)
 - PRD acceptance criteria note: says "service/routers/" but actual path is "src/service/routers/" — files exist at the correct path
 - All acceptance criteria verified. make test passes. Pure documentation update — no code changes.
+
+[iteration 6] 2026-02-14 — Story #6: Add prerequisites to README
+- Replaced sparse "requirements" section with comprehensive "prerequisites" section
+- Added three subsections: hardware, software, system packages
+- Hardware: Pi 5 recommended, 4GB+ RAM, NVMe SSD, x86_64 for dev
+- Software: Go 1.21+ (from go.mod), Node 18+ (Vite 5 requires it), Python 3.9+ (from pyproject.toml)
+- System packages: all from install_services.sh install_depends() — caddy, sqlite3, ffmpeg, alsa-utils, sox, pulseaudio, icecast2, avahi-utils, inotify-tools, etc.
+- All acceptance criteria verified: "prerequisite" present, all version numbers present, hardware recs present
+- make test passes. Pure documentation update — no code changes.

@@ -70,7 +70,7 @@
         "Hardware recommendations are present in README.md (Pi 5 or RAM or NVMe mentioned)",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 7,

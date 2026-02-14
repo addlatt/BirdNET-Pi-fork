@@ -59,12 +59,39 @@ the bird detection stuff is identical to upstream. this is a frontend/api/servic
 | livestream | Python | Streams audio to Icecast via ffmpeg |
 | birdnet_stats | Python/Streamlit | Statistics dashboard |
 
-## requirements
+## prerequisites
 
-same as upstream:
-- raspberry pi 5, 4b, 400, 3b+, or 0w2
+### hardware
+
+- **raspberry pi 5** (recommended), 4b, 400, 3b+, or 0w2
+- 4GB+ RAM recommended (8GB for best performance)
+- NVMe SSD recommended for Pi 5 (improves database and recording I/O)
 - 64-bit raspios (trixie recommended)
 - usb microphone or sound card
+- x86_64 linux also works for development
+
+### software
+
+| dependency | minimum version | source |
+|-----------|----------------|--------|
+| Go | 1.21+ | `go.mod` |
+| Node.js | 18+ | Vite 5 requires it |
+| Python | 3.9+ | `pyproject.toml` |
+
+### system packages
+
+installed via `apt` on the pi (see `scripts/install/install_services.sh`):
+
+- **caddy** — reverse proxy
+- **sqlite3** — database
+- **ffmpeg** — audio processing and streaming
+- **alsa-utils** — microphone input (arecord)
+- **sox**, **libsox-fmt-mp3** — audio conversion
+- **pulseaudio** — audio routing
+- **icecast2** — live audio streaming
+- **avahi-utils** — mDNS hostname resolution
+- **python3-pip**, **python3-venv** — python package management
+- **inotify-tools** — file change monitoring
 
 ## installation
 
