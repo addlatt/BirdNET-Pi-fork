@@ -125,5 +125,13 @@
       ],
       "passes": false
     }
+  ],
+  "deferred": [
+    {
+      "id": 11,
+      "title": "Create Pi bootstrap install.sh",
+      "description": "Full end-to-end installer for a fresh Raspberry Pi: install system packages (caddy, sqlite3, ffmpeg, alsa-utils, sox, pulseaudio, icecast2, etc.), set up Go/Node/Python, build all binaries, install systemd services, configure Caddy. Should work on a fresh Raspberry Pi OS install. Deferred because it requires a real Pi to test and has broader blast radius than developer-facing tooling.",
+      "reason": "Revisit in a future Ralph run — requires Pi hardware for proper testing"
+    }
   ]
 }
