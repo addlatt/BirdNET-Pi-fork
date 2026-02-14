@@ -1,3 +1,10 @@
 # Ralph Loop Progress Log
 # This file is append-only. Each iteration adds learnings below.
 # Format: [iteration N] YYYY-MM-DD — what was done, what was learned
+
+[iteration 1] 2026-02-14 — Story #1: Delete empty pre_update.sh stub
+- Deleted scripts/config/pre_update.sh (empty 4-line placeholder stub)
+- Removed the call to it from scripts/config/update_birdnet.sh line 83
+- Verified zero remaining references to pre_update.sh in scripts/
+- Also found a reference in plans/organize.md (file tree diagram) — left as-is since it's historical documentation and acceptance criteria only required scripts/ to be clean
+- make test passes. Straightforward deletion task.

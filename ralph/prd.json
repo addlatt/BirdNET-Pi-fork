@@ -11,7 +11,7 @@
         "No remaining references to pre_update.sh in scripts/ (grep confirms zero matches)",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 2,
