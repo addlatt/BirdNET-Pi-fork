@@ -1,5 +1,7 @@
 # BirdNET-Pi Reorganization Plan
 
+> **STATUS: COMPLETED** — Kept for historical reference.
+
 ## Current State Analysis
 
 ### System Overview

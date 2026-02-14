@@ -8,3 +8,9 @@
 - Verified zero remaining references to pre_update.sh in scripts/
 - Also found a reference in plans/organize.md (file tree diagram) — left as-is since it's historical documentation and acceptance criteria only required scripts/ to be clean
 - make test passes. Straightforward deletion task.
+
+[iteration 2] 2026-02-14 — Story #2: Clean up plans/ directory
+- Added '> **STATUS: COMPLETED** — Kept for historical reference.' banner after the H1 in all 4 plan files
+- Created plans/README.md as an index listing all 4 plan docs with brief descriptions
+- All acceptance criteria verified: banners in first 5 lines, README lists all docs, make test passes
+- Straightforward documentation task — no code changes needed.

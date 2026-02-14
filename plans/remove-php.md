@@ -1,5 +1,7 @@
 # PHP Deprecation Plan
 
+> **STATUS: COMPLETED** — Kept for historical reference.
+
 ## Goal
 
 Remove all PHP dependencies from BirdNET-Pi, leaving only:

@@ -22,7 +22,7 @@
         "plans/README.md exists and lists all 4 plan docs by name",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 3,
