@@ -33,7 +33,7 @@
         "useSettings, AdvancedSettings, Backup, scheduler/, tasks/, and ralph/ all appear in CLAUDE.md",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 4,

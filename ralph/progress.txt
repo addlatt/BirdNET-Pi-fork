@@ -14,3 +14,13 @@
 - Created plans/README.md as an index listing all 4 plan docs with brief descriptions
 - All acceptance criteria verified: banners in first 5 lines, README lists all docs, make test passes
 - Straightforward documentation task — no code changes needed.
+
+[iteration 3] 2026-02-14 — Story #3: Fix CLAUDE.md stale references
+- Updated pages section: replaced TodaysDetections→Detections, History→Stats, added AdvancedSettings and Backup (9 total pages)
+- Expanded components section from 4 to all 20 actual components (including settings/ subdirectory)
+- Added useSettings.ts to hooks section
+- Added 4 missing internal packages: images/, scheduler/, tasks/, testutil/
+- Expanded API endpoints from ~8 to all 89 route registrations, organized by route group
+- Added ralph/ to Related Documentation section
+- All acceptance criteria verified: Detections.tsx and Stats.tsx present, TodaysDetections and History.tsx absent, all required terms appear
+- make test passes. Pure documentation update — no code changes.
