@@ -213,6 +213,29 @@ WS   /ws/logs                                       # Live log stream
 WS   /ws/logs/detections                            # Detection-specific log stream
 ```
 
+## Part 2 Features (Not Yet Implemented)
+
+The following endpoints return **501 Not Implemented**. They are stub routers in the Python ML service (`src/service/routers/`) with corresponding Go client support in `internal/mlclient/`. Do not remove these stubs — they define the API contract for Part 2.
+
+### VAD (Voice Activity Detection) — `src/service/routers/vad.py`
+
+```
+POST /vad/check     # Check audio file for speech activity (Silero VAD)
+POST /vad/load      # Load the VAD model
+POST /vad/unload    # Unload the VAD model
+GET  /vad/status    # VAD model status (returns enabled: false)
+```
+
+### LLM (Local Language Model) — `src/service/routers/llm.py`
+
+```
+POST /llm/ask       # Ask a question to the local LLM
+POST /llm/load      # Load an LLM model
+POST /llm/unload    # Unload the LLM model to free memory
+GET  /llm/models    # List available LLM models
+GET  /llm/status    # LLM model status (returns enabled: false)
+```
+
 ## Preact Frontend Structure
 
 ```

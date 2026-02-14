@@ -58,7 +58,7 @@
         "Python router files service/routers/vad.py and service/routers/llm.py still exist (not deleted)",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 6,

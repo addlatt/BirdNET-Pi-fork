@@ -31,3 +31,12 @@
 - All old version history (0.13, v.11.1, v.11, etc.) preserved below the new entry
 - Also noticed web/package.json has "0.1.0" — not in scope for this story but could be updated later
 - All acceptance criteria verified. make test passes. Minimal code change (one const), rest is documentation.
+
+[iteration 5] 2026-02-14 — Story #5: Document 501 stub endpoints
+- Added "Part 2 Features (Not Yet Implemented)" section to CLAUDE.md between API Endpoints and Preact Frontend Structure sections
+- Listed all VAD endpoints (check, load, unload, status) and LLM endpoints (ask, load, unload, models, status) with descriptions
+- Referenced source files (src/service/routers/vad.py, llm.py) and Go client (internal/mlclient/)
+- Added blockquote note to README.md after WebSocket endpoints section noting 501 stubs
+- Verified both Python router files still exist (not deleted)
+- PRD acceptance criteria note: says "service/routers/" but actual path is "src/service/routers/" — files exist at the correct path
+- All acceptance criteria verified. make test passes. Pure documentation update — no code changes.
