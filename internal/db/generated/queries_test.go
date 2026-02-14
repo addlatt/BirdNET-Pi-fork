@@ -43,7 +43,7 @@ func TestGetDetection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			detection, err := queries.GetDetection(ctx, db.GetDetectionParams{
+			detection, err := queries.GetDetectionByCompositeKey(ctx, db.GetDetectionByCompositeKeyParams{
 				Date:    tt.date,
 				Time:    tt.time,
 				SciName: tt.sciName,

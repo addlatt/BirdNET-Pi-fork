@@ -5,7 +5,7 @@
 This is a modernized fork of BirdNET-Pi with a Go + Preact + Python architecture:
 
 - **Go API server** (port 8080): Serves REST API, WebSocket, and static files
-- **Preact frontend**: Modern TypeScript UI at `/app/*`
+- **Preact frontend**: Modern TypeScript UI at `/`
 - **Python ML service**: BirdNET inference (existing analysis daemon)
 - **Caddy**: Reverse proxy handling all routing
 
@@ -214,7 +214,24 @@ ssh addlatt@birdnet "cd ~/BirdNET-Pi && git pull && go build -o bin/birdnet-serv
 
 ## Branch
 
-Active development branch: `cutover/go-backend`
+Active development branch: `ralph-1`
+
+## Ralph Loop (Autonomous Development)
+
+This repo supports autonomous development via a Ralph loop. When running inside the loop:
+
+1. **Read `ralph/prd.json`** — find the first story where `"passes": false`
+2. **Read `ralph/progress.txt`** — learn from previous iterations
+3. **Implement one story** — only one per iteration
+4. **Verify** — run `make test` for Go changes, `make build-web` for frontend changes
+5. **Update `ralph/prd.json`** — set `"passes": true` on the completed story
+6. **Append to `ralph/progress.txt`** — log what you did and any learnings
+7. **Commit** — atomic commit with a descriptive message
+
+Key files:
+- `ralph/prd.json` — structured task list with pass/fail tracking
+- `ralph/progress.txt` — append-only log of iteration learnings
+- `ralph/ralph.sh` — the loop runner (`./ralph/ralph.sh [max_iterations]`)
 
 ## Related Documentation
 

@@ -1,0 +1,129 @@
+{
+  "project": "BirdNET-Pi-fork Cleanup & Polish",
+  "description": "Complete the migration from legacy PHP/JS/shell to modern Go/Preact/Python architecture. Make the repo easy for new users to get started. 10 stories ordered: zero-risk docs/deletions first, then dependency-aware, then complex code changes last. Pi bootstrap (install.sh) deferred to a future Ralph run.",
+  "userStories": [
+    {
+      "id": 1,
+      "title": "Delete empty pre_update.sh stub",
+      "description": "scripts/config/pre_update.sh is 3 lines (shebang + 2 comments) — an empty placeholder stub. One reference exists: scripts/config/update_birdnet.sh line 83 calls it — that line must be removed. Delete the file and clean up the reference.",
+      "acceptanceCriteria": [
+        "scripts/config/pre_update.sh is deleted",
+        "No remaining references to pre_update.sh in scripts/ (grep confirms zero matches)",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 2,
+      "title": "Clean up plans/ directory",
+      "description": "4 completed plan docs lack status banners. Add '> **STATUS: COMPLETED** — Kept for historical reference.' after the H1 in each file. Create plans/README.md as a brief index listing all 4 docs. Do NOT move files (would break CLAUDE.md references). Files: infrastructure-upgrade.md, organize.md, remove-php.md, settings-migration-research.md.",
+      "acceptanceCriteria": [
+        "Each of the 4 plan files' first 5 lines contain both 'STATUS' and 'COMPLETED'",
+        "plans/README.md exists and lists all 4 plan docs by name",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 3,
+      "title": "Fix CLAUDE.md stale references",
+      "description": "Specific inaccuracies found by cross-referencing filesystem: (1) Pages section: TodaysDetections → Detections, History → Stats, add AdvancedSettings and Backup. (2) Hooks section: Add useSettings.ts. (3) Components section: Only lists 4 of 18+ actual components — expand to cover all. (4) Internal packages: Missing images/, scheduler/, tasks/, testutil/. (5) API endpoints: Shows ~8, actual is 60+ — expand to cover all route groups. (6) Related docs: Add reference to ralph/ directory.",
+      "acceptanceCriteria": [
+        "Detections.tsx and Stats.tsx appear in CLAUDE.md; TodaysDetections and History.tsx do not",
+        "useSettings, AdvancedSettings, Backup, scheduler/, tasks/, and ralph/ all appear in CLAUDE.md",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 4,
+      "title": "Update version.md",
+      "description": "version.md stops at v0.13 (pre-modernization). Add '# 1.0.0 - Go/Preact Rewrite' at the top documenting the architecture overhaul: Go API server replacing PHP, Preact frontend replacing legacy JS/HTML, Python ML service retained, PHP fully removed, SQLite retained with Go read-only access. Also update internal/api/system.go line 63 from '0.1.0' to '1.0.0' to align with pyproject.toml. Preserve all old version history.",
+      "acceptanceCriteria": [
+        "head -3 version.md contains '1.0.0'",
+        "grep 'Go API server' version.md succeeds (exit code 0)",
+        "Old version history (0.13 etc.) is preserved below the new entry",
+        "internal/api/system.go contains const or string '1.0.0' (not '0.1.0')",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 5,
+      "title": "Document 501 stub endpoints",
+      "description": "7 endpoints return 501 Not Implemented: 3 VAD (/vad/check, /vad/load, /vad/unload) + 4 LLM (/llm/ask, /llm/load, /llm/unload, /llm/models). Go client already handles them gracefully with tests. Document only — do NOT remove stubs. Add a 'Part 2 Features (Not Yet Implemented)' section to CLAUDE.md listing these endpoints. Add a note in README's API section mentioning the 501 stubs.",
+      "acceptanceCriteria": [
+        "CLAUDE.md mentions both VAD and LLM with 'Part 2' or 'not implemented' (case-insensitive)",
+        "README.md notes that some endpoints return 501 (stub/not implemented)",
+        "Python router files service/routers/vad.py and service/routers/llm.py still exist (not deleted)",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 6,
+      "title": "Add prerequisites to README",
+      "description": "README.md lacks explicit system requirements. Add a Prerequisites section listing verified requirements from source files: Go 1.21+ (go.mod), Node 18+ (Vite 5), Python >=3.9 (pyproject.toml). System packages from install_services.sh: caddy, sqlite3, ffmpeg, alsa-utils, sox, pulseaudio, icecast2, etc. Hardware: Pi 5 recommended, 4GB+ RAM, NVMe; also x86_64 for dev.",
+      "acceptanceCriteria": [
+        "README.md contains the word 'prerequisite' (case-insensitive)",
+        "Go 1.21, Node 18, Python 3.9, ffmpeg, and alsa-utils are all mentioned in README.md",
+        "Hardware recommendations are present in README.md (Pi 5 or RAM or NVMe mentioned)",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 7,
+      "title": "Document Python ML service setup",
+      "description": "Create docs/ml-service.md covering: What it does (FastAPI on port 8001, BirdNET inference), venv setup + 'pip install -e \".[service]\"', start command: 'uvicorn service.main:app --host 127.0.0.1 --port 8001', systemd: deployment/birdnet-ml.service, env vars: BIRDNET_CONFIG and GO_SERVER_URL, verification: 'curl http://localhost:8001/status/health', Go integration via internal/mlclient/. Also add a reference to the new doc in CLAUDE.md's Related Documentation section.",
+      "acceptanceCriteria": [
+        "docs/ml-service.md exists",
+        "docs/ml-service.md contains all of: uvicorn, port 8001, pip install, systemctl, health check path, mlclient",
+        "CLAUDE.md references docs/ml-service.md",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 8,
+      "title": "Create make install developer setup target",
+      "description": "Add to Makefile: (1) 'check-prereqs' target — verifies go, node, npm, python3 exist with minimum versions (go 1.21+, node 18+, python 3.9+). (2) 'install' target — runs check-prereqs, then 'go mod download', 'npm install' (in web/), 'make build', 'make build-web'. Developer-facing only: no sudo, no systemd, no system packages. Must be idempotent. Update README to reference 'make install'.",
+      "acceptanceCriteria": [
+        "'install:' and 'check-prereqs:' targets both exist in Makefile",
+        "check-prereqs checks for go, node, and python3",
+        "install target runs go mod download, npm install, and build steps",
+        "README.md references 'make install'",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 9,
+      "title": "Migrate birdnet_recording.sh to Go",
+      "description": "Create internal/recording/recording.go replacing scripts/runtime/birdnet_recording.sh (61 lines). Two modes: (1) RTSP mode: Parse comma-separated URLs from config, launch one ffmpeg subprocess per stream via exec.Command in separate goroutines with retry loop. Same ffmpeg args: '-hide_banner -loglevel {level} -nostdin -i {url} -vn -map a:0 -acodec pcm_s16le -ac 2 -ar 48000 -f segment -segment_format wav -segment_time {length} -strftime 1 {output}'. (2) Microphone mode: Launch arecord via exec.Command with '-f S16_LE -c{CHANNELS} -r48000 -t wav --max-file-time {length} --use-strftime {output}'. Check PulseAudio first. Config already loaded by internal/config/. Output to {RECS_DIR}/StreamData/. Support context cancellation for graceful shutdown. Add deprecation comment to old shell script (don't delete yet).",
+      "acceptanceCriteria": [
+        "internal/recording/recording.go exists with a Run(ctx context.Context, ...) function",
+        "recording.go invokes ffmpeg via exec.Command (string 'ffmpeg' appears in source)",
+        "recording.go invokes arecord via exec.Command (string 'arecord' appears in source)",
+        "internal/recording/recording_test.go exists with at least one test function",
+        "scripts/runtime/birdnet_recording.sh contains a deprecation comment (e.g. 'deprecated' or 'superseded')",
+        "make test passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": 10,
+      "title": "Migrate custom_recording.sh + cleanup shell libs",
+      "description": "Create internal/recording/custom.go replacing scripts/runtime/custom_recording.sh (75 lines). Time-windowed arecord recording. Make windows configurable via config (currently hardcoded: 0-0, 3-7, 15-19, 22-23 with 60s record / 240s pause). Also add deprecation comments to: (1) scripts/runtime/custom_recording.sh, (2) scripts/lib/config.sh (160 lines, superseded by internal/config/), (3) scripts/tools/read_chunks.sh (31 lines, zero references).",
+      "acceptanceCriteria": [
+        "internal/recording/custom.go exists with time window logic (contains 'window' or 'Window')",
+        "internal/recording/custom_test.go exists with at least one test function",
+        "scripts/runtime/custom_recording.sh contains a deprecation comment",
+        "scripts/lib/config.sh contains a deprecation comment",
+        "scripts/tools/read_chunks.sh contains a deprecation comment",
+        "make test passes"
+      ],
+      "passes": false
+    }
+  ]
+}
