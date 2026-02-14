@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# DEPRECATED: This script is superseded by internal/recording/recording.go
+# It is kept for reference during migration. Use the Go implementation instead.
 # Performs the recording from the specified RTSP stream or soundcard
 source /etc/birdnet/birdnet.conf
 

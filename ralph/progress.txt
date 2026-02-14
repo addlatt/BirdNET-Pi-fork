@@ -70,3 +70,15 @@
 - Renamed existing "quick version" subsection to "deploy to pi" for clarity
 - No sudo, no systemd, no system packages — purely developer-facing and idempotent
 - All acceptance criteria verified. make test passes.
+
+[iteration 9] 2026-02-14 — Story #9: Migrate birdnet_recording.sh to Go
+- Created internal/recording/recording.go with Run(ctx, RecordingConfig) function
+- Two modes: RTSP (ffmpeg via exec.Command per stream with retry loop) and microphone (arecord via exec.Command)
+- RecordingConfig struct with ConfigFromManager() helper to extract settings from config.Config
+- RTSP mode: splits comma-separated URLs, detects ffmpeg version for -stimeout vs -timeout, launches goroutines per stream
+- Microphone mode: ensures PulseAudio running, supports optional REC_CARD device, uses strftime output pattern
+- All ffmpeg args match original shell script: -hide_banner -loglevel -nostdin -vn -map a:0 -acodec pcm_s16le -ac 2 -ar 48000 -f segment -segment_format wav
+- Context cancellation for graceful shutdown throughout
+- Created recording_test.go with 9 test functions covering: splitStreams, buildTimeoutParam, buildFFmpegArgs (v4 and v5), buildArecordArgs (default, custom device, "default" device), ConfigFromManager (with values and defaults)
+- Added deprecation comment to scripts/runtime/birdnet_recording.sh
+- All acceptance criteria verified. make test passes (9 test functions, 0.005s).

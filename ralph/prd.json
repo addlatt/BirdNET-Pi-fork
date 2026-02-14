@@ -109,7 +109,7 @@
         "scripts/runtime/birdnet_recording.sh contains a deprecation comment (e.g. 'deprecated' or 'superseded')",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 10,
