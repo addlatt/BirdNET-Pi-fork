@@ -24,3 +24,10 @@
 - Added ralph/ to Related Documentation section
 - All acceptance criteria verified: Detections.tsx and Stats.tsx present, TodaysDetections and History.tsx absent, all required terms appear
 - make test passes. Pure documentation update — no code changes.
+
+[iteration 4] 2026-02-14 — Story #4: Update version.md
+- Added '# 1.0.0 - Go/Preact Rewrite' section at top of version.md documenting the full architecture overhaul
+- Updated internal/api/system.go version constant from "0.1.0" to "1.0.0" to align with pyproject.toml
+- All old version history (0.13, v.11.1, v.11, etc.) preserved below the new entry
+- Also noticed web/package.json has "0.1.0" — not in scope for this story but could be updated later
+- All acceptance criteria verified. make test passes. Minimal code change (one const), rest is documentation.

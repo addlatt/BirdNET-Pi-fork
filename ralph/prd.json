@@ -46,7 +46,7 @@
         "internal/api/system.go contains const or string '1.0.0' (not '0.1.0')",
         "make test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 5,

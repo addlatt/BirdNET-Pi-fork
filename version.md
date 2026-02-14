@@ -1,3 +1,19 @@
+# 1.0.0 - Go/Preact Rewrite
+
+Complete architecture overhaul replacing the legacy PHP/JS/shell stack:
+
+- **Go API server** (port 8080) replaces all PHP endpoints — serves REST API,
+  WebSocket, and static files via Chi router
+- **Preact frontend** replaces legacy JS/HTML pages — modern TypeScript UI
+  built with Vite and Tailwind CSS
+- **Python ML service** retained — FastAPI on port 8001 for BirdNET inference
+- **PHP fully removed** — no PHP dependencies remain
+- **SQLite retained** — Go server has read-only access; Python analysis daemon
+  writes detections
+- **Caddy** reverse proxy routes traffic between Go API and static assets
+- **Systemd services** manage Go API (`birdnet-api`) and Python ML
+  (`birdnet-ml`)
+
 # 0.13
 - Removed secondary and tertiary custom URLs
 - Added new custom-compiled GoTTY binary
