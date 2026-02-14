@@ -34,7 +34,7 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
     echo ""
 
     # Run Claude Code with the ralph prompt
-    claude --print --dangerously-skip-permissions -m claude-opus-4-6 "$(cat <<'PROMPT'
+    claude --print --dangerously-skip-permissions --model claude-opus-4-6 "$(cat <<'PROMPT'
 You are running inside a Ralph loop — an autonomous iteration loop.
 
 ## Your task
