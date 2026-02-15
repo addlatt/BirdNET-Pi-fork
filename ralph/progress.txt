@@ -1,0 +1,111 @@
+# Ralph Loop Progress Log
+# This file is append-only. Each iteration adds learnings below.
+# Format: [iteration N] YYYY-MM-DD — what was done, what was learned
+
+[iteration 1] 2026-02-14 — Story #1: Delete empty pre_update.sh stub
+- Deleted scripts/config/pre_update.sh (empty 4-line placeholder stub)
+- Removed the call to it from scripts/config/update_birdnet.sh line 83
+- Verified zero remaining references to pre_update.sh in scripts/
+- Also found a reference in plans/organize.md (file tree diagram) — left as-is since it's historical documentation and acceptance criteria only required scripts/ to be clean
+- make test passes. Straightforward deletion task.
+
+[iteration 2] 2026-02-14 — Story #2: Clean up plans/ directory
+- Added '> **STATUS: COMPLETED** — Kept for historical reference.' banner after the H1 in all 4 plan files
+- Created plans/README.md as an index listing all 4 plan docs with brief descriptions
+- All acceptance criteria verified: banners in first 5 lines, README lists all docs, make test passes
+- Straightforward documentation task — no code changes needed.
+
+[iteration 3] 2026-02-14 — Story #3: Fix CLAUDE.md stale references
+- Updated pages section: replaced TodaysDetections→Detections, History→Stats, added AdvancedSettings and Backup (9 total pages)
+- Expanded components section from 4 to all 20 actual components (including settings/ subdirectory)
+- Added useSettings.ts to hooks section
+- Added 4 missing internal packages: images/, scheduler/, tasks/, testutil/
+- Expanded API endpoints from ~8 to all 89 route registrations, organized by route group
+- Added ralph/ to Related Documentation section
+- All acceptance criteria verified: Detections.tsx and Stats.tsx present, TodaysDetections and History.tsx absent, all required terms appear
+- make test passes. Pure documentation update — no code changes.
+
+[iteration 4] 2026-02-14 — Story #4: Update version.md
+- Added '# 1.0.0 - Go/Preact Rewrite' section at top of version.md documenting the full architecture overhaul
+- Updated internal/api/system.go version constant from "0.1.0" to "1.0.0" to align with pyproject.toml
+- All old version history (0.13, v.11.1, v.11, etc.) preserved below the new entry
+- Also noticed web/package.json has "0.1.0" — not in scope for this story but could be updated later
+- All acceptance criteria verified. make test passes. Minimal code change (one const), rest is documentation.
+
+[iteration 5] 2026-02-14 — Story #5: Document 501 stub endpoints
+- Added "Part 2 Features (Not Yet Implemented)" section to CLAUDE.md between API Endpoints and Preact Frontend Structure sections
+- Listed all VAD endpoints (check, load, unload, status) and LLM endpoints (ask, load, unload, models, status) with descriptions
+- Referenced source files (src/service/routers/vad.py, llm.py) and Go client (internal/mlclient/)
+- Added blockquote note to README.md after WebSocket endpoints section noting 501 stubs
+- Verified both Python router files still exist (not deleted)
+- PRD acceptance criteria note: says "service/routers/" but actual path is "src/service/routers/" — files exist at the correct path
+- All acceptance criteria verified. make test passes. Pure documentation update — no code changes.
+
+[iteration 6] 2026-02-14 — Story #6: Add prerequisites to README
+- Replaced sparse "requirements" section with comprehensive "prerequisites" section
+- Added three subsections: hardware, software, system packages
+- Hardware: Pi 5 recommended, 4GB+ RAM, NVMe SSD, x86_64 for dev
+- Software: Go 1.21+ (from go.mod), Node 18+ (Vite 5 requires it), Python 3.9+ (from pyproject.toml)
+- System packages: all from install_services.sh install_depends() — caddy, sqlite3, ffmpeg, alsa-utils, sox, pulseaudio, icecast2, avahi-utils, inotify-tools, etc.
+- All acceptance criteria verified: "prerequisite" present, all version numbers present, hardware recs present
+- make test passes. Pure documentation update — no code changes.
+
+[iteration 7] 2026-02-14 — Story #7: Document Python ML service setup
+- Created docs/ml-service.md covering the full ML service architecture
+- Covers: FastAPI app on port 8001, venv setup with pip install -e ".[service]", uvicorn start command
+- Systemd service: deployment/birdnet-ml.service with management commands (systemctl start/stop/restart/status)
+- Environment variables: BIRDNET_CONFIG and GO_SERVER_URL
+- Health check verification: curl http://localhost:8001/status/health
+- Go integration via internal/mlclient/ with usage examples
+- All API endpoints documented: /status/*, /analysis/*, /vad/*, /llm/*, root endpoints
+- Detection notification flow: Python → POST /internal/detection → Go WebSocket broadcast
+- Added reference to docs/ml-service.md in CLAUDE.md's Related Documentation section
+- All acceptance criteria verified. make test passes. Pure documentation — no code changes.
+
+[iteration 8] 2026-02-14 — Story #8: Create make install developer setup target
+- Added 'check-prereqs' target to Makefile: verifies go (1.21+), node (18+), npm, python3 (3.9+) with version checks
+- Added 'install' target: depends on check-prereqs, runs go mod download, npm install (in web/), make build, make build-web
+- Version checking approach: extract major/minor from `go version`, `node --version`, and `python3 -c 'import sys; ...'`, compare numerically
+- Updated README.md development section: added "developer setup" subsection showing `make install` as the quickstart
+- Renamed existing "quick version" subsection to "deploy to pi" for clarity
+- No sudo, no systemd, no system packages — purely developer-facing and idempotent
+- All acceptance criteria verified. make test passes.
+
+[iteration 9] 2026-02-14 — Story #9: Migrate birdnet_recording.sh to Go
+- Created internal/recording/recording.go with Run(ctx, RecordingConfig) function
+- Two modes: RTSP (ffmpeg via exec.Command per stream with retry loop) and microphone (arecord via exec.Command)
+- RecordingConfig struct with ConfigFromManager() helper to extract settings from config.Config
+- RTSP mode: splits comma-separated URLs, detects ffmpeg version for -stimeout vs -timeout, launches goroutines per stream
+- Microphone mode: ensures PulseAudio running, supports optional REC_CARD device, uses strftime output pattern
+- All ffmpeg args match original shell script: -hide_banner -loglevel -nostdin -vn -map a:0 -acodec pcm_s16le -ac 2 -ar 48000 -f segment -segment_format wav
+- Context cancellation for graceful shutdown throughout
+- Created recording_test.go with 9 test functions covering: splitStreams, buildTimeoutParam, buildFFmpegArgs (v4 and v5), buildArecordArgs (default, custom device, "default" device), ConfigFromManager (with values and defaults)
+- Added deprecation comment to scripts/runtime/birdnet_recording.sh
+- All acceptance criteria verified. make test passes (9 test functions, 0.005s).
+
+[iteration 10] 2026-02-14 — Story #10: Migrate custom_recording.sh + cleanup shell libs
+- Created internal/recording/custom.go with RunCustom(ctx, CustomRecordingConfig) function
+- TimeWindow struct with configurable start/end hours; DefaultWindows matches original shell (0-0, 3-7, 15-19, 22-23)
+- CustomRecordingConfig with RecordingDuration (60s), PauseDuration (240s), Channels, RecCard, ExtractedDir
+- CustomConfigFromManager() helper extracts config from RecordingConfig
+- inWindow() checks if current hour falls in any configured window; RunCustom() loops: check window → arecord → pause
+- Output pattern matches shell: Raw/%B-%Y/%d-%A/%F-birdnet-%H:%M:%S.wav (arecord strftime)
+- Created custom_test.go with 8 test functions: inWindow (all hours), inWindowEmpty, buildCustomArecordArgs (default, device, "default" device), CustomConfigFromManager (with values, defaults), DefaultWindows
+- Added DEPRECATED comment to scripts/runtime/custom_recording.sh, scripts/lib/config.sh, scripts/tools/read_chunks.sh
+- All acceptance criteria verified. make test passes (17 recording tests total, 0.005s).
+
+[iteration 11] 2026-02-15 — Story #12: Wire up Go recording binary and systemd services
+- Created cmd/birdnet-recording/main.go: standalone binary with --mode flag (standard/custom)
+- Reads config from BIRDNET_CONFIG env var, loads via config.NewManager/Load, converts to RecordingConfig
+- Signal handling: SIGTERM/SIGINT → context cancellation for graceful shutdown
+- Logs startup info (mode, RTSP streams or microphone device) before calling recording.Run/RunCustom
+- Created deployment/birdnet-recording.service: systemd unit for standard recording (After=network.target pulseaudio.service)
+- Created deployment/birdnet-custom-recording.service: same for custom mode (disabled by default, opt-in)
+- Both services have security hardening (NoNewPrivileges, ProtectSystem, ProtectHome) and restart policy
+- Added Makefile targets: build-recording, build-recording-arm64; updated build-all-platforms and install
+- Updated CLAUDE.md: added recording binary to Key File Locations, Internal Packages, new Recording Service section
+- Updated README.md: changed services table entry from "Bash" to "Go" for birdnet-recording
+- Fixed docs/ml-service.md: changed import path from github.com/your-org/birdnet-pi to github.com/birdnet-pi/birdnet
+- Deleted deprecated shell scripts: birdnet_recording.sh, custom_recording.sh, read_chunks.sh
+- Kept scripts/lib/config.sh (still used by install scripts)
+- All 13 acceptance criteria verified. go build ./cmd/birdnet-recording compiles. make test passes.

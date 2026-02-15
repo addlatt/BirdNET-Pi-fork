@@ -1,0 +1,38 @@
+[Unit]
+Description=BirdNET-Pi Custom Time-Windowed Recording Service
+Documentation=https://github.com/Nachtzuster/BirdNET-Pi
+After=network.target pulseaudio.service
+
+[Service]
+Type=simple
+User=%USER%
+Group=%USER%
+WorkingDirectory=%HOME%/BirdNET-Pi
+
+# Environment - paths are substituted during installation
+Environment="BIRDNET_CONFIG=%HOME%/BirdNET-Pi/birdnet.conf"
+
+ExecStart=%HOME%/BirdNET-Pi/bin/birdnet-recording --mode custom
+
+# Restart policy with rate limiting (prevents restart storms)
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=%HOME%/BirdNET-Pi
+ReadWritePaths=%HOME%/BirdSongs
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=birdnet-custom-recording
+
+[Install]
+# Disabled by default — enable with: sudo systemctl enable birdnet-custom-recording
+WantedBy=multi-user.target

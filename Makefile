@@ -3,6 +3,8 @@
 .PHONY: all build test test-verbose test-coverage test-race lint clean help
 .PHONY: dev-server dev-web install-deps generate
 .PHONY: build-arm64 build-arm build-pi build-all-platforms
+.PHONY: build-recording build-recording-arm64
+.PHONY: check-prereqs install
 
 # Go parameters
 GOCMD=go
@@ -23,6 +25,8 @@ COVERAGE_FLAGS=-coverprofile=coverage.out -covermode=atomic
 
 # Directories
 CMD_DIR=./cmd/server
+CMD_RECORDING_DIR=./cmd/birdnet-recording
+RECORDING_BINARY_NAME=birdnet-recording
 INTERNAL_DIR=./internal/...
 WEB_DIR=./web
 
@@ -50,10 +54,20 @@ build-arm: ## Build for Raspberry Pi Zero/older Pi (32-bit ARM)
 	@mkdir -p $(BINARY_DIR)
 	GOOS=linux GOARCH=arm GOARM=7 $(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-linux-arm $(CMD_DIR)
 
+build-recording: ## Build the recording binary
+	@echo "Building $(RECORDING_BINARY_NAME)..."
+	@mkdir -p $(BINARY_DIR)
+	$(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(RECORDING_BINARY_NAME) $(CMD_RECORDING_DIR)
+
+build-recording-arm64: ## Build recording binary for Raspberry Pi (64-bit ARM)
+	@echo "Building $(RECORDING_BINARY_NAME) for linux/arm64..."
+	@mkdir -p $(BINARY_DIR)
+	GOOS=linux GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(RECORDING_BINARY_NAME)-linux-arm64 $(CMD_RECORDING_DIR)
+
 build-pi: build-arm64 ## Alias for build-arm64 (most common Pi target)
 	@echo "Pi build complete: $(BINARY_DIR)/$(BINARY_NAME)-linux-arm64"
 
-build-all-platforms: build build-arm64 build-arm ## Build for all platforms
+build-all-platforms: build build-arm64 build-arm build-recording build-recording-arm64 ## Build for all platforms
 	@echo "All platform builds complete:"
 	@ls -la $(BINARY_DIR)/
 
@@ -132,6 +146,40 @@ fmt-check: ## Check if code is formatted
 vet: ## Run go vet
 	@echo "Running go vet..."
 	$(GOCMD) vet $(INTERNAL_DIR)
+
+## Setup
+
+check-prereqs: ## Verify required tools are installed with minimum versions
+	@echo "Checking prerequisites..."
+	@command -v go >/dev/null 2>&1 || { echo "ERROR: go is not installed (need 1.21+)"; exit 1; }
+	@command -v node >/dev/null 2>&1 || { echo "ERROR: node is not installed (need 18+)"; exit 1; }
+	@command -v npm >/dev/null 2>&1 || { echo "ERROR: npm is not installed"; exit 1; }
+	@command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is not installed (need 3.9+)"; exit 1; }
+	@GO_VER=$$(go version | grep -oP 'go(\d+)\.(\d+)' | grep -oP '\d+$$'); \
+	GO_MAJOR=$$(go version | grep -oP 'go\d+' | grep -oP '\d+'); \
+	if [ "$$GO_MAJOR" -lt 1 ] || { [ "$$GO_MAJOR" -eq 1 ] && [ "$$GO_VER" -lt 21 ]; }; then \
+		echo "ERROR: Go 1.21+ required, found $$(go version)"; exit 1; \
+	fi
+	@NODE_MAJOR=$$(node --version | grep -oP '\d+' | head -1); \
+	if [ "$$NODE_MAJOR" -lt 18 ]; then \
+		echo "ERROR: Node 18+ required, found $$(node --version)"; exit 1; \
+	fi
+	@PY_VER=$$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'); \
+	PY_MAJOR=$$(echo $$PY_VER | cut -d. -f1); \
+	PY_MINOR=$$(echo $$PY_VER | cut -d. -f2); \
+	if [ "$$PY_MAJOR" -lt 3 ] || { [ "$$PY_MAJOR" -eq 3 ] && [ "$$PY_MINOR" -lt 9 ]; }; then \
+		echo "ERROR: Python 3.9+ required, found $$PY_VER"; exit 1; \
+	fi
+	@echo "All prerequisites satisfied."
+
+install: check-prereqs ## Full developer setup: check prereqs, install deps, build all
+	@echo "Installing dependencies and building..."
+	$(GOMOD) download
+	cd $(WEB_DIR) && npm install
+	@$(MAKE) build
+	@$(MAKE) build-recording
+	@$(MAKE) build-web
+	@echo "Install complete. Run 'make test' to verify."
 
 ## Dependencies
 

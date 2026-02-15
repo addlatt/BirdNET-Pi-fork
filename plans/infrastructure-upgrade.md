@@ -1,5 +1,7 @@
 # BirdNET-Pi Infrastructure Upgrade Plan
 
+> **STATUS: COMPLETED** — Kept for historical reference.
+
 ## Goal
 
 Migrate from the current shell/PHP/Python mix to a clean, maintainable Go + Python + Preact architecture using an **incremental approach** that minimizes risk and delivers value early.

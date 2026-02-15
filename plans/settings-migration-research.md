@@ -1,5 +1,7 @@
 # Settings Page Migration Research
 
+> **STATUS: COMPLETED** — Kept for historical reference.
+
 ## Executive Summary
 
 This document captures research findings for migrating the PHP settings pages to Preact (Phase 4.2 and Phase 5 of the infrastructure upgrade). The migration involves two main PHP pages with ~70KB of combined code handling 60+ configuration parameters.

@@ -54,17 +54,44 @@ the bird detection stuff is identical to upstream. this is a frontend/api/servic
 |---------|------------|---------|
 | birdnet-api | Go | REST API, WebSocket, task scheduling |
 | birdnet_analysis | Python | ML inference with BirdNET model |
-| birdnet_recording | Bash | Audio capture from microphone |
+| birdnet-recording | Go | Audio capture from microphone or RTSP (replaces shell scripts) |
 | spectrogram_viewer | Python | Generates live spectrogram images |
 | livestream | Python | Streams audio to Icecast via ffmpeg |
 | birdnet_stats | Python/Streamlit | Statistics dashboard |
 
-## requirements
+## prerequisites
 
-same as upstream:
-- raspberry pi 5, 4b, 400, 3b+, or 0w2
+### hardware
+
+- **raspberry pi 5** (recommended), 4b, 400, 3b+, or 0w2
+- 4GB+ RAM recommended (8GB for best performance)
+- NVMe SSD recommended for Pi 5 (improves database and recording I/O)
 - 64-bit raspios (trixie recommended)
 - usb microphone or sound card
+- x86_64 linux also works for development
+
+### software
+
+| dependency | minimum version | source |
+|-----------|----------------|--------|
+| Go | 1.21+ | `go.mod` |
+| Node.js | 18+ | Vite 5 requires it |
+| Python | 3.9+ | `pyproject.toml` |
+
+### system packages
+
+installed via `apt` on the pi (see `scripts/install/install_services.sh`):
+
+- **caddy** — reverse proxy
+- **sqlite3** — database
+- **ffmpeg** — audio processing and streaming
+- **alsa-utils** — microphone input (arecord)
+- **sox**, **libsox-fmt-mp3** — audio conversion
+- **pulseaudio** — audio routing
+- **icecast2** — live audio streaming
+- **avahi-utils** — mDNS hostname resolution
+- **python3-pip**, **python3-venv** — python package management
+- **inotify-tools** — file change monitoring
 
 ## installation
 
@@ -126,7 +153,19 @@ the go server auto-restarts if it crashes. rate limited to 5 restarts per minute
 
 see [CLAUDE.md](CLAUDE.md) for the full dev guide.
 
-quick version:
+### developer setup
+
+```bash
+# clone and set up everything (checks prereqs, installs deps, builds)
+git clone https://github.com/addlatt/BirdNET-Pi-fork.git
+cd BirdNET-Pi-fork
+make install
+
+# run tests
+make test
+```
+
+### deploy to pi
 
 ```bash
 # make changes locally, commit and push
@@ -160,6 +199,8 @@ WS   /ws                      # live detection updates
 WS   /ws/logs                 # streaming log output
 WS   /ws/logs/detections      # detection-only log stream
 ```
+
+> **Note:** Several endpoints for Part 2 features (VAD and LLM) return **501 Not Implemented**. These are stub routers defining the future API contract. See [CLAUDE.md](CLAUDE.md) for the full list.
 
 ## license
 

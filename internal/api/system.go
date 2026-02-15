@@ -60,7 +60,7 @@ type MLMemoryResponse struct {
 }
 
 var startTime = time.Now()
-const version = "0.1.0"
+const version = "1.0.0"
 
 // SystemStatus handles GET /api/system/status requests.
 func (h *Handlers) SystemStatus(w http.ResponseWriter, r *http.Request) {
