@@ -126,9 +126,32 @@
       "passes": true
     }
   ],
+  "followUp": [
+    {
+      "id": 12,
+      "title": "Wire up Go recording binary and systemd services",
+      "description": "Stories 9 and 10 created internal/recording/ with excellent Go implementations of birdnet_recording.sh and custom_recording.sh — but the code is never called. This story completes the migration by creating an entry point binary, systemd service files, a Makefile target, and documentation.\n\n## What to create\n\n### 1. cmd/birdnet-recording/main.go\nA standalone binary that:\n- Accepts a --mode flag: 'standard' (default) or 'custom' to select recording.Run() vs recording.RunCustom()\n- Reads config path from BIRDNET_CONFIG env var (default: /etc/birdnet/birdnet.conf), loads it via config.NewManager() then config.Load()\n- Converts config to recording.RecordingConfig via recording.ConfigFromManager(cfg.Config), then to recording.CustomRecordingConfig via recording.CustomConfigFromManager() if custom mode\n- Sets up signal handling: listens for SIGTERM and SIGINT, cancels the context for graceful shutdown\n- Logs startup info (mode, key config values like RTSP_STREAM or REC_CARD)\n- Calls recording.Run(ctx, cfg) or recording.RunCustom(ctx, customCfg) and exits with appropriate code\n- Follow the pattern of cmd/server/main.go for env var handling (getEnv helper, expandHome, etc.)\n\n### 2. deployment/birdnet-recording.service\nSystemd unit file for standard recording. Model after deployment/birdnet-api.service:\n- ExecStart=/home/birdnet/BirdNET-Pi/bin/birdnet-recording --mode standard\n- Environment=BIRDNET_CONFIG=/etc/birdnet/birdnet.conf\n- User=birdnet, Restart=always, RestartSec=3\n- After=network.target pulseaudio.service\n- Resource limits similar to birdnet-api.service\n\n### 3. deployment/birdnet-custom-recording.service\nSame as above but with --mode custom. Should be disabled by default (matching the original custom_recording.sh behavior which was opt-in).\n\n### 4. Makefile targets\nAdd to existing Makefile:\n- build-recording: builds cmd/birdnet-recording to bin/birdnet-recording\n- build-recording-arm64: cross-compile for Pi\n- Update 'build-all-platforms' to include the recording binary\n- Update 'install' target to also build the recording binary\n\n### 5. Documentation\n- Add a 'Recording Service' section to CLAUDE.md documenting cmd/birdnet-recording, its flags, and the systemd services\n- Update README.md services table to note the Go recording binary replaces the shell scripts\n- Fix docs/ml-service.md: change the Go import path example from 'github.com/your-org/birdnet-pi' to 'github.com/birdnet-pi/birdnet' (the actual module path from go.mod)\n\n### 6. Delete deprecated shell scripts\nNow that the Go binary exists and is wired up:\n- Delete scripts/runtime/birdnet_recording.sh\n- Delete scripts/runtime/custom_recording.sh\n- Delete scripts/tools/read_chunks.sh (zero references, already deprecated)\n- Keep scripts/lib/config.sh for now (still used by install scripts)",
+      "acceptanceCriteria": [
+        "cmd/birdnet-recording/main.go exists and imports internal/recording",
+        "cmd/birdnet-recording/main.go handles both --mode standard and --mode custom flags",
+        "cmd/birdnet-recording/main.go sets up SIGTERM/SIGINT signal handling with context cancellation",
+        "go build ./cmd/birdnet-recording succeeds (binary compiles)",
+        "deployment/birdnet-recording.service exists with ExecStart pointing to the Go binary",
+        "deployment/birdnet-custom-recording.service exists",
+        "Makefile has a 'build-recording' target that builds cmd/birdnet-recording",
+        "CLAUDE.md documents the recording binary and its --mode flag",
+        "docs/ml-service.md uses 'github.com/birdnet-pi/birdnet' not 'github.com/your-org/birdnet-pi'",
+        "scripts/runtime/birdnet_recording.sh is deleted",
+        "scripts/runtime/custom_recording.sh is deleted",
+        "scripts/tools/read_chunks.sh is deleted",
+        "make test passes"
+      ],
+      "passes": true
+    }
+  ],
   "deferred": [
     {
-      "id": 11,
+      "id": 13,
       "title": "Create Pi bootstrap install.sh",
       "description": "Full end-to-end installer for a fresh Raspberry Pi: install system packages (caddy, sqlite3, ffmpeg, alsa-utils, sox, pulseaudio, icecast2, etc.), set up Go/Node/Python, build all binaries, install systemd services, configure Caddy. Should work on a fresh Raspberry Pi OS install. Deferred because it requires a real Pi to test and has broader blast radius than developer-facing tooling.",
       "reason": "Revisit in a future Ralph run — requires Pi hardware for proper testing"

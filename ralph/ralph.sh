@@ -22,7 +22,7 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
     echo "=== Iteration $ITERATION of $MAX_ITERATIONS ==="
 
     # Check if all stories pass before starting
-    REMAINING=$(jq '[.userStories[] | select(.passes == false)] | length' ralph/prd.json)
+    REMAINING=$(jq '[(.userStories // [])[] | select(.passes == false)] + [(.followUp // [])[] | select(.passes == false)] | length' ralph/prd.json)
     if [ "$REMAINING" -eq 0 ]; then
         echo ""
         echo "=== All PRD stories complete! ==="
@@ -39,7 +39,7 @@ You are running inside a Ralph loop — an autonomous iteration loop.
 
 ## Your task
 
-1. Read ralph/prd.json to find the FIRST user story where "passes": false
+1. Read ralph/prd.json to find the FIRST story where "passes": false (check both userStories and followUp arrays)
 2. Read ralph/progress.txt for context from previous iterations
 3. Implement that ONE story completely
 4. Run verification: make test (for Go changes), and any other relevant checks

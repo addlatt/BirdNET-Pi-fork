@@ -148,7 +148,7 @@ The Go server uses `internal/mlclient/client.go` to communicate with the ML serv
 ### Usage
 
 ```go
-import "github.com/your-org/birdnet-pi/internal/mlclient"
+import "github.com/birdnet-pi/birdnet/internal/mlclient"
 
 // Create client (30-second default timeout)
 client := mlclient.New("http://127.0.0.1:8001")

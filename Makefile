@@ -3,6 +3,7 @@
 .PHONY: all build test test-verbose test-coverage test-race lint clean help
 .PHONY: dev-server dev-web install-deps generate
 .PHONY: build-arm64 build-arm build-pi build-all-platforms
+.PHONY: build-recording build-recording-arm64
 .PHONY: check-prereqs install
 
 # Go parameters
@@ -24,6 +25,8 @@ COVERAGE_FLAGS=-coverprofile=coverage.out -covermode=atomic
 
 # Directories
 CMD_DIR=./cmd/server
+CMD_RECORDING_DIR=./cmd/birdnet-recording
+RECORDING_BINARY_NAME=birdnet-recording
 INTERNAL_DIR=./internal/...
 WEB_DIR=./web
 
@@ -51,10 +54,20 @@ build-arm: ## Build for Raspberry Pi Zero/older Pi (32-bit ARM)
 	@mkdir -p $(BINARY_DIR)
 	GOOS=linux GOARCH=arm GOARM=7 $(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-linux-arm $(CMD_DIR)
 
+build-recording: ## Build the recording binary
+	@echo "Building $(RECORDING_BINARY_NAME)..."
+	@mkdir -p $(BINARY_DIR)
+	$(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(RECORDING_BINARY_NAME) $(CMD_RECORDING_DIR)
+
+build-recording-arm64: ## Build recording binary for Raspberry Pi (64-bit ARM)
+	@echo "Building $(RECORDING_BINARY_NAME) for linux/arm64..."
+	@mkdir -p $(BINARY_DIR)
+	GOOS=linux GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o $(BINARY_DIR)/$(RECORDING_BINARY_NAME)-linux-arm64 $(CMD_RECORDING_DIR)
+
 build-pi: build-arm64 ## Alias for build-arm64 (most common Pi target)
 	@echo "Pi build complete: $(BINARY_DIR)/$(BINARY_NAME)-linux-arm64"
 
-build-all-platforms: build build-arm64 build-arm ## Build for all platforms
+build-all-platforms: build build-arm64 build-arm build-recording build-recording-arm64 ## Build for all platforms
 	@echo "All platform builds complete:"
 	@ls -la $(BINARY_DIR)/
 
@@ -164,6 +177,7 @@ install: check-prereqs ## Full developer setup: check prereqs, install deps, bui
 	$(GOMOD) download
 	cd $(WEB_DIR) && npm install
 	@$(MAKE) build
+	@$(MAKE) build-recording
 	@$(MAKE) build-web
 	@echo "Install complete. Run 'make test' to verify."
 

@@ -22,6 +22,7 @@ Browser → Caddy (port 80) → Go API (port 8080) → SQLite (read-only)
 | Component | Local Path | Pi Path |
 |-----------|------------|---------|
 | Go server entry | `cmd/server/main.go` | `~/BirdNET-Pi/bin/birdnet-server` |
+| Go recording entry | `cmd/birdnet-recording/main.go` | `~/BirdNET-Pi/bin/birdnet-recording` |
 | Go API handlers | `internal/api/` | (compiled into binary) |
 | Go config | `internal/config/` | (compiled into binary) |
 | WebSocket hub | `internal/ws/` | (compiled into binary) |
@@ -31,7 +32,9 @@ Browser → Caddy (port 80) → Go API (port 8080) → SQLite (read-only)
 | Database | `data/db/birds.db` | `~/BirdNET-Pi/data/db/birds.db` |
 | Config file | - | `~/BirdNET-Pi/birdnet.conf` |
 | Caddyfile | `deployment/Caddyfile` | `/etc/caddy/Caddyfile` |
-| Systemd service | `deployment/birdnet-api.service` | `/etc/systemd/system/birdnet-api.service` |
+| Systemd services | `deployment/birdnet-api.service` | `/etc/systemd/system/birdnet-api.service` |
+| | `deployment/birdnet-recording.service` | `/etc/systemd/system/birdnet-recording.service` |
+| | `deployment/birdnet-custom-recording.service` | `/etc/systemd/system/birdnet-custom-recording.service` |
 | Species lists | `data/species_lists/` | `~/BirdNET-Pi/data/species_lists/` |
 | Bird recordings | - | `~/BirdSongs/Extracted/By_Date/` |
 
@@ -96,6 +99,7 @@ curl http://localhost:8080/api/system/status
 - `internal/images/` - Bird image fetching and caching
 - `internal/mlclient/` - Python ML service client
 - `internal/monitor/` - Memory monitoring
+- `internal/recording/` - Audio recording (RTSP, microphone, time-windowed)
 - `internal/scheduler/` - Task scheduling and execution
 - `internal/tasks/` - Background task definitions
 - `internal/testutil/` - Shared test helpers
@@ -235,6 +239,24 @@ POST /llm/unload    # Unload the LLM model to free memory
 GET  /llm/models    # List available LLM models
 GET  /llm/status    # LLM model status (returns enabled: false)
 ```
+
+## Recording Service
+
+The `cmd/birdnet-recording` binary replaces the legacy shell scripts for audio capture. It supports two modes via the `--mode` flag:
+
+- **`--mode standard`** (default): Continuous recording from RTSP streams (ffmpeg) or local microphone (arecord). Replaces `scripts/runtime/birdnet_recording.sh`.
+- **`--mode custom`**: Time-windowed recording during configured hours with pauses between chunks. Replaces `scripts/runtime/custom_recording.sh`.
+
+```bash
+# Build
+make build-recording
+
+# Run (reads config from BIRDNET_CONFIG env var)
+BIRDNET_CONFIG=/path/to/birdnet.conf ./bin/birdnet-recording --mode standard
+BIRDNET_CONFIG=/path/to/birdnet.conf ./bin/birdnet-recording --mode custom
+```
+
+Systemd services: `deployment/birdnet-recording.service` (standard) and `deployment/birdnet-custom-recording.service` (custom, disabled by default).
 
 ## Preact Frontend Structure
 

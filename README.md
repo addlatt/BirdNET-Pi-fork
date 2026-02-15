@@ -54,7 +54,7 @@ the bird detection stuff is identical to upstream. this is a frontend/api/servic
 |---------|------------|---------|
 | birdnet-api | Go | REST API, WebSocket, task scheduling |
 | birdnet_analysis | Python | ML inference with BirdNET model |
-| birdnet_recording | Bash | Audio capture from microphone |
+| birdnet-recording | Go | Audio capture from microphone or RTSP (replaces shell scripts) |
 | spectrogram_viewer | Python | Generates live spectrogram images |
 | livestream | Python | Streams audio to Icecast via ffmpeg |
 | birdnet_stats | Python/Streamlit | Statistics dashboard |

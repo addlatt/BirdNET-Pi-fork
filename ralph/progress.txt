@@ -93,3 +93,19 @@
 - Created custom_test.go with 8 test functions: inWindow (all hours), inWindowEmpty, buildCustomArecordArgs (default, device, "default" device), CustomConfigFromManager (with values, defaults), DefaultWindows
 - Added DEPRECATED comment to scripts/runtime/custom_recording.sh, scripts/lib/config.sh, scripts/tools/read_chunks.sh
 - All acceptance criteria verified. make test passes (17 recording tests total, 0.005s).
+
+[iteration 11] 2026-02-15 — Story #12: Wire up Go recording binary and systemd services
+- Created cmd/birdnet-recording/main.go: standalone binary with --mode flag (standard/custom)
+- Reads config from BIRDNET_CONFIG env var, loads via config.NewManager/Load, converts to RecordingConfig
+- Signal handling: SIGTERM/SIGINT → context cancellation for graceful shutdown
+- Logs startup info (mode, RTSP streams or microphone device) before calling recording.Run/RunCustom
+- Created deployment/birdnet-recording.service: systemd unit for standard recording (After=network.target pulseaudio.service)
+- Created deployment/birdnet-custom-recording.service: same for custom mode (disabled by default, opt-in)
+- Both services have security hardening (NoNewPrivileges, ProtectSystem, ProtectHome) and restart policy
+- Added Makefile targets: build-recording, build-recording-arm64; updated build-all-platforms and install
+- Updated CLAUDE.md: added recording binary to Key File Locations, Internal Packages, new Recording Service section
+- Updated README.md: changed services table entry from "Bash" to "Go" for birdnet-recording
+- Fixed docs/ml-service.md: changed import path from github.com/your-org/birdnet-pi to github.com/birdnet-pi/birdnet
+- Deleted deprecated shell scripts: birdnet_recording.sh, custom_recording.sh, read_chunks.sh
+- Kept scripts/lib/config.sh (still used by install scripts)
+- All 13 acceptance criteria verified. go build ./cmd/birdnet-recording compiles. make test passes.
