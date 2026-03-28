@@ -27,6 +27,7 @@ ProtectHome=read-only
 PrivateTmp=true
 ReadWritePaths=%HOME%/BirdNET-Pi
 ReadWritePaths=%HOME%/BirdSongs
+ReadWritePaths=%HOME%/.config/pulse
 
 # Logging
 StandardOutput=journal
