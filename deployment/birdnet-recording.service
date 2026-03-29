@@ -11,6 +11,7 @@ WorkingDirectory=%HOME%/BirdNET-Pi
 
 # Environment - paths are substituted during installation
 Environment="BIRDNET_CONFIG=%HOME%/BirdNET-Pi/birdnet.conf"
+Environment="XDG_RUNTIME_DIR=/run/user/%UID%"
 
 ExecStart=%HOME%/BirdNET-Pi/bin/birdnet-recording --mode standard
 
