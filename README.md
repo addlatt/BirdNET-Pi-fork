@@ -200,7 +200,6 @@ WS   /ws/logs                 # streaming log output
 WS   /ws/logs/detections      # detection-only log stream
 ```
 
-> **Note:** Several endpoints for Part 2 features (VAD and LLM) return **501 Not Implemented**. These are stub routers defining the future API contract. See [CLAUDE.md](CLAUDE.md) for the full list.
 
 ## license
 
