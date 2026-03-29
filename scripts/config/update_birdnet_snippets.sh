@@ -222,10 +222,6 @@ if grep -q -e 'Environment=XDG_RUNTIME_DIR=/run/user/' $HOME/BirdNET-Pi/template
   systemctl daemon-reload && restart_services.sh
 fi
 
-if grep -q -e 'Environment=XDG_RUNTIME_DIR=/run/user/' $HOME/BirdNET-Pi/templates/livestream.service; then
-  sed -i '/^Environment=XDG_RUNTIME_DIR=\/run\/user\/[0-9]\+/d' $HOME/BirdNET-Pi/templates/livestream.service
-  systemctl daemon-reload && restart_services.sh
-fi
 
 if ! [ -L /etc/avahi/services/http.service ];then
   # symbolic link does not work here, so just copy

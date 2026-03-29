@@ -1,12 +1,13 @@
 [Unit]
 Description=BirdNET-Pi Livestream Service
-After=network-online.target
+After=network-online.target icecast2.service
 Requires=network-online.target
 
 [Service]
 Type=simple
 User=%USER%
 Environment="HOME=%HOME%"
+Environment="XDG_RUNTIME_DIR=/run/user/%UID%"
 ExecStart=%PYTHON_VENV% %INSTALL_DIR%/src/service/livestream.py
 Restart=always
 RestartSec=3

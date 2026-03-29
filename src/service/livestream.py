@@ -117,8 +117,8 @@ class LivestreamService:
             return ['-i', selected_stream], f"RTSP: {selected_stream}"
 
         elif self.rec_card:
-            self.logger.info(f"Using ALSA device: {self.rec_card}")
-            return ['-f', 'alsa', '-i', self.rec_card], f"ALSA: {self.rec_card}"
+            self.logger.info(f"Using PulseAudio default source (card: {self.rec_card})")
+            return ['-f', 'pulse', '-i', 'default'], f"PulseAudio: default (card: {self.rec_card})"
 
         else:
             raise ValueError("No recording card or RTSP stream configured")
@@ -151,7 +151,7 @@ class LivestreamService:
 
         # Output to Icecast
         icecast_url = f'icecast://source:{self.ice_pwd}@localhost:8000/stream'
-        cmd.extend(['-f', 'mp3', icecast_url, '-re'])
+        cmd.extend(['-f', 'mp3', icecast_url])
 
         return cmd
 

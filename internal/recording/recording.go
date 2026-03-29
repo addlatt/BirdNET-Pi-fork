@@ -210,11 +210,12 @@ func buildArecordArgs(cfg RecordingConfig, streamDir string) []string {
 	return args
 }
 
-// ensurePulseAudio checks if PulseAudio is running and starts it if not.
+// ensurePulseAudio checks if a PulseAudio-compatible server (PulseAudio or
+// PipeWire-Pulse) is running and starts native PulseAudio only if neither is found.
 func ensurePulseAudio(ctx context.Context) error {
-	check := exec.CommandContext(ctx, "pulseaudio", "--check")
+	check := exec.CommandContext(ctx, "pactl", "info")
 	if err := check.Run(); err != nil {
-		log.Printf("PulseAudio not running, starting...")
+		log.Printf("No PulseAudio-compatible server detected, starting PulseAudio...")
 		start := exec.CommandContext(ctx, "pulseaudio", "--start")
 		return start.Run()
 	}
